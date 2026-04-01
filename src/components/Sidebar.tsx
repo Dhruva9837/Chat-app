@@ -12,6 +12,7 @@ export function Sidebar() {
   const { user } = useAuthStore()
   const [filter, setFilter] = useState('All')
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const filters = ['All', 'Unread', 'Personal', 'Work']
 
@@ -37,6 +38,8 @@ export function Sidebar() {
           <input 
             type="text" 
             placeholder="Search conversations..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-[#f8faff] rounded-xl py-3.5 pl-11 pr-4 text-sm focus:bg-white focus:ring-1 focus:ring-primary/20 outline-none transition-all placeholder:text-zinc-300 font-sans border border-transparent focus:border-primary/10"
           />
         </div>
@@ -83,7 +86,10 @@ export function Sidebar() {
               
               const time = lastMsg ? new Date(lastMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
               
+              const matchesSearch = chatName.toLowerCase().includes(searchQuery.toLowerCase()) || (participantProfile?.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+              
               if (filter === 'Unread' && unreadCount === 0) return null
+              if (searchQuery && !matchesSearch) return null
 
               return (
                 <motion.button

@@ -13,6 +13,8 @@ export function ChatWindow() {
   const [content, setContent] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -208,27 +210,51 @@ export function ChatWindow() {
                     )}
                  </div>
                  <div>
-                   <h2 className="font-display font-black text-xl tracking-tighter text-gray-900 leading-none mb-1.5">
-                     {chatName}
-                   </h2>
-                   <div className={`flex items-center text-[10px] uppercase font-black tracking-[0.2em] ${isOnline || isGroup ? 'text-secondary-presence' : 'text-zinc-400'}`}>
-                     <span className={`w-1.5 h-1.5 rounded-full mr-2 ${isOnline || isGroup ? 'bg-secondary-presence animate-pulse' : 'bg-zinc-300'}`} />
-                     {isGroup ? `${memberCount} Architects Node` : (isOnline ? 'Active Stream' : 'Offline')}
-                   </div>
-                 </div>
-              </div>
-            )
-          })()}
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <HeaderAction icon={Video} color="text-zinc-500" />
-          <HeaderAction icon={Phone} color="text-zinc-500" />
-          <div className="w-px h-8 bg-black/5 mx-2" />
-          <HeaderAction icon={Search} color="text-zinc-500" />
-          <HeaderAction icon={Info} color="text-primary" onClick={toggleDetailSidebar} />
-          <HeaderAction icon={MoreVertical} color="text-zinc-500" />
-        </div>
+           <h2 className="font-display font-black text-xl tracking-tighter text-gray-900 leading-none mb-1.5 uppercase tracking-widest">Architects node</h2>
+           <div className={`flex items-center text-[10px] uppercase font-black tracking-[0.2em] ${isOnline || isGroup ? 'text-secondary-presence' : 'text-zinc-400'}`}>
+             <span className={`w-1.5 h-1.5 rounded-full mr-2 ${isOnline || isGroup ? 'bg-secondary-presence animate-pulse' : 'bg-zinc-300'}`} />
+             {isGroup ? `${memberCount} Architects Node` : (isOnline ? 'Active Stream' : 'Offline')}
+           </div>
+         </div>
+      </div>
+    )
+  })()}
+</div>
+
+<div className="flex items-center space-x-4">
+  <AnimatePresence>
+    {isSearching && (
+      <motion.div 
+        initial={{ width: 0, opacity: 0 }}
+        animate={{ width: 240, opacity: 1 }}
+        exit={{ width: 0, opacity: 0 }}
+        className="relative"
+      >
+        <input 
+          autoFocus
+          type="text" 
+          placeholder="Filter cipher stream..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-white/50 border border-black/5 rounded-full py-2 px-6 text-xs font-sans font-semibold outline-none focus:ring-2 focus:ring-primary/20"
+        />
+      </motion.div>
+    )}
+  </AnimatePresence>
+  <HeaderAction icon={Video} color="text-zinc-500" />
+  <HeaderAction icon={Phone} color="text-zinc-500" />
+  <div className="w-px h-8 bg-black/5 mx-2" />
+  <HeaderAction 
+    icon={Search} 
+    color={isSearching ? "text-primary" : "text-zinc-500"} 
+    onClick={() => {
+      setIsSearching(!isSearching)
+      if (isSearching) setSearchQuery('')
+    }} 
+  />
+  <HeaderAction icon={Info} color="text-primary" onClick={toggleDetailSidebar} />
+  <HeaderAction icon={MoreVertical} color="text-zinc-500" />
+</div>
       </div>
 
       {/* Message Area */}
@@ -281,7 +307,15 @@ export function ChatWindow() {
                               <p className={`text-[13px] font-black uppercase tracking-widest ${isMe ? 'text-white/60' : 'text-zinc-400'}`}>Media Node Received</p>
                            </div>
                          ) : (
-                           <p className="text-[16px] leading-[1.6] font-sans tracking-tight font-medium selection:bg-white/20">{msg.content}</p>
+                           <p className="text-[16px] leading-[1.6] font-sans tracking-tight font-medium selection:bg-white/20">
+                             {searchQuery && msg.content.toLowerCase().includes(searchQuery.toLowerCase()) ? (
+                               msg.content.split(new RegExp(`(${searchQuery})`, 'gi')).map((part, i) => 
+                                 part.toLowerCase() === searchQuery.toLowerCase() 
+                                   ? <span key={i} className="bg-secondary-presence/30 text-white px-0.5 rounded shadow-sm">{part}</span> 
+                                   : part
+                               )
+                             ) : msg.content}
+                           </p>
                          )}
                       </div>
                       <div className={`flex items-center mt-3.5 px-6 ${isMe ? 'justify-end' : 'justify-start'}`}>
