@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-display: var(--font-manrope), ui-sans-serif, system-ui;
+  
+  /* Color System */
+  --color-primary: #3525cd;
+  --color-primary-container: #4f46e5;
+  --color-on-primary: #ffffff;
+  
+  --color-bg-base: #f8f9ff;
+  --color-surface-low: #eff4ff;
+  --color-surface-lowest: #ffffff;
+  --color-surface-highest: #e0e7ff;
+  --color-surface-bright: #ffffff;
+  
+  --color-outline-variant: rgba(199, 196, 216, 0.2);
+  --color-secondary-presence: #006c49;
+  --color-tertiary-presence: #960014;
+  
+  --radius-lg: 1rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background-color: var(--color-bg-base);
+    color: #1b1b1b;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .bg-vibrant-gradient {
+    /* Precise Indigo (Top) to Light Violet (Bottom) as seen in reference */
+    background: linear-gradient(180deg, #3020c0 0%, #4f46e5 45%, #a5a5ff 100%);
+  }
+  .glass-card {
+    /* Lavender-Blue tinted glass */
+    background: rgba(220, 230, 255, 0.4);
+    backdrop-filter: blur(40px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .glass-input-lavender {
+    /* Specific light lavender input container with subtle transparency */
+    background: rgba(224, 231, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .glass-header {
+    background: rgba(248, 249, 255, 0.7);
+    backdrop-filter: blur(20px);
+  }
+  
+  .glass-premium {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+  .glass-v2 {
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(50px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.1);
+  }
+  .glass-accent {
+    background: rgba(53, 37, 205, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(53, 37, 205, 0.1);
+  }
+  .ambient-shadow {
+    box-shadow: 0 10px 30px -5px rgba(11, 28, 48, 0.08);
+  }
+  .ambient-shadow-lg {
+    box-shadow: 0 20px 50px -10px rgba(53, 37, 205, 0.12);
+  }
+  .ambient-shadow-xl {
+    box-shadow: 0 35px 80px -15px rgba(53, 37, 205, 0.2);
+  }
+  
+  /* Ghost Border Utility */
+  .ghost-border {
+    border: 1px solid var(--color-outline-variant);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Hide scrollbars for a clean editorial look */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(53, 37, 205, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(53, 37, 205, 0.2);
 }

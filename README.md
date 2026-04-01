@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Yapster - High-Fidelity Chat Application
 
-## Getting Started
+**Yapster** is a real-time, high-fidelity chat application built with modern web technologies, focusing on a "scroll-free, premium glassmorphic" design and seamless user interactions.
 
-First, run the development server:
+## 🚀 Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Framework**: Next.js 16 (React 19, App Router)
+- **Styling**: Tailwind CSS v4
+- **Animations**: Framer Motion
+- **State Management**: Zustand
+- **Backend & Database**: Supabase (PostgreSQL, Realtime, Auth)
+- **Icons**: Lucide React
+
+## 📁 Project Structure
+
+```text
+chat-app/
+├── public/                 # Static assets
+├── src/
+│   ├── app/                # Next.js App Router (page.tsx, layout.tsx, globals.css)
+│   ├── components/         # React UI Components
+│   │   ├── Auth.tsx        # Authentication Flow (Email/Mobile OTP with Glassmorphism)
+│   │   ├── ChatLayout.tsx  # Main Application Shell handling multi-view routing
+│   │   ├── ChatWindow.tsx  # Real-time Messaging Interface (Supabase Channels)
+│   │   ├── Sidebar.tsx     # Active Chat List
+│   │   └── ...             # Navigation & Contextual sidebars
+│   ├── lib/                # Configuration implementations (supabase.ts)
+│   ├── store/              # Zustand global state (authStore.ts, chatStore.ts)
+│   └── types/              # TypeScript definitions (database.ts)
+├── .env.local              # Environment variables
+├── supabase.sql            # Database schema and RLS policies
+└── package.json            # Project dependencies
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Setup & Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1. Prerequisites
+Make sure you have Node.js installed (v18+ recommended).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 2. Install Dependencies
+```bash
+# Ensure you are in the correct directory
+cd "chat-app"
+npm install
+```
 
-## Learn More
+### 3. Environment Configuration
+Create or modify the `.env.local` file in the `chat-app` directory with your Supabase credentials:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Running the Development Server
+**Important:** Make sure your terminal is navigated to the `chat-app` folder (not the outer folder) before running the command.
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🗄️ Database Architecture (Supabase)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This app utilizes Supabase for secure data storage and real-time syncing. The SQL schema is located in `supabase.sql`. 
+- **Profiles (`profiles`)**: Linked to Supabase Auth (`auth.users`). Stores user names, status (online/offline/typing), and avatars. 
+  - *Trigger:* Automatically creates a profile when a new user signs up.
+- **Chats (`chats`)**: Container for chat sessions, handling both `private` and `group` chats.
+- **Participants (`chat_participants`)**: Join table connecting users to chats.
+- **Messages (`messages`)**: Stores actual message payloads attached to a specific `chat_id`. 
+  - *Realtime:* Subscribed to Postgres changes to instantly push messages to clients.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔒 Security
+Row Level Security (RLS) is strictly enabled across all tables to ensure users can only view and send messages in chats they actively participate in.
