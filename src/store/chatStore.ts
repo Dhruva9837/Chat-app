@@ -17,6 +17,8 @@ interface ChatState {
   toggleDetailSidebar: () => void
   setOnlineUsers: (users: Record<string, any>) => void
   setTypingUser: (userId: string, isTyping: boolean) => void
+  addChat: (chat: Chat) => void
+  updateChat: (chatId: string, updates: Partial<Chat>) => void
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -38,5 +40,13 @@ export const useChatStore = create<ChatState>((set) => ({
   setOnlineUsers: (onlineUsers) => set({ onlineUsers }),
   setTypingUser: (userId, isTyping) => set((state) => ({
     typingUsers: { ...state.typingUsers, [userId]: isTyping }
+  })),
+  addChat: (chat) => set((state) => {
+    // Prevent duplicate chats from real-time events
+    if (state.chats.some(c => c.id === chat.id)) return state
+    return { chats: [chat, ...state.chats] }
+  }),
+  updateChat: (chatId, updates) => set((state) => ({
+    chats: state.chats.map(c => c.id === chatId ? { ...c, ...updates } : c)
   })),
 }))

@@ -1,15 +1,17 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Search, Edit, Filter } from 'lucide-react'
+import { Search, Edit, Filter, Plus } from 'lucide-react'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
+import { NewGroupModal } from './NewGroupModal'
 
 export function Sidebar() {
   const { chats, activeChat, setActiveChat, onlineUsers } = useChatStore()
   const { user } = useAuthStore()
   const [filter, setFilter] = useState('All')
+  const [isNewGroupOpen, setIsNewGroupOpen] = useState(false)
 
   const filters = ['All', 'Unread', 'Personal', 'Work']
 
@@ -17,11 +19,16 @@ export function Sidebar() {
     <div className="w-full md:w-[320px] lg:w-[380px] h-screen bg-white flex flex-col shrink-0 overflow-hidden relative border-r border-[#f1f1f1]">
       {/* Header (Inspired by reference) */}
       <div className="p-8 flex items-center justify-between pb-6">
-        <h1 className="font-display font-black text-3xl tracking-tight text-gray-900 leading-none">Messages</h1>
-        <button className="p-2.5 bg-[#eef2ff] text-primary rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95 shadow-sm">
-           <Edit className="w-5 h-5" />
+        <button 
+          onClick={() => setIsNewGroupOpen(true)}
+          className="p-2.5 bg-[#eef2ff] text-primary rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95 shadow-sm flex items-center space-x-2 group"
+        >
+           <Plus className="w-5 h-5" />
+           <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Project Node</span>
         </button>
       </div>
+
+      <NewGroupModal isOpen={isNewGroupOpen} onClose={() => setIsNewGroupOpen(false)} />
 
       {/* Search (Inspired by reference) */}
       <div className="px-8 mb-6">
@@ -59,11 +66,15 @@ export function Sidebar() {
             {chats.map((chat: any, index: number) => {
               const isActive = activeChat?.id === chat.id
               
-              // Get the other participant's profile
+              // Logic for Chat Name and Avatar
+              const isGroup = chat.type === 'group'
               const otherParticipant = chat.chat_participants?.find((p: any) => p.user_id !== user?.id)
               const participantProfile = otherParticipant?.profiles
+              
               const chatName = chat.name || participantProfile?.name || 'Unknown Architect'
-              const chatAvatar = participantProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participantProfile?.email || chat.id}`
+              const chatAvatar = isGroup 
+                ? `https://api.dicebear.com/7.x/initials/svg?seed=${chatName}&backgroundColor=00a3ff&fontFamily=monospace&bold=true`
+                : participantProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participantProfile?.email || chat.id}`
               
               const lastMsg = chat.last_message
               const unreadCount = chat.unread_count || 0

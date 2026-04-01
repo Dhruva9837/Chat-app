@@ -185,11 +185,15 @@ export function ChatWindow() {
           </button>
           
           {(() => {
+            const isGroup = (activeChat as any).type === 'group'
             const otherParticipant = (activeChat as any).chat_participants?.find((p: any) => p.user_id !== user?.id)
             const participantProfile = otherParticipant?.profiles
             const chatName = (activeChat as any).name || participantProfile?.name || 'Unknown User'
-            const chatAvatar = participantProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participantProfile?.email || activeChat.id}`
-            const isOnline = onlineUsers[otherParticipant?.user_id || '']
+            const chatAvatar = isGroup 
+              ? `https://api.dicebear.com/7.x/initials/svg?seed=${chatName}&backgroundColor=00a3ff&fontFamily=monospace&bold=true`
+              : participantProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participantProfile?.email || activeChat.id}`
+            const isOnline = !isGroup && onlineUsers[otherParticipant?.user_id || '']
+            const memberCount = (activeChat as any).chat_participants?.length || 0
 
             return (
               <div className="flex items-center space-x-5">
@@ -207,9 +211,9 @@ export function ChatWindow() {
                    <h2 className="font-display font-black text-xl tracking-tighter text-gray-900 leading-none mb-1.5">
                      {chatName}
                    </h2>
-                   <div className={`flex items-center text-[10px] uppercase font-black tracking-[0.2em] ${isOnline ? 'text-secondary-presence' : 'text-zinc-400'}`}>
-                     <span className={`w-1.5 h-1.5 rounded-full mr-2 ${isOnline ? 'bg-secondary-presence animate-pulse' : 'bg-zinc-300'}`} />
-                     {isOnline ? 'Active Stream' : 'Offline'}
+                   <div className={`flex items-center text-[10px] uppercase font-black tracking-[0.2em] ${isOnline || isGroup ? 'text-secondary-presence' : 'text-zinc-400'}`}>
+                     <span className={`w-1.5 h-1.5 rounded-full mr-2 ${isOnline || isGroup ? 'bg-secondary-presence animate-pulse' : 'bg-zinc-300'}`} />
+                     {isGroup ? `${memberCount} Architects Node` : (isOnline ? 'Active Stream' : 'Offline')}
                    </div>
                  </div>
               </div>
