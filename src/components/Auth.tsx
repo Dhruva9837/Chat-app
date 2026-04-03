@@ -16,7 +16,7 @@ export function Auth() {
   const [loading, setLoading] = useState(false)
   const [isVerifyStep, setIsVerifyStep] = useState(false)
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email')
-  const [isSignUp, setIsSignUp] = useState(true)
+  const [isSignUp, setIsSignUp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
