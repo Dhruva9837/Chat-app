@@ -23,7 +23,7 @@ export function GlobalSidebar() {
       {/* Brand Logo */}
       <div className="mb-12">
         <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center ambient-shadow overflow-hidden relative border border-[#f1f1f1] rotate-3 hover:rotate-0 transition-transform cursor-pointer">
-           <img src="/logo.png" alt="Yapster" className="w-full h-full object-cover scale-150" />
+           <img src="/logo.png" alt="Nexora" className="w-full h-full object-cover scale-150" />
         </div>
       </div>
 

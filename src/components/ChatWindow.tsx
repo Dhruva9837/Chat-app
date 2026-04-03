@@ -161,7 +161,7 @@ export function ChatWindow() {
         
         {/* Abstract Background Element */}
         <div className="absolute bottom-0 right-0 p-12 opacity-[0.03] select-none pointer-events-none">
-           <h1 className="text-[12rem] font-display font-black leading-none uppercase tracking-tighter -mr-12 -mb-12">YAPSTER</h1>
+           <h1 className="text-[12rem] font-display font-black leading-none uppercase tracking-tighter -mr-12 -mb-12">NEXORA</h1>
         </div>
       </div>
     )

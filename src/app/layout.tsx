@@ -15,8 +15,8 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Yapster | High-Fidelity Chat",
-  description: "The Architecture of Conversation",
+  title: 'Nexora — Architects Neural Hub',
+  description: 'High-fidelity decentralized messaging node for architectural discourse.',
 };
 
 export default function RootLayout({

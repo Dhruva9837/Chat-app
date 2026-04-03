@@ -104,7 +104,7 @@ export default function Home() {
           className="relative"
         >
            <div className="w-24 h-24 bg-white rounded-[2.5rem] ambient-shadow flex items-center justify-center border border-[#f1f1f1] rotate-3">
-              <img src="/logo.png" alt="Yapster" className="w-16 h-16 object-cover scale-150" />
+              <img src="/logo.png" alt="Nexora" className="w-16 h-16 object-cover scale-150" />
            </div>
            <motion.div 
              animate={{ rotate: 360 }}

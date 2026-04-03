@@ -63,7 +63,7 @@ export function Auth() {
     setLoading(true)
     try {
       if (otp === '123456') {
-        setUser({ id: 'dev-user-001', email: email || 'architect@yapster.com', user_metadata: { name: name || 'Lead Architect' } })
+        setUser({ id: 'dev-user-001', email: email || 'architect@nexora.com', user_metadata: { name: name || 'Lead Architect' } })
         return
       }
       const verifyOptions = authMethod === 'phone' 
@@ -95,9 +95,9 @@ export function Auth() {
           transition={{ duration: 10, repeat: Infinity }}
           className="w-20 h-20 rounded-[2rem] bg-white p-0.5 ambient-shadow mb-6 border-4 border-white/10"
         >
-          <img src="/logo.png" alt="Yapster" className="w-full h-full object-cover scale-150 rotate-3" />
+          <img src="/logo.png" alt="Nexora" className="w-full h-full object-cover scale-150 rotate-3" />
         </motion.div>
-        <h1 className="text-white font-display font-black text-5xl tracking-tighter uppercase mb-2">Yapster</h1>
+        <h1 className="text-white font-display font-black text-5xl tracking-tighter uppercase mb-2">Nexora</h1>
         <div className="inline-flex items-center space-x-3 px-4 py-1.5 bg-white/5 rounded-full border border-white/10">
            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
            <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Neural High-Fidelity Hub</span>
