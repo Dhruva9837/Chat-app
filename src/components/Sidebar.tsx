@@ -66,7 +66,27 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto px-4 space-y-3 pb-24 no-scrollbar">
         <LayoutGroup>
           <AnimatePresence mode="popLayout">
-            {chats.map((chat: any, index: number) => {
+            {chats.length === 0 ? (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-20 px-8 text-center"
+              >
+                <div className="w-16 h-16 bg-[#f8faff] rounded-[1.5rem] flex items-center justify-center mb-6 border border-black/5">
+                   <Edit className="w-6 h-6 text-primary/40" />
+                </div>
+                <h3 className="font-display font-black text-lg text-gray-900 mb-2 uppercase tracking-tight">No Architecture Found</h3>
+                <p className="text-[13px] text-zinc-400 font-sans leading-relaxed mb-8">
+                  Your node list is currently empty. Initialize a new professional stream to begin.
+                </p>
+                <button 
+                  onClick={() => setIsNewGroupOpen(true)}
+                  className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  Initialize First Node
+                </button>
+              </motion.div>
+            ) : chats.map((chat: any, index: number) => {
               const isActive = activeChat?.id === chat.id
               
               // Logic for Chat Name and Avatar

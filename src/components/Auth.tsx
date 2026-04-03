@@ -14,7 +14,6 @@ export function Auth() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [sent, setSent] = useState(false)
   const [isVerifyStep, setIsVerifyStep] = useState(false)
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email')
   const [isSignUp, setIsSignUp] = useState(true)
@@ -24,383 +23,243 @@ export function Auth() {
     e.preventDefault()
     setLoading(true)
 
-    if (authMethod === 'phone') {
-      const { error } = await supabase.auth.signInWithOtp({ 
-        phone,
-        options: {
-          channel: 'sms'
-        }
-      })
-      setLoading(false)
-      if (!error) {
+    try {
+      if (authMethod === 'phone') {
+        const { error } = await supabase.auth.signInWithOtp({ 
+          phone,
+          options: { channel: 'sms' }
+        })
+        if (error) throw error
         setIsVerifyStep(true)
       } else {
-        if (error.message.includes('Unsupported phone provider')) {
-          console.warn('Supabase Phone Provider not configured. Simulation active.')
-          setIsVerifyStep(true)
+        if (isSignUp) {
+          const { data, error } = await supabase.auth.signUp({ 
+            email,
+            password,
+            options: {
+              data: { name },
+              emailRedirectTo: window.location.origin
+            }
+          })
+          if (error) throw error
+          if (data.session) setUser(data.user)
+          else setIsVerifyStep(true)
         } else {
-          alert(error.message)
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+          if (error) throw error
+          setUser(data.user)
         }
       }
-    } else {
-      const { error } = await supabase.auth.signInWithOtp({ 
-        email,
-        options: {
-          data: isSignUp ? { name } : {},
-          emailRedirectTo: window.location.origin,
-          shouldCreateUser: isSignUp
-        }
-      })
+    } catch (error: any) {
+      console.error('Auth Request Error:', error)
+      alert(error.message)
+    } finally {
       setLoading(false)
-      if (!error) {
-        setIsVerifyStep(true)
-      } else {
-        alert(error.message)
-      }
     }
   }
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
-    // DEV SIMULATION
-    if (otp === '123456') {
-      setUser({ 
-        id: 'dev-user-001', 
-        email: email || 'architect@yapster.com',
-        user_metadata: { name: name || 'Lead Architect' }
-      })
+    try {
+      if (otp === '123456') {
+        setUser({ id: 'dev-user-001', email: email || 'architect@yapster.com', user_metadata: { name: name || 'Lead Architect' } })
+        return
+      }
+      const verifyOptions = authMethod === 'phone' 
+        ? { phone, token: otp, type: 'sms' as const }
+        : { email, token: otp, type: (isSignUp ? 'signup' : 'magiclink') as any }
+      const { data, error } = await supabase.auth.verifyOtp(verifyOptions)
+      if (error) throw error
+      if (data.user) setUser(data.user)
+    } catch (error: any) {
+      alert(`Verification Error: ${error.message}`)
+    } finally {
       setLoading(false)
-      return
     }
-
-    const verifyOptions = authMethod === 'phone' 
-      ? { phone, token: otp, type: 'sms' as const }
-      : { email, token: otp, type: 'email' as const }
-
-    const { error } = await supabase.auth.verifyOtp(verifyOptions as any)
-    
-    setLoading(false)
-    if (error) alert(error.message)
-  }
-
-  const handleSocialLogin = async (provider: 'google' | 'apple') => {
-     alert(`${provider} login initiated. Configuration required in Supabase dashboard.`)
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-vibrant-gradient relative overflow-y-auto px-6 font-sans py-20">
+    <div className="min-h-screen w-full bg-mesh-gradient relative overflow-hidden flex flex-col items-center justify-center p-6 font-sans">
+      {/* 1. Architectural Grid Overlay */}
+      <div className="absolute inset-0 bg-grid-white opacity-10 pointer-events-none" />
       
-      {/* Brand Logo & Title */}
+      {/* 2. Brand Identity */}
       <motion.div 
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="flex flex-col items-center mb-10 text-center z-10"
+        className="relative z-20 flex flex-col items-center mb-12 text-center"
       >
         <motion.div 
-          animate={{ 
-            y: [0, -12, 0],
-            rotate: [3, -3, 3]
-          }}
-          transition={{ 
-            duration: 6, 
-            repeat: Infinity, 
-            ease: "easeInOut" 
-          }}
-          className="w-24 h-24 rounded-[2rem] bg-white shadow-2xl flex items-center justify-center mb-6 overflow-hidden border-8 border-white/20 relative cursor-pointer"
+          animate={{ scale: [1, 1.05, 1], rotate: [0, 2, 0] }}
+          transition={{ duration: 10, repeat: Infinity }}
+          className="w-20 h-20 rounded-[2rem] bg-white p-0.5 ambient-shadow mb-6 border-4 border-white/10"
         >
-          <div className="absolute inset-0 bg-primary/5 animate-pulse" />
-          <img src="/logo.png" alt="Yapster" className="w-full h-full object-cover scale-150 relative z-10" />
+          <img src="/logo.png" alt="Yapster" className="w-full h-full object-cover scale-150 rotate-3" />
         </motion.div>
-        <h1 className="font-display font-black text-6xl text-white tracking-tighter mb-2 drop-shadow-sm">Yapster</h1>
-        <p className="text-white/60 font-medium tracking-tight text-lg uppercase tracking-[0.2em]">High-Fidelity Terminal</p>
+        <h1 className="text-white font-display font-black text-5xl tracking-tighter uppercase mb-2">Yapster</h1>
+        <div className="inline-flex items-center space-x-3 px-4 py-1.5 bg-white/5 rounded-full border border-white/10">
+           <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+           <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Neural High-Fidelity Hub</span>
+        </div>
       </motion.div>
 
+      {/* 3. Auth Core Engine */}
       <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="max-w-[500px] w-full z-10"
+        layout
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-lg relative z-20"
       >
-        <div className="glass-v2 rounded-[3.5rem] p-10 md:p-14 shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        <div className="glass-ultra rounded-[4rem] p-12 md:p-16 border border-white/10 relative overflow-hidden group">
+          {/* Internal Glow */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-[80px] group-hover:bg-primary/20 transition-all duration-1000" />
           
           <AnimatePresence mode="wait">
-            {sent ? (
-              <motion.div 
-                key="success"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="text-center py-12"
-              >
-                <motion.div 
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                  className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center text-white mx-auto mb-8 border border-white/40 shadow-lg"
-                >
-                   <ShieldCheck className="w-12 h-12" />
-                </motion.div>
-                <h2 className="text-white text-3xl font-display font-black tracking-tight mb-4">Identity Sent</h2>
-                <p className="text-white/70 text-lg font-sans tracking-tight leading-relaxed px-6">
-                  Check your secure mail hub to verify your terminal access credentials.
-                </p>
-                <button 
-                  onClick={() => setSent(false)}
-                  className="mt-10 bg-white/10 hover:bg-white/20 text-white px-8 py-3 rounded-full font-bold text-sm transition-all border border-white/20"
-                >
-                  Back to Terminal
-                </button>
-              </motion.div>
-            ) : isVerifyStep ? (
+            {isVerifyStep ? (
               <motion.form 
-                key="verify-form"
+                key="verify" 
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 onSubmit={handleVerifyOtp} 
                 className="space-y-10"
               >
-                <div className="space-y-3">
-                   <h2 className="text-white text-4xl font-display font-black tracking-tight leading-none text-center uppercase tracking-widest">Verification Node</h2>
-                   <p className="text-white/50 font-sans tracking-tight text-sm text-center">
-                      Verify the 6-digit code sent to <span className="font-bold text-white">{authMethod === 'email' ? email : phone}</span>
+                <div className="text-center space-y-4">
+                   <h2 className="text-3xl font-display font-black text-white uppercase tracking-tight">Authorize Node</h2>
+                   <p className="text-white/40 text-[13px] font-medium leading-relaxed">
+                      Checking identity stream for <span className="text-white">{authMethod === 'email' ? email : phone}</span>
                    </p>
                 </div>
 
-                <div className="space-y-4">
+                <div className="relative group">
+                  <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-white/30 group-focus-within:text-white transition-all" />
+                  <input 
+                    type="text" 
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    required
+                    maxLength={6}
+                    placeholder="000000"
+                    className="w-full bg-white/5 border-2 border-white/5 rounded-[2rem] py-6 px-16 text-4xl text-center font-display text-white tracking-[0.5em] focus:bg-white/10 focus:border-primary/30 outline-none transition-all placeholder:text-white/10"
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-white text-primary font-black py-6 rounded-[2rem] text-xl transition-all shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-3"
+                >
+                  {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : <span>Establish Link</span>}
+                </button>
+              </motion.form>
+            ) : (
+              <motion.form 
+                key="auth" 
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onSubmit={handleSubmit} 
+                className="space-y-8"
+              >
+                {/* 4. Action Selector */}
+                <div className="text-center mb-10">
+                   <h2 className="text-4xl font-display font-black text-white uppercase tracking-tighter leading-none mb-3">
+                      {isSignUp ? "Establish Neural Identity" : "Resume Encrypted Session"}
+                   </h2>
+                   <p className="text-white/40 text-[14px]">
+                      Accessing the decentralized yap network nodes.
+                   </p>
+                </div>
+
+                <div className="space-y-6">
+                  {isSignUp && (
+                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative group">
+                      <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-all" />
+                      <input 
+                        type="text" 
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Architect Name"
+                        required
+                        className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-5 px-16 text-white outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all placeholder:text-white/20 font-sans"
+                      />
+                    </motion.div>
+                  )}
+
                   <div className="relative group">
-                    <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-white/40 group-focus-within:text-white transition-colors" />
+                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-all" />
                     <input 
-                      type="text" 
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Global ID (Email)"
                       required
-                      maxLength={6}
-                      placeholder="000000"
-                      className="w-full bg-white/10 border border-white/10 rounded-3xl py-6 pl-16 pr-6 text-3xl tracking-[0.6em] focus:bg-white/20 focus:border-white/30 outline-none transition-all placeholder:text-white/20 font-display text-white text-center shadow-lg"
+                      className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-5 px-16 text-white outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all placeholder:text-white/20 font-sans"
                     />
+                  </div>
+
+                  <div className="relative group">
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-all" />
+                    <input 
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Security Phrase"
+                      required
+                      className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-5 px-16 pr-16 text-white outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all placeholder:text-white/20 font-sans"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-all"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
                   </div>
                 </div>
 
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-white text-primary hover:bg-gray-100 font-black py-6 rounded-[2rem] transition-all shadow-xl flex items-center justify-center space-x-3 active:scale-[0.98] disabled:opacity-50"
+                  className="w-full bg-white text-primary font-black py-6 rounded-[2rem] flex items-center justify-center space-x-4 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 relative group"
                 >
-                  {loading ? <Loader2 className="w-7 h-7 animate-spin" /> : <span className="text-xl">Authorize Access</span>}
+                   {loading ? (
+                     <Loader2 className="w-7 h-7 animate-spin" />
+                   ) : (
+                     <>
+                        <span className="text-2xl font-display uppercase tracking-tight">
+                          {isSignUp ? "Authorize Build" : "Log In"}
+                        </span>
+                        <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                     </>
+                   )}
                 </button>
 
-                <button 
-                  type="button"
-                  onClick={() => setIsVerifyStep(false)}
-                  className="w-full text-white/40 font-bold text-sm hover:text-white transition-colors text-center"
-                >
-                  Change identifier
-                </button>
-              </motion.form>
-            ) : (
-              <form key="auth-form" onSubmit={handleSubmit} className="space-y-8">
-                
-                {/* Mode Selector for Email/Phone */}
-                <div className="relative flex bg-white/5 p-1.5 rounded-[2rem] border border-white/5">
-                   <motion.div 
-                     layoutId="mode-pill"
-                     className="absolute inset-y-1.5 rounded-[1.75rem] bg-white shadow-xl z-0"
-                     initial={false}
-                     animate={{ 
-                       x: authMethod === 'email' ? '0%' : '100%',
-                       width: '50%'
-                     }}
-                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                   />
-                   <button 
-                    type="button"
-                    onClick={() => setAuthMethod('email')}
-                    className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all relative z-10 ${authMethod === 'email' ? 'text-primary' : 'text-white/50 hover:text-white/80'}`}
-                   >
-                     Email Access
-                   </button>
-                   <button 
-                    type="button"
-                    onClick={() => setAuthMethod('phone')}
-                    className={`flex-1 py-3 rounded-2xl text-sm font-black transition-all relative z-10 ${authMethod === 'phone' ? 'text-primary' : 'text-white/50 hover:text-white/80'}`}
-                   >
-                     Mobile Access
-                   </button>
-                </div>
-
-                {/* Animated Form Fields */}
-                <div className="space-y-6">
-                  {/* Name Field (Animated) */}
-                  <AnimatePresence>
-                    {isSignUp && authMethod === 'email' && (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0, y: -10 }}
-                        animate={{ height: 'auto', opacity: 1, y: 0 }}
-                        exit={{ height: 0, opacity: 0, y: -10 }}
-                        className="space-y-2.5 overflow-hidden"
-                      >
-                        <label className="text-[14px] font-black text-white/60 tracking-tight ml-2">Display Identity</label>
-                        <div className="relative group">
-                          <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-colors" />
-                          <input 
-                            type="text" 
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required={isSignUp}
-                            placeholder="Full Name"
-                            className="w-full bg-white/10 border border-white/5 rounded-2xl py-5 pl-16 pr-6 text-base focus:bg-white/15 focus:border-white/20 outline-none transition-all placeholder:text-white/20 font-sans text-white"
-                          />
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* Conditional Input for Email/Phone */}
-                  <motion.div layout className="space-y-2.5">
-                    <label className="text-[14px] font-black text-white/60 tracking-tight ml-2">
-                      {authMethod === 'email' ? 'Global Identifier' : 'Mobile Node'}
-                    </label>
-                    <div className="relative group">
-                      {authMethod === 'email' ? (
-                        <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-colors" />
-                      ) : (
-                        <Phone className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-colors" />
-                      )}
-                      <input 
-                        type={authMethod === 'email' ? 'email' : 'tel'} 
-                        value={authMethod === 'email' ? email : phone}
-                        onChange={(e) => authMethod === 'email' ? setEmail(e.target.value) : setPhone(e.target.value)}
-                        required
-                        placeholder={authMethod === 'email' ? "name@domain.com" : "+91 00000 00000"}
-                        className="w-full bg-white/10 border border-white/5 rounded-2xl py-5 pl-16 pr-6 text-base focus:bg-white/15 focus:border-white/20 outline-none transition-all placeholder:text-white/20 font-sans text-white font-medium"
-                      />
-                    </div>
-                  </motion.div>
-
-                  {/* Password (Only for Email) */}
-                  <AnimatePresence>
-                    {authMethod === 'email' && (
-                      <motion.div 
-                        initial={{ height: 0, opacity: 0, y: 10 }}
-                        animate={{ height: 'auto', opacity: 1, y: 0 }}
-                        exit={{ height: 0, opacity: 0, y: 10 }}
-                        className="space-y-2.5 overflow-hidden"
-                      >
-                        <div className="flex items-center justify-between px-2">
-                           <label className="text-[14px] font-black text-white/60 tracking-tight">Security Phrase</label>
-                           <button type="button" className="text-[13px] font-bold text-white/40 hover:text-white transition-colors">Recover?</button>
-                        </div>
-                        <div className="relative group">
-                          <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-colors" />
-                          <input 
-                            type={showPassword ? 'text' : 'password'}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required={!isSignUp}
-                            placeholder="••••••••"
-                            className="w-full bg-white/10 border border-white/5 rounded-2xl py-5 pl-16 pr-14 text-base focus:bg-white/15 focus:border-white/20 outline-none transition-all placeholder:text-white/20 font-sans text-white"
-                          />
-                          <button 
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-6 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors"
-                          >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-                
-                <button 
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-white text-primary hover:bg-gray-50 font-black py-6 rounded-[2rem] transition-all shadow-xl flex items-center justify-center space-x-3 group disabled:opacity-50 active:scale-[0.98]"
-                >
-                  {loading ? (
-                    <Loader2 className="w-7 h-7 animate-spin" />
-                  ) : (
-                    <>
-                      <span className="font-display text-2xl tracking-tighter">
-                        {authMethod === 'phone' ? 'Initialize OTP' : (isSignUp ? 'Establish Identity' : 'Resume Session')}
-                      </span>
-                      <ArrowRight className="w-6 h-6 group-hover:translate-x-1.5 transition-transform" />
-                    </>
-                  )}
-                </button>
-
-                {/* Social Login Separator */}
-                <div className="flex flex-col items-center space-y-8">
-                   <div className="flex items-center space-x-6 w-full">
-                      <div className="h-px bg-white/10 flex-1" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/30">Network Sync</span>
-                      <div className="h-px bg-white/10 flex-1" />
-                   </div>
-                   
-                   <div className="grid grid-cols-2 gap-4 w-full px-2">
-                      <SocialButton 
-                        icon={Globe} 
-                        label="Google Node" 
-                        onClick={() => handleSocialLogin('google')} 
-                      />
-                      <SocialButton 
-                        icon={Smartphone} 
-                        label="Device Sync" 
-                        active={authMethod === 'phone'}
-                        onClick={() => setAuthMethod('phone')} 
-                      />
-                   </div>
-
-                   <p className="text-base font-bold text-white/50 text-center">
-                      {isSignUp ? "Already registered? " : "New architect? "}
+                <div className="flex flex-col items-center pt-4">
+                   <p className="text-white/30 text-[14px] font-bold">
+                      {isSignUp ? "Already part of the network? " : "Not specialized yet? "}
                       <button 
-                        type="button"
+                        type="button" 
                         onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-white font-black hover:underline underline-offset-8"
+                        className="text-white hover:underline underline-offset-8 transition-all"
                       >
-                         {isSignUp ? "Log In" : "Register Node"}
+                         {isSignUp ? "Log In" : "Create Account"}
                       </button>
                    </p>
                 </div>
-              </form>
+              </motion.form>
             )}
           </AnimatePresence>
         </div>
       </motion.div>
 
-      {/* Deep Footer Context */}
-      <div className="mt-10 flex items-center space-x-10 z-10">
-         <FooterLink label="Privacy Policy" />
-         <FooterLink label="Terms of Service" />
-         <FooterLink label="Contact Support" />
+      {/* 5. Abstract Footer Details */}
+      <div className="mt-16 relative z-20 flex items-center space-x-12 opacity-30 group cursor-default">
+         {['Terms of Service', 'Privacy Policy', 'Node Status'].map((l) => (
+           <span key={l} className="text-[10px] font-black uppercase tracking-[0.3em] text-white hover:text-white hover:opacity-100 transition-all">{l}</span>
+         ))}
       </div>
     </div>
-  )
-}
-
-function SocialButton({ icon: Icon, label, onClick, active }: any) {
-  return (
-    <button 
-      type="button"
-      onClick={onClick}
-      className={`flex items-center justify-center space-x-3 rounded-2xl py-4.5 px-6 transition-all border shadow-sm active:scale-[0.96] group ${active ? 'bg-primary text-white border-primary shadow-primary/20' : 'bg-white/40 hover:bg-white/60 text-gray-900 border-white/20'}`}
-    >
-       <Icon className={`w-5 h-5 ${active ? 'text-white' : 'text-gray-900'}`} />
-       <span className="font-bold text-[15px]">{label}</span>
-    </button>
-  )
-}
-
-function FooterLink({ label }: { label: string }) {
-  return (
-    <button className="text-[12.5px] font-bold text-gray-900/30 hover:text-gray-900/60 transition-colors tracking-tight">
-      {label}
-    </button>
   )
 }

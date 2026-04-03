@@ -5,6 +5,7 @@ import { Auth } from '../components/Auth'
 import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
 import { useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 
 export default function Home() {
@@ -95,8 +96,35 @@ export default function Home() {
   // Still loading session – show nothing to prevent flash
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#050505]">
-        <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f9ff]">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="relative"
+        >
+           <div className="w-24 h-24 bg-white rounded-[2.5rem] ambient-shadow flex items-center justify-center border border-[#f1f1f1] rotate-3">
+              <img src="/logo.png" alt="Yapster" className="w-16 h-16 object-cover scale-150" />
+           </div>
+           <motion.div 
+             animate={{ rotate: 360 }}
+             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+             className="absolute -inset-4 border-2 border-primary/10 border-t-primary rounded-[3rem]"
+           />
+        </motion.div>
+        <div className="mt-12 flex flex-col items-center">
+           <h2 className="text-[10px] font-black uppercase tracking-[0.5em] text-gray-900 mb-2">Initializing Node</h2>
+           <div className="flex space-x-1.5">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{ opacity: [0.2, 1, 0.2] }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                  className="w-1.5 h-1.5 bg-primary rounded-full"
+                />
+              ))}
+           </div>
+        </div>
       </div>
     )
   }

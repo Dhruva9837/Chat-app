@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { supabase } from '../supabase'
 import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
 
@@ -10,44 +9,53 @@ export const usePresence = () => {
   useEffect(() => {
     if (!user || !profile) return
 
-    const channel = supabase.channel('online-users', {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
-    })
-
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const newState = channel.presenceState()
-        const users: Record<string, any> = {}
+    // Poll for presence via Redis API
+    const fetchPresence = async () => {
+      try {
+        const response = await fetch('/api/presence')
+        const { onlineUsers } = await response.json()
         
-        Object.keys(newState).forEach((key) => {
-          users[key] = newState[key][0]
+        const users: Record<string, any> = {}
+        onlineUsers.forEach((u: any) => {
+          if (u && u.id) users[u.id] = u
         })
         
         setOnlineUsers(users)
-      })
-      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('join', key, newPresences)
-      })
-      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('leave', key, leftPresences)
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await channel.track({
-            id: user.id,
-            name: profile.name,
-            avatar_url: profile.avatar_url,
-            online_at: new Date().toISOString(),
+      } catch (err) {
+        console.error('Presence fetch error:', err)
+      }
+    }
+
+    const updatePresence = async () => {
+      try {
+        await fetch('/api/presence', {
+          method: 'POST',
+          body: JSON.stringify({
+            userId: user.id,
+            data: {
+              id: user.id,
+              name: profile.name,
+              avatar_url: profile.avatar_url,
+            }
           })
-        }
-      })
+        })
+      } catch (err) {
+        console.error('Presence update error:', err)
+      }
+    }
+
+    // Initial sync
+    updatePresence()
+    fetchPresence()
+
+    // Ping every 30 seconds to keep presence alive in Redis
+    const updateInterval = setInterval(updatePresence, 30000)
+    // Refresh online list every 10 seconds
+    const fetchInterval = setInterval(fetchPresence, 10000)
 
     return () => {
-      channel.unsubscribe()
+      clearInterval(updateInterval)
+      clearInterval(fetchInterval)
     }
   }, [user?.id, profile?.id])
 }

@@ -7,115 +7,75 @@ import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
 
+import { useMessages } from '@/lib/hooks/useMessages'
+
 export function ChatWindow() {
-  const { activeChat, messages, setMessages, addMessage, setActiveChat, toggleDetailSidebar, typingUsers, setTypingUser, onlineUsers } = useChatStore()
+  const { activeChat, setActiveChat, toggleDetailSidebar, typingUsers, onlineUsers } = useChatStore()
   const { user } = useAuthStore()
   const [content, setContent] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  
+  const { 
+    messages, 
+    loading, 
+    loadingMore, 
+    hasMore, 
+    fetchMore, 
+    sendMessage, 
+    handleTyping 
+  } = useMessages(activeChat?.id)
+
+  const topObserverRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // 1. Mark as read on activeChat change
   useEffect(() => {
-    if (!activeChat || !user) return
-
-    const fetchMessages = async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('chat_id', activeChat.id)
-        .order('created_at', { ascending: true })
+    if (!activeChat || !user || messages.length === 0) return
+    
+    const markAsRead = async () => {
+      const unreadIds = messages
+        .filter(m => !m.is_read && m.sender_id !== user.id)
+        .map(m => m.id)
       
-      if (!error && data) {
-        setMessages(data)
-        // Mark as read
-        const unreadIds = data
-          .filter(m => !m.is_read && m.sender_id !== user.id)
-          .map(m => m.id)
-        
-        if (unreadIds.length > 0) {
-          await supabase
-            .from('messages')
-            .update({ is_read: true })
-            .in('id', unreadIds)
-        }
+      if (unreadIds.length > 0) {
+        await supabase
+          .from('messages')
+          .update({ is_read: true })
+          .in('id', unreadIds)
       }
     }
-
-    fetchMessages()
-
-    const channel = supabase
-      .channel(`chat:${activeChat.id}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'messages',
-        filter: `chat_id=eq.${activeChat.id}`
-      }, (payload) => {
-        addMessage(payload.new as any)
-        // If message is from others and we are active, mark it as read immediately
-        if (payload.new.sender_id !== user.id) {
-          supabase.from('messages').update({ is_read: true }).eq('id', payload.new.id).then()
-        }
-      })
-      .on('broadcast', { event: 'typing' }, ({ payload }) => {
-        setTypingUser(payload.userId, payload.isTyping)
-      })
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [activeChat?.id, user?.id])
-
-  const handleTyping = () => {
-    if (!activeChat || !user) return
-
-    if (!isTyping) {
-      setIsTyping(true)
-      supabase.channel(`chat:${activeChat.id}`).send({
-        type: 'broadcast',
-        event: 'typing',
-        payload: { userId: user.id, isTyping: true },
-      })
-    }
-
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
     
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false)
-      supabase.channel(`chat:${activeChat.id}`).send({
-        type: 'broadcast',
-        event: 'typing',
-        payload: { userId: user.id, isTyping: false },
-      })
-    }, 2000)
-  }
+    markAsRead()
+  }, [activeChat?.id, user?.id, messages])
+
+  // 2. Observer for Lazy Loading (top of the list)
+  useEffect(() => {
+    if (!topObserverRef.current || !hasMore || loadingMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchMore()
+        }
+      },
+      { threshold: 1.0 }
+    )
+
+    observer.observe(topObserverRef.current)
+
+    return () => observer.disconnect()
+  }, [hasMore, loadingMore, fetchMore])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!content.trim() || !activeChat || !user) return
-
-    const newMessage = {
-      chat_id: activeChat.id,
-      sender_id: user.id,
-      content: content.trim(),
-    }
-
+    
+    const messageContent = content.trim()
     setContent('')
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-    setIsTyping(false)
-    supabase.channel(`chat:${activeChat.id}`).send({
-      type: 'broadcast',
-      event: 'typing',
-      payload: { userId: user.id, isTyping: false },
-    })
-
-    const { error } = await supabase.from('messages').insert(newMessage)
-    if (error) console.error('Error sending message:', error)
+    await sendMessage(messageContent)
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,16 +98,7 @@ export function ChatWindow() {
         .from('chat-media')
         .getPublicUrl(filePath)
 
-      const newMessage = {
-        chat_id: activeChat.id,
-        sender_id: user.id,
-        content: `shared an image`,
-        message_type: 'image',
-        image_url: publicUrl
-      }
-
-      const { error: msgError } = await supabase.from('messages').insert(newMessage)
-      if (msgError) throw msgError
+      await sendMessage('shared an image', 'image', publicUrl)
 
     } catch (error: any) {
       alert(error.message)
@@ -158,17 +109,59 @@ export function ChatWindow() {
 
   if (!activeChat) {
     return (
-      <div className="flex-1 hidden md:flex items-center justify-center bg-[#f8faff] p-12">
-        <div className="max-w-md text-center">
-           <div className="w-24 h-24 bg-white rounded-[2.5rem] ambient-shadow flex items-center justify-center mx-auto mb-8 animate-pulse border border-[#f1f1f1]">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <div className="flex-1 hidden md:flex flex-col items-center justify-center bg-[#f8faff] p-12 overflow-hidden relative">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-xl w-full flex flex-col items-center relative z-10"
+        >
+           {/* Visual Brand Node */}
+           <div className="relative mb-16">
+              <div className="w-32 h-32 bg-white rounded-[3rem] ambient-shadow flex items-center justify-center border border-[#f1f1f1] rotate-6 hover:rotate-0 transition-transform duration-700 cursor-help group">
+                 <img src="/logo.png" alt="Yapster" className="w-20 h-20 object-cover scale-150 group-hover:scale-125 transition-transform duration-700 font-black" />
+              </div>
+              <motion.div 
+                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 4, repeat: Infinity }}
+                className="absolute -inset-8 bg-primary/5 rounded-full -z-10 blur-3xl"
+              />
+           </div>
+
+           <div className="text-center space-y-6">
+              <div className="inline-flex items-center space-x-3 bg-white/80 backdrop-blur-sm border border-black/5 px-6 py-2 rounded-full shadow-sm">
+                 <span className="w-2 h-2 bg-secondary-presence rounded-full animate-pulse" />
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-900">Neural Encryption Active</span>
+              </div>
+              
+              <h2 className="font-display font-black text-5xl tracking-tight text-gray-900 leading-[0.9] uppercase">
+                Welcome to the <span className="text-primary">Architecture</span> of Message
+              </h2>
+              
+              <p className="text-zinc-400 font-sans tracking-tight text-[15px] leading-relaxed max-w-sm mx-auto">
+                Your end-to-end encrypted yap stream is ready. Select an architect from the node list or initialize a new project room to begin.
+              </p>
+
+              <div className="pt-8 grid grid-cols-2 gap-4 w-full max-w-sm">
+                 <div className="p-6 bg-white rounded-[2rem] border border-black/5 ambient-shadow hover:shadow-xl transition-all group cursor-default">
+                    <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
+                       <Search className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-900 leading-none">Find Node</p>
+                 </div>
+                 <div className="p-6 bg-white rounded-[2rem] border border-black/5 ambient-shadow hover:shadow-xl transition-all group cursor-default">
+                    <div className="w-10 h-10 rounded-xl bg-orange-500/5 flex items-center justify-center text-orange-500 mb-4 group-hover:scale-110 transition-transform">
+                       <Plus className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-900 leading-none">New Project</p>
+                 </div>
               </div>
            </div>
-           <h2 className="font-display font-black text-2xl tracking-tight text-gray-900 mb-3">Architecture of Message</h2>
-           <p className="text-zinc-400 font-sans tracking-tight text-sm leading-relaxed">
-             Select a professional yap stream to begin your architectural conversation.
-           </p>
+        </motion.div>
+        
+        {/* Abstract Background Element */}
+        <div className="absolute bottom-0 right-0 p-12 opacity-[0.03] select-none pointer-events-none">
+           <h1 className="text-[12rem] font-display font-black leading-none uppercase tracking-tighter -mr-12 -mb-12">YAPSTER</h1>
         </div>
       </div>
     )
@@ -259,6 +252,14 @@ export function ChatWindow() {
 
       {/* Message Area */}
       <div className="flex-1 overflow-y-auto px-12 pt-10 pb-16 space-y-10 scroll-smooth no-scrollbar">
+        <div ref={topObserverRef} className="h-1" />
+        
+        {loading && (
+          <div className="flex justify-center p-4">
+             <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          </div>
+        )}
+
         <div className="flex items-center justify-center mb-12">
            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.5em] bg-white/50 backdrop-blur-md px-8 py-2.5 rounded-full border border-black/5">
               Secure Terminal Connection established
@@ -401,7 +402,7 @@ export function ChatWindow() {
             value={content}
             onChange={(e) => {
               setContent(e.target.value)
-              handleTyping()
+              handleTyping(e.target.value)
             }}
             placeholder={`Type a high-fidelity message...`}
             className="flex-1 bg-transparent border-none py-4 px-4 text-[17px] focus:ring-0 outline-none text-gray-800 placeholder:text-zinc-300 font-sans font-medium"
