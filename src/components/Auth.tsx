@@ -162,13 +162,17 @@ export function Auth() {
                 onSubmit={handleSubmit} 
                 className="space-y-8"
               >
+                {/* Abstract Background Element */}
+                <div className="absolute bottom-0 right-0 p-12 opacity-[0.03] select-none pointer-events-none">
+                   <h1 className="text-[12rem] font-display font-black leading-none uppercase tracking-tighter -mr-12 -mb-12">NEXORA</h1>
+                </div>
                 {/* 4. Action Selector */}
                 <div className="text-center mb-10">
                    <h2 className="text-4xl font-display font-black text-white uppercase tracking-tighter leading-none mb-3">
                       {isSignUp ? "Establish Neural Identity" : "Resume Encrypted Session"}
                    </h2>
                    <p className="text-white/40 text-[14px]">
-                      Accessing the decentralized yap network nodes.
+                      Accessing the decentralized nexora network nodes.
                    </p>
                 </div>
 

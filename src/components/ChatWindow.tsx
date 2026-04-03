@@ -119,7 +119,7 @@ export function ChatWindow() {
            {/* Visual Brand Node */}
            <div className="relative mb-16">
               <div className="w-32 h-32 bg-white rounded-[3rem] ambient-shadow flex items-center justify-center border border-[#f1f1f1] rotate-6 hover:rotate-0 transition-transform duration-700 cursor-help group">
-                 <img src="/logo.png" alt="Yapster" className="w-20 h-20 object-cover scale-150 group-hover:scale-125 transition-transform duration-700 font-black" />
+                 <img src="/logo.png" alt="Nexora" className="w-20 h-20 object-cover scale-150 group-hover:scale-125 transition-transform duration-700 font-black" />
               </div>
               <motion.div 
                 animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
