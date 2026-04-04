@@ -23,7 +23,8 @@ import {
   Heart,
   Flame,
   ThumbsUp,
-  Laugh
+  Laugh,
+  ArrowLeft
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChatStore } from '@/store/chatStore'
@@ -32,7 +33,7 @@ import { supabase } from '@/lib/supabase'
 import { getAvatarUrl, formatTime } from '@/lib/utils'
 
 export function ChatWindow() {
-  const { activeChat, messages, onlineUsers, typingUsers, showDetailSidebar, toggleDetailSidebar, fontSize } = useChatStore()
+  const { activeChat, setActiveChat, messages, onlineUsers, typingUsers, showDetailSidebar, toggleDetailSidebar, fontSize } = useChatStore()
   const { user, profile } = useAuthStore()
   const [newMessage, setNewMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -106,6 +107,12 @@ export function ChatWindow() {
         {/* Chat Header */}
         <header className="h-[84px] bg-surface-lowest/80 backdrop-blur-xl border-b border-outline-variant flex items-center justify-between px-8 z-30 shrink-0">
           <div className="flex items-center space-x-5">
+            <button 
+              onClick={() => setActiveChat(null)}
+              className="md:hidden w-10 h-10 rounded-[1.2rem] bg-surface-low border border-outline-variant flex items-center justify-center text-text-main shadow-md active:scale-90 transition-transform"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <div className="relative group">
               <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/50 group-hover:scale-105 transition-all duration-500">
                 <img src={getAvatarUrl(isGroup ? activeChat : otherParticipant)} alt="" className="w-full h-full object-cover" />

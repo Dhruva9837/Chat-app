@@ -70,7 +70,7 @@ export function ProfileView() {
   }
 
   return (
-    <div className="flex-1 bg-surface-lowest overflow-y-auto flex flex-col h-screen font-sans transition-colors duration-500">
+    <div className="flex-1 bg-surface-lowest overflow-y-auto flex flex-col h-[100dvh] font-sans transition-colors duration-500">
       {/* Reference Header: Solid Teal */}
       <div className="h-24 px-8 flex items-center justify-between sticky top-0 bg-primary z-50 shadow-lg">
          <div className="flex items-center space-x-6">
@@ -84,10 +84,10 @@ export function ProfileView() {
          </div>
       </div>
 
-      <div className="flex-1 px-8 py-10 flex flex-col max-w-2xl mx-auto w-full">
+      <div className="flex-1 px-4 md:px-8 py-6 md:py-10 flex flex-col max-w-2xl mx-auto w-full">
          {/* Profile Card Head */}
-         <div className="flex items-start justify-between mb-10 bg-surface-low p-8 rounded-[2.5rem]">
-            <div className="flex items-center space-x-6">
+         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between mb-8 bg-surface-low p-6 md:p-8 rounded-[2rem] gap-4">
+            <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-6">
                <div className="relative group">
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarUpload} />
                   <div 

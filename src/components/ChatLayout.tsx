@@ -103,9 +103,11 @@ export function ChatLayout() {
   }
 
   return (
-    <div className="flex h-screen bg-[#f8f9ff] overflow-hidden">
-      {/* 1. Global Navigation (Narrow) */}
-      <GlobalSidebar />
+    <div className="flex flex-col md:flex-row h-[100dvh] bg-[#f8f9ff] overflow-hidden">
+      {/* 1. Global Navigation (Narrow) - Hidden on Mobile */}
+      <div className="hidden md:flex">
+         <GlobalSidebar />
+      </div>
 
       <main className="flex-1 flex overflow-hidden relative">
         <AnimatePresence mode="wait">
@@ -118,8 +120,10 @@ export function ChatLayout() {
       <AddFriendModal />
       <SettingsModal />
 
-      {/* Mobile Interaction Layer */}
-      <BottomNav />
+      {/* Mobile Interaction Layer - Hidden when deep in a chat */}
+      <div className={`md:hidden shrink-0 ${activeChat && activeView === 'chat' ? 'hidden' : 'block'}`}>
+        <BottomNav />
+      </div>
     </div>
   )
 }

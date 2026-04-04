@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, User, Settings, Palette, Bell, Shield, LogOut, Check, Edit2, Monitor, Eye, Trash2 } from 'lucide-react'
+import { X, User, Settings, Palette, Bell, Shield, LogOut, Check, Edit2, Monitor, Eye, Trash2, ArrowLeft } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
 import { getAvatarUrl } from '@/lib/utils'
@@ -92,15 +92,26 @@ export function SettingsModal() {
     { label: 'Log Out', icon: LogOut, action: signOut, color: 'text-presence-dnd' }
   ]
 
+  const [mobileShowContent, setMobileShowContent] = React.useState(false)
+
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 1.1 }}
+      initial={{ opacity: 0, scale: 1.05 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.1 }}
-      className="fixed inset-0 z-[200] bg-surface-lowest flex overflow-hidden font-sans"
+      exit={{ opacity: 0, scale: 1.05 }}
+      className="fixed inset-0 z-[200] bg-surface-lowest flex flex-col md:flex-row overflow-hidden font-sans"
     >
-      {/* Left Sidebar */}
-      <div className="w-[280px] md:w-[320px] bg-surface-low border-r border-outline-variant flex flex-col pt-24 pb-12 px-8 overflow-y-auto no-scrollbar">
+      {/* Left Sidebar - Full width on mobile, fixed on desktop */}
+      <div className={`${
+        mobileShowContent ? 'hidden md:flex' : 'flex'
+      } w-full md:w-[280px] lg:w-[320px] bg-surface-low border-b md:border-b-0 md:border-r border-outline-variant flex-col pt-16 md:pt-24 pb-12 px-8 overflow-y-auto no-scrollbar shrink-0`}>
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between md:hidden mb-6">
+          <h2 className="text-base font-black uppercase tracking-widest text-text-main">Settings</h2>
+          <button onClick={() => setSettingsModalOpen(false)} className="p-2 bg-primary text-white rounded-xl">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
         <div className="space-y-1">
           {tabs.map((tab, idx) => {
             if (tab.type === 'header') {
@@ -126,28 +137,39 @@ export function SettingsModal() {
             }
 
             return (
-              <TabItem 
-                key={tab.label} 
-                tab={tab} 
-                activeTab={activeTab} 
-                setActiveTab={setActiveTab} 
-              />
+              <div key={tab.label} onClick={() => setMobileShowContent(true)}>
+                <TabItem 
+                  tab={tab} 
+                  activeTab={activeTab} 
+                  setActiveTab={setActiveTab} 
+                />
+              </div>
             )
           })}
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 bg-surface-lowest relative flex flex-col">
+      {/* Main Content Area - hidden on mobile until tab selected */}
+      <div className={`${
+        mobileShowContent ? 'flex' : 'hidden md:flex'
+      } flex-1 bg-surface-lowest relative flex-col overflow-hidden`}>
+        {/* Mobile Back Button */}
+        <button 
+          onClick={() => setMobileShowContent(false)}
+          className="md:hidden absolute top-4 left-4 z-50 flex items-center space-x-2 px-4 py-2 bg-surface-low rounded-2xl border border-outline-variant text-text-muted text-[11px] font-black uppercase tracking-widest"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </button>
         <button 
           onClick={() => setSettingsModalOpen(false)}
-          className="absolute top-8 right-8 p-4 bg-primary text-white hover:bg-primary-container rounded-2xl transition-all group z-50 shadow-2xl shadow-primary/20 scale-110 active:scale-95 flex items-center space-x-2"
+          className="absolute top-8 right-8 p-4 bg-primary text-white hover:bg-primary-container rounded-2xl transition-all group z-50 shadow-2xl shadow-primary/20 scale-110 active:scale-95 hidden md:flex items-center space-x-2"
         >
           <X className="w-5 h-5" />
           <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">Close</span>
         </button>
 
-        <div className="flex-1 overflow-y-auto pt-24 pb-32 px-12 md:px-24 max-w-4xl no-scrollbar">
+        <div className="flex-1 overflow-y-auto pt-16 md:pt-24 pb-32 px-6 md:px-24 max-w-4xl no-scrollbar">
           {activeTab === 'My Account' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
               <h1 className="text-3xl font-display font-black uppercase tracking-tight text-text-main">My Account</h1>
