@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useAuthStore } from '@/store/authStore'
 import { useChatStore } from '@/store/chatStore'
+import { supabase } from '@/lib/supabase'
 
 export const usePresence = () => {
   const { user, profile } = useAuthStore()
@@ -9,53 +10,50 @@ export const usePresence = () => {
   useEffect(() => {
     if (!user || !profile) return
 
-    // Poll for presence via Redis API
-    const fetchPresence = async () => {
-      try {
-        const response = await fetch('/api/presence')
-        const { onlineUsers } = await response.json()
-        
+    const channel = supabase.channel('global-presence', {
+      config: {
+        presence: {
+          key: user.id,
+        },
+      },
+    })
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const newState = channel.presenceState()
         const users: Record<string, any> = {}
-        onlineUsers.forEach((u: any) => {
-          if (u && u.id) users[u.id] = u
+        
+        // Flatten presence state
+        Object.keys(newState).forEach((key) => {
+          const presence = newState[key][0] as any
+          if (presence) {
+            users[key] = presence
+          }
         })
         
         setOnlineUsers(users)
-      } catch (err) {
-        console.error('Presence fetch error:', err)
-      }
-    }
-
-    const updatePresence = async () => {
-      try {
-        await fetch('/api/presence', {
-          method: 'POST',
-          body: JSON.stringify({
-            userId: user.id,
-            data: {
-              id: user.id,
-              name: profile.name,
-              avatar_url: profile.avatar_url,
-            }
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('Joined:', key, newPresences)
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        console.log('Left:', key, leftPresences)
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            id: user.id,
+            name: profile.name,
+            username: profile.username,
+            avatar_url: profile.avatar_url,
+            status: profile.status || 'online',
+            online_at: new Date().toISOString(),
           })
-        })
-      } catch (err) {
-        console.error('Presence update error:', err)
-      }
-    }
-
-    // Initial sync
-    updatePresence()
-    fetchPresence()
-
-    // Ping every 30 seconds to keep presence alive in Redis
-    const updateInterval = setInterval(updatePresence, 30000)
-    // Refresh online list every 10 seconds
-    const fetchInterval = setInterval(fetchPresence, 10000)
+        }
+      })
 
     return () => {
-      clearInterval(updateInterval)
-      clearInterval(fetchInterval)
+      supabase.removeChannel(channel)
     }
   }, [user?.id, profile?.id])
 }

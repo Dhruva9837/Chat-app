@@ -1,186 +1,305 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Search, Edit, Filter, Plus } from 'lucide-react'
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import { 
+  Search, 
+  Plus, 
+  MoreVertical, 
+  Filter,
+  Users,
+  Hash,
+  MessageSquare,
+  Sparkles,
+  SignalHigh,
+  UserPlus,
+  Mic,
+  Phone
+} from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
-import { NewGroupModal } from './NewGroupModal'
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
+import { getAvatarUrl } from '@/lib/utils'
+
+import { VoiceHUD } from './VoiceHUD'
 
 export function Sidebar() {
-  const { chats, activeChat, setActiveChat, onlineUsers } = useChatStore()
   const { user } = useAuthStore()
-  const [filter, setFilter] = useState('All')
+  const { 
+    chats, 
+    activeChat, 
+    setActiveChat, 
+    activeServerId, 
+    onlineUsers,
+    typingUsers,
+    activeVoiceChannelId,
+    voiceParticipants,
+    joinVoiceChannel,
+    leaveVoiceChannel,
+    sidebarTab,
+    setSidebarTab
+  } = useChatStore()
+  const [search, setSearch] = useState('')
   const [isNewGroupOpen, setIsNewGroupOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
 
-  const filters = ['All', 'Unread', 'Personal', 'Work']
+  const filteredChats = chats.filter((chat: any) => {
+    // 1. Filter by active server/home
+    if (activeServerId === 'home') {
+      if (sidebarTab === 'message') {
+        if (chat.type !== 'private') return false
+      } else {
+        if (chat.type !== 'group') return false
+      }
+    } else {
+      if (chat.id !== activeServerId) return false
+    }
+
+    // 2. Filter by search
+    if (!search) return true
+    const isGroup = chat.type === 'group'
+    const allParticipants = chat.chat_participants || []
+    const otherParticipant = allParticipants.find((p: any) => p.user_id !== user?.id) || allParticipants[0]
+    const participantProfile = otherParticipant?.profiles
+    
+    const nameToSearch = isGroup ? (chat.name || '') : (participantProfile?.name || '')
+    const usernameToSearch = participantProfile?.username || ''
+    
+    return (
+      nameToSearch.toLowerCase().includes(search.toLowerCase()) ||
+      usernameToSearch.toLowerCase().includes(search.toLowerCase())
+    )
+  })
 
   return (
-    <div className="w-full md:w-[320px] lg:w-[380px] h-screen bg-white flex flex-col shrink-0 overflow-hidden relative border-r border-[#f1f1f1]">
-      {/* Header (Inspired by reference) */}
-      <div className="p-8 flex items-center justify-between pb-6">
-        <button 
-          onClick={() => setIsNewGroupOpen(true)}
-          className="p-2.5 bg-[#eef2ff] text-primary rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95 shadow-sm flex items-center space-x-2 group"
-        >
-           <Plus className="w-5 h-5" />
-           <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">New Chat</span>
-        </button>
+    <div className="w-full md:w-[320px] lg:w-[380px] h-screen bg-surface-lowest flex flex-col shrink-0 overflow-hidden relative border-r border-outline-variant transition-colors duration-500">
+      
+      {/* Discord-style Header */}
+      <div className="bg-primary px-6 pt-10 pb-6 flex flex-col shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-display font-black tracking-widest text-white uppercase truncate pr-4">
+              {activeServerId === 'home' ? 'Direct Messages' : (chats.find(c => c.id === activeServerId)?.name || 'Server')}
+            </h2>
+            <div className="flex items-center space-x-1">
+              {activeServerId === 'home' ? (
+                <button 
+                  onClick={() => useChatStore.getState().setAddFriendModalOpen(true)}
+                  className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all active:scale-95 shadow-sm flex items-center space-x-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Add</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsNewGroupOpen(true)}
+                  className="p-2 hover:bg-white/10 rounded-xl text-white transition-all active:scale-95 shrink-0"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {activeVoiceChannelId && (
+            <div className="px-4 py-3 bg-primary/10 border-t border-primary/20 flex items-center justify-between group">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg animate-speak-pulse">
+                    <SignalHigh className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase text-primary tracking-widest">Voice Connected</span>
+                    <span className="text-[9px] font-bold text-text-muted truncate max-w-[100px]">General / Nexora Server</span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1">
+                <button className="p-2 hover:bg-primary/20 rounded-lg text-primary transition-all group-hover:scale-110"><Mic className="w-4 h-4" /></button>
+                <button className="p-2 hover:bg-presence-dnd/20 rounded-lg text-presence-dnd transition-all" onClick={leaveVoiceChannel}><Phone className="w-4 h-4 rotate-[135deg]" /></button>
+              </div>
+            </div>
+          )}
+
+          {/* Quick Tabs (Discord Style) */}
+          <div className="flex items-center space-x-6 mt-4">
+            {['Message', 'Group'].map((tab) => {
+              const tabId = tab.toLowerCase() as 'message' | 'group'
+              const isTabActive = (tabId === 'message' && activeServerId === 'home' && sidebarTab === 'message') || 
+                                  (tabId === 'group' && (activeServerId !== 'home' || sidebarTab === 'group'))
+              
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setSidebarTab(tabId)}
+                  className={`text-[10px] font-black uppercase tracking-[0.2em] pb-1 transition-all border-b-2 ${
+                    isTabActive
+                      ? 'text-white border-white' 
+                      : 'text-white/40 border-transparent hover:text-white/60'
+                  }`}
+                >
+                  {tab}
+                </button>
+              )
+            })}
+          </div>
       </div>
 
-      <NewGroupModal isOpen={isNewGroupOpen} onClose={() => setIsNewGroupOpen(false)} />
-
-      {/* Search (Inspired by reference) */}
-      <div className="px-8 mb-6">
+      {/* Search Bar */}
+      <div className="px-4 py-4">
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300 group-focus-within:text-primary transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted group-focus-within:text-primary transition-colors" />
           <input 
             type="text" 
-            placeholder="Search conversations..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#f8faff] rounded-xl py-3.5 pl-11 pr-4 text-sm focus:bg-white focus:ring-1 focus:ring-primary/20 outline-none transition-all placeholder:text-zinc-300 font-sans border border-transparent focus:border-primary/10"
+            placeholder={activeServerId === 'home' ? "Find or start a conversation" : "Search in server"}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-surface-low border border-outline-variant rounded-xl py-2.5 pl-11 pr-4 text-sm focus:ring-1 focus:ring-primary/40 focus:bg-white outline-none transition-all placeholder:text-text-muted/60"
           />
         </div>
       </div>
 
-      {/* Category Pills (Filters) */}
-      <div className="px-8 mb-8 flex items-center space-x-2 overflow-x-auto no-scrollbar pb-1">
-         {filters.map(f => (
-            <button
-               key={f}
-               onClick={() => setFilter(f)}
-               className={`px-6 py-2.5 rounded-full text-xs font-black tracking-tight transition-all shrink-0 ${
-                  filter === f 
-                    ? 'bg-primary text-white shadow-lg shadow-primary/20' 
-                    : 'bg-white text-zinc-400 hover:bg-surface-low border border-[#f1f1f1]'
-               }`}
-            >
-               {f}
-            </button>
-         ))}
-      </div>
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto px-4 space-y-6 pb-24 no-scrollbar">
+        {/* Text Channels List */}
+        <div className="space-y-1">
+          <div className="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted flex items-center justify-between">
+            <span>{activeServerId === 'home' ? 'Direct Messages' : 'Text Channels'}</span>
+            <Plus className="w-3 h-3 cursor-pointer hover:text-primary transition-colors" />
+          </div>
+          <LayoutGroup>
+            <AnimatePresence mode="popLayout">
+              {filteredChats.map((chat: any) => {
+                const isActive = activeChat?.id === chat.id
+                const isGroup = chat.type === 'group'
+                const allParticipants = chat.chat_participants || []
+                const otherParticipant = allParticipants.find((p: any) => p.user_id !== user?.id) || allParticipants[0]
+                const participantProfile = otherParticipant?.profiles
+                
+                const chatName = isGroup ? (chat.name || 'Group') : (participantProfile?.name || 'User')
+                const isSelfChat = !isGroup && otherParticipant?.user_id === user?.id
+                const finalChatName = isSelfChat ? `${chatName} (You)` : chatName
+                
+                const lastMsg = chat.last_message
+                const unreadCount = chat.unread_count || 0
+                const isTyping = typingUsers[otherParticipant?.user_id || '']
+                const time = lastMsg ? new Date(lastMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
 
-      {/* Chat List */}
-      <div className="flex-1 overflow-y-auto px-4 space-y-3 pb-24 no-scrollbar">
-        <LayoutGroup>
-          <AnimatePresence mode="popLayout">
-            {chats.length === 0 ? (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center justify-center py-20 px-8 text-center"
-              >
-                <div className="w-16 h-16 bg-[#f8faff] rounded-[1.5rem] flex items-center justify-center mb-6 border border-black/5">
-                   <Edit className="w-6 h-6 text-primary/40" />
-                </div>
-                <h3 className="font-display font-black text-lg text-gray-900 mb-2 uppercase tracking-tight">No Chats Found</h3>
-                <p className="text-[13px] text-zinc-400 font-sans leading-relaxed mb-8">
-                  Your chat list is empty. Start a new conversation to get started.
-                </p>
-                <button 
-                  onClick={() => setIsNewGroupOpen(true)}
-                  className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  Start your first chat
-                </button>
-              </motion.div>
-            ) : chats.map((chat: any, index: number) => {
-              const isActive = activeChat?.id === chat.id
-              
-              // Logic for Chat Name and Avatar
-              const isGroup = chat.type === 'group'
-              const otherParticipant = chat.chat_participants?.find((p: any) => p.user_id !== user?.id)
-              const participantProfile = otherParticipant?.profiles
-              
-              const chatName = chat.name || participantProfile?.name || 'Unknown User'
-              const chatAvatar = isGroup 
-                ? `https://api.dicebear.com/7.x/initials/svg?seed=${chatName}&backgroundColor=00a3ff&fontFamily=monospace&bold=true`
-                : participantProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participantProfile?.email || chat.id}`
-              
-              const lastMsg = chat.last_message
-              const unreadCount = chat.unread_count || 0
-              const isOnline = onlineUsers[otherParticipant?.user_id || '']
-              const isTyping = useChatStore.getState().typingUsers[otherParticipant?.user_id || '']
-              
-              const time = lastMsg ? new Date(lastMsg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
-              
-              const matchesSearch = chatName.toLowerCase().includes(searchQuery.toLowerCase()) || (participantProfile?.email || '').toLowerCase().includes(searchQuery.toLowerCase())
-              
-              if (filter === 'Unread' && unreadCount === 0) return null
-              if (searchQuery && !matchesSearch) return null
-
-              return (
-                <motion.button
-                  layout
-                  key={chat.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ 
-                    duration: 0.4, 
-                    delay: index * 0.04,
-                    ease: [0.16, 1, 0.3, 1] 
-                  }}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setActiveChat(chat)}
-                  className={`w-full p-4 rounded-[2rem] flex items-center space-x-4 transition-all relative group overflow-hidden ${
-                    isActive 
-                      ? 'bg-white shadow-xl shadow-primary/5 ring-1 ring-black/5' 
-                      : 'hover:bg-white/60'
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div 
-                      layoutId="active-pill"
-                      className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent -z-10" 
-                    />
-                  )}
-
-                  <div className="relative shrink-0">
-                    <div className={`w-14 h-14 rounded-2xl bg-white p-0.5 border-2 transition-all duration-500 group-hover:rotate-3 ${isActive ? 'border-primary/20 scale-110 shadow-md shadow-primary/10' : 'border-white'}`}>
-                       <img 
-                          src={chatAvatar} 
+                return (
+                  <motion.button
+                    layout
+                    key={chat.id}
+                    onClick={() => setActiveChat(chat)}
+                    className={`
+                      w-full group relative flex items-center p-3 rounded-2xl transition-all duration-300 active:scale-[0.98]
+                      ${isActive ? 'bg-primary shadow-lg shadow-primary/20' : 'hover:bg-surface-low'}
+                    `}
+                  >
+                    {/* Avatar Section */}
+                    <div className="relative mr-4 shrink-0">
+                      <div className={`
+                        w-12 h-12 rounded-2xl overflow-hidden border-2 transition-all duration-500
+                        ${isActive ? 'border-white/20' : 'border-outline-variant group-hover:border-primary/20'}
+                      `}
+                      style={!isActive && participantProfile?.avatar_decoration ? { 
+                        borderColor: participantProfile.avatar_decoration,
+                        boxShadow: `0 0 16px ${participantProfile.avatar_decoration}40`
+                      } : {}}>
+                        <img 
+                          src={getAvatarUrl(isGroup ? { avatar_url: chat.avatar_url } : participantProfile)} 
                           alt="" 
-                          className="w-full h-full object-cover rounded-[0.85rem]" 
-                       />
+                          className="w-full h-full object-cover" 
+                        />
+                      </div>
+                      {/* Status Dot */}
+                      {!isGroup && (
+                        <div className={`
+                          absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-surface-lowest
+                          ${(() => {
+                            const status = onlineUsers[otherParticipant?.user_id]?.status || 'offline'
+                            if (status === 'online') return 'bg-presence-online'
+                            if (status === 'idle') return 'bg-presence-idle'
+                            if (status === 'dnd') return 'bg-presence-dnd'
+                            return 'bg-presence-offline grayscale opacity-50'
+                          })()}
+                        `} />
+                      )}
                     </div>
-                    {isOnline && (
-                       <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-secondary-presence rounded-full border-4 border-white z-20 shadow-sm animate-pulse" />
-                    )}
-                  </div>
 
-                  <div className="flex-1 min-w-0 text-left">
-                    <div className="flex justify-between items-baseline mb-1">
-                       <h3 className={`font-display font-black text-[16px] truncate tracking-tighter transition-colors ${isActive ? 'text-primary' : 'text-gray-900 group-hover:text-primary/80'}`}>
-                         {chatName}
-                       </h3>
-                       <span className={`text-[10px] font-black tracking-tight tabular-nums ${isActive ? 'text-primary/60' : 'text-zinc-400'}`}>
-                          {time}
-                       </span>
+                    {/* Info Section */}
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="flex items-center space-x-1 mb-1 overflow-hidden">
+                        {isGroup && (
+                          <Hash className={`w-3.5 h-3.5 shrink-0 -ml-0.5 ${isActive ? 'text-white/70' : 'text-text-muted'}`} />
+                        )}
+                        <h3 className={`font-display font-black text-[15px] truncate uppercase tracking-tight ${isActive ? 'text-white' : 'text-text-main'}`}>
+                          {finalChatName}
+                        </h3>
+                        {!isGroup && !isSelfChat && participantProfile?.username && (
+                          <span className={`text-[10px] font-black shrink-0 ${isActive ? 'text-white/60' : 'text-primary/60'}`}>@{participantProfile.username}</span>
+                        )}
+                      </div>
+                      
+                      <p className={`text-[12px] truncate transition-all ${isActive ? 'text-white/80' : 'text-text-muted'}`}>
+                         {isTyping ? (
+                           <span className={isActive ? 'text-white font-bold italic' : 'text-primary font-bold italic'}>Typing...</span>
+                         ) : lastMsg ? (
+                           lastMsg.content
+                         ) : 'No messages yet'}
+                      </p>
                     </div>
-                    <p className={`text-[13px] truncate font-sans tracking-tight leading-none transition-all ${unreadCount > 0 ? 'font-black text-gray-900' : 'text-zinc-400 group-hover:text-zinc-500'}`}>
-                       {isTyping ? (
-                         <span className="text-primary font-black italic animate-pulse">Typing...</span>
-                       ) : (
-                         lastMsg?.content || "Connected"
-                       )}
-                    </p>
-                  </div>
 
-                  {unreadCount > 0 && (
-                     <div className="w-6 h-6 bg-primary rounded-xl flex items-center justify-center text-[10px] font-black text-white shadow-lg shadow-primary/30 shrink-0">
-                        {unreadCount}
-                     </div>
-                  )}
-                </motion.button>
-              )
-            })}
-          </AnimatePresence>
-        </LayoutGroup>
+                    {/* Meta Section */}
+                    <div className="ml-2 flex flex-col items-end shrink-0">
+                      <span className={`text-[10px] font-bold mb-2 ${isActive ? 'text-white/60' : 'text-text-muted'}`}>
+                        {time}
+                      </span>
+                      {unreadCount > 0 && (
+                        <span className="bg-presence-dnd text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </motion.button>
+                )
+              })}
+            </AnimatePresence>
+          </LayoutGroup>
+        </div>
+
+        {/* Voice Channels Section (Discord Logic) */}
+        {activeServerId !== 'home' && (
+          <div className="space-y-1">
+            <div className="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+              Voice Channels
+            </div>
+            {chats.filter(c => c.type === 'group' && c.id === activeServerId).map(channel => (
+              <div key={`voice-${channel.id}`} className="space-y-1">
+                <button 
+                  onClick={() => joinVoiceChannel(channel.id)}
+                  className={`w-full flex items-center p-2.5 rounded-xl transition-all group ${activeVoiceChannelId === channel.id ? 'bg-presence-online/10 text-presence-online shadow-sm' : 'hover:bg-surface-low text-text-muted hover:text-text-main'}`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 transition-colors ${activeVoiceChannelId === channel.id ? 'bg-presence-online text-white' : 'bg-surface-low text-text-muted group-hover:bg-primary group-hover:text-white'}`}>
+                    <SignalHigh className="w-4 h-4" />
+                  </div>
+                  <span className="font-bold text-sm tracking-tight truncate uppercase">General Voice</span>
+                </button>
+                
+                <div className="space-y-1 ml-4 mt-1 border-l-2 border-outline-variant/30 pl-4 py-1">
+                    {voiceParticipants[channel.id]?.map((participantId: string) => (
+                      <div key={participantId} className="flex items-center space-x-2 group/vp py-1">
+                        <div className="w-6 h-6 rounded-lg overflow-hidden border border-outline-variant animate-speak-pulse">
+                          <img src={getAvatarUrl(null)} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <span className="text-[10px] font-bold text-text-muted group-hover:text-primary transition-colors">
+                          {onlineUsers[participantId]?.name || 'Explorer'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Voice HUD Overlay */}
+      <VoiceHUD />
     </div>
   )
 }

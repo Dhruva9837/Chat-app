@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Sidebar } from './Sidebar'
 import { ChatWindow } from './ChatWindow'
 import { GlobalSidebar } from './GlobalSidebar'
@@ -11,6 +11,9 @@ import { ProfileView } from './ProfileView'
 import { CallsView } from './CallsView'
 import { ContactsView } from './ContactsView'
 import { SavedView } from './SavedView'
+import { CreateServerModal } from './CreateServerModal'
+import { AddFriendModal } from './AddFriendModal'
+import { SettingsModal } from './SettingsModal'
 import { usePresence } from '@/lib/hooks/usePresence'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -109,6 +112,11 @@ export function ChatLayout() {
           {renderView()}
         </AnimatePresence>
       </main>
+
+      {/* Modals & Overlays */}
+      <CreateServerModal />
+      <AddFriendModal />
+      <SettingsModal />
 
       {/* Mobile Interaction Layer */}
       <BottomNav />

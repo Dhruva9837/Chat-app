@@ -138,8 +138,7 @@ create policy "Authenticated users can upload media." on storage.objects
     auth.role() = 'authenticated'
   );
 
-create policy "Users can delete their own media." on storage.objects
-  for delete using (
-    bucket_id = 'chat-media' and
-    auth.uid() = owner
   );
+
+-- Add avatar_decoration support
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_decoration TEXT;

@@ -56,14 +56,21 @@ export const useMessages = (chatId: string | undefined) => {
     }
   }, [chatId, nextCursor, hasMore, loadingMore, prependMessages])
 
-  // 3. Real-time Subscription
+  // 3. Real-time Subscription (Postgres Changes + Presence + Broadcast)
   useEffect(() => {
     if (!chatId || !user) return
 
     fetchInitialMessages()
 
     const channel = supabase
-      .channel(`chat:${chatId}`)
+      .channel(`chat:${chatId}`, {
+        config: {
+          presence: {
+            key: user.id,
+          },
+        },
+      })
+      // 3.1 Listen for New Messages (Persistence Sync)
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
@@ -71,23 +78,38 @@ export const useMessages = (chatId: string | undefined) => {
         filter: `chat_id=eq.${chatId}`
       }, (payload) => {
         const newMessage = payload.new as Message
-        // Only add if not already there (optimistic)
         addMessage(newMessage)
       })
+      // 3.2 Listen for Typing Indicators (Presence)
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState()
-        // Handle custom presence if needed, or rely on our global presence hook
+        Object.keys(state).forEach((userId) => {
+          if (userId !== user.id) {
+            const isTyping = (state[userId][0] as any)?.typing || false
+            setTypingUser(userId, isTyping)
+          }
+        })
+      })
+      // 3.3 Listen for Read Receipts (Broadcast)
+      .on('broadcast', { event: 'message_seen' }, ({ payload }) => {
+        const { messageIds, userId } = payload
+        if (userId !== user.id) {
+          // Update store messages status
+          useChatStore.setState((state) => ({
+            messages: state.messages.map(m => messageIds.includes(m.id) ? { ...m, is_read: true } : m)
+          }))
+        }
       })
       .subscribe()
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [chatId, user?.id, fetchInitialMessages, addMessage])
+  }, [chatId, user?.id, fetchInitialMessages, addMessage, setTypingUser])
 
   // 4. Send Message (Optimistic)
   const sendMessage = async (content: string, type: 'text' | 'image' = 'text', imageUrl?: string) => {
-    if (!chatId || !user || !content.trim()) return
+    if (!chatId || !user || (!content.trim() && !imageUrl)) return
 
     const tempId = `temp-${Date.now()}`
     const optimisticMsg: Message = {
@@ -119,6 +141,8 @@ export const useMessages = (chatId: string | undefined) => {
       
       const realMsg = await res.json()
       
+      if (!res.ok) throw new Error(realMsg.error || 'Failed to send')
+      
       // Replace optimistic message with real one in store
       useChatStore.setState((state) => ({
         messages: state.messages.map(m => m.id === tempId ? realMsg : m)
@@ -132,27 +156,54 @@ export const useMessages = (chatId: string | undefined) => {
     }
   }
 
-  // 5. Typing Indicators
-  const handleTyping = useCallback(async (content: string) => {
+  // 5. Interaction Feedback (Typing & Seen)
+  const handleTyping = useCallback(async (isTyping: boolean) => {
     if (!chatId || !user) return
 
-    if (!isTypingRef.current) {
-      isTypingRef.current = true
-      await fetch('/api/presence', {
-        method: 'POST',
-        body: JSON.stringify({ userId: user.id, data: { id: user.id, typing: true, chatId } })
+    // Avoid double-tracking the same state
+    if (isTyping === isTypingRef.current) return
+    isTypingRef.current = isTyping
+
+    const channel = supabase.channel(`chat:${chatId}`)
+    
+    if (isTyping) {
+      await channel.track({
+        userId: user.id,
+        typing: true,
+        last_active: new Date().toISOString()
+      })
+
+      // Auto-stop typing after 3 seconds of inactivity
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+      typingTimeoutRef.current = setTimeout(() => {
+        handleTyping(false)
+      }, 3000)
+    } else {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
+      await channel.track({
+        userId: user.id,
+        typing: false,
+        last_active: new Date().toISOString()
       })
     }
+  }, [chatId, user?.id])
 
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-    
-    typingTimeoutRef.current = setTimeout(async () => {
-      isTypingRef.current = false
-      await fetch('/api/presence', {
-        method: 'POST',
-        body: JSON.stringify({ userId: user.id, data: { id: user.id, typing: false, chatId: null } })
-      })
-    }, 2000)
+  const markAsSeen = useCallback(async (messageIds: string[]) => {
+    if (!chatId || !user || messageIds.length === 0) return
+
+    // 1. Broadcast to other participants for instant UI update
+    const channel = supabase.channel(`chat:${chatId}`)
+    channel.send({
+      type: 'broadcast',
+      event: 'message_seen',
+      payload: { messageIds, userId: user.id }
+    })
+
+    // 2. Persist to DB
+    await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .in('id', messageIds)
   }, [chatId, user?.id])
 
   return {
@@ -162,6 +213,8 @@ export const useMessages = (chatId: string | undefined) => {
     hasMore,
     fetchMore,
     sendMessage,
-    handleTyping
+    handleTyping,
+    markAsSeen
   }
 }
+

@@ -1,85 +1,139 @@
 'use client'
 
-import React from 'react'
-import { MessageSquare, Phone, Users, Archive, Settings, User, LogOut } from 'lucide-react'
+import React, { useState } from 'react'
+import { 
+  MessageSquare, 
+  Settings, 
+  Plus, 
+  Compass, 
+  LayoutGrid, 
+  Gamepad2, 
+  Users
+} from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
-import { motion } from 'framer-motion'
-import { supabase } from '@/lib/supabase'
+import { motion, AnimatePresence } from 'framer-motion'
+import { getAvatarUrl } from '@/lib/utils'
+import { StatusPicker } from './StatusPicker'
 
 export function GlobalSidebar() {
-  const { activeView, setActiveView } = useChatStore()
+  const { 
+    activeServerId, 
+    setActiveServerId, 
+    chats, 
+    setActiveChat, 
+    setCreateServerModalOpen,
+    setSettingsModalOpen
+  } = useChatStore()
   const { profile } = useAuthStore()
+  const [isStatusPickerOpen, setIsStatusPickerOpen] = useState(false)
 
-  const navItems = [
-    { id: 'chat', icon: MessageSquare, label: 'Chats' },
-    { id: 'calls', icon: Phone, label: 'Calls' },
-    { id: 'contacts', icon: Users, label: 'Contacts' },
-    { id: 'saved', icon: Archive, label: 'Archive' },
-  ] as const
+  const servers = chats.filter((c: any) => c.type === 'group')
 
   return (
-    <div className="hidden md:flex w-20 h-screen bg-white flex-col items-center py-8 border-r border-[#f1f1f1] shrink-0 z-50">
-      {/* Brand Logo */}
-      <div className="mb-12">
-        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center ambient-shadow overflow-hidden relative border border-[#f1f1f1] rotate-3 hover:rotate-0 transition-transform cursor-pointer">
-           <img src="/logo.png" alt="Nexora" className="w-full h-full object-cover scale-150" />
-        </div>
+    <div className="w-[84px] h-screen bg-surface-low flex flex-col items-center py-6 border-r border-outline-variant shrink-0 no-scrollbar transition-colors duration-500">
+      
+      {/* Home Button (Direct Messages) */}
+      <div className="relative group mb-6">
+        <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-2 bg-text-main rounded-r-full transition-all duration-300 ${activeServerId === 'home' ? 'h-10' : 'group-hover:h-5'}`} />
+        <button
+          onClick={() => {
+            setActiveServerId('home')
+            setActiveChat(null)
+          }}
+          className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-sm ${
+            activeServerId === 'home' 
+              ? 'bg-primary text-white shadow-xl shadow-primary/20 rotate-0' 
+              : 'bg-white text-text-muted hover:bg-primary hover:text-white hover:rounded-xl'
+          }`}
+        >
+          <MessageSquare className="w-6 h-6" />
+        </button>
       </div>
 
-      {/* Nav Items */}
-      <div className="flex-1 flex flex-col items-center space-y-4">
-        {navItems.map((item) => {
-          const isActive = activeView === item.id
-          const Icon = item.icon
+      <div className="w-[32px] h-px bg-outline-variant mb-6" />
+
+      {/* Servers List */}
+      <div className="flex-1 w-full overflow-y-auto no-scrollbar space-y-4 px-3 flex flex-col items-center">
+        {servers.map((server: any) => {
+          const isActive = activeServerId === server.id
           return (
-            <button
-              key={item.id}
-              onClick={() => setActiveView(item.id)}
-              className="relative group p-3 rounded-2xl transition-all hover:bg-surface-low overflow-hidden"
-              title={item.label}
-            >
-              <Icon className={`w-6 h-6 transition-all duration-300 ${isActive ? 'text-primary scale-110' : 'text-zinc-400 group-hover:text-primary/70'}`} />
-              {isActive && (
-                <motion.div 
-                   layoutId="active-nav-glow"
-                   className="absolute inset-0 bg-primary/5 rounded-2xl -z-10"
+            <div key={server.id} className="relative group w-full flex justify-center">
+              <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-0 bg-text-main rounded-r-full transition-all duration-300 ${isActive ? 'h-10' : 'group-hover:h-5'}`} />
+              <button
+                onClick={() => {
+                  setActiveServerId(server.id)
+                  setActiveChat(server) // Auto-select server's main chat
+                }}
+                className={`w-14 h-14 rounded-[1.8rem] overflow-hidden transition-all duration-500 relative ${
+                  isActive 
+                    ? 'rounded-2xl border-2 border-primary shadow-xl shadow-primary/10' 
+                    : 'hover:rounded-2xl border-2 border-transparent'
+                }`}
+              >
+                <img 
+                  src={getAvatarUrl(server)} 
+                  alt={server.name} 
+                  className="w-full h-full object-cover" 
                 />
+              </button>
+              
+              {/* Server Notification Dot (Simulated) */}
+              {server.unread_count > 0 && !isActive && (
+                 <div className="absolute top-0 right-1 w-4 h-4 bg-presence-dnd border-4 border-surface-low rounded-full" />
               )}
-              <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full transition-transform duration-300 ${isActive ? 'scale-x-100' : 'scale-x-0'}`} />
-            </button>
+            </div>
           )
         })}
-      </div>
 
-      {/* Bottom Actions */}
-      <div className="flex flex-col items-center space-y-6">
+        {/* Action Buttons */}
         <button 
-          onClick={async () => {
-            const { error } = await supabase.auth.signOut()
-            if (error) console.error('Sign out error:', error)
-            window.location.reload()
-          }}
-          className="p-3 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group"
-          title="Sign Out"
+          onClick={() => setCreateServerModalOpen(true)}
+          className="w-14 h-14 bg-white rounded-[1.8rem] flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:rounded-2xl transition-all duration-500 shadow-sm border border-outline-variant"
         >
-          <LogOut className="w-6 h-6 group-hover:scale-110 transition-transform" />
+          <Plus className="w-6 h-6" />
         </button>
         
+        <button className="w-14 h-14 bg-white rounded-[1.8rem] flex items-center justify-center text-presence-online hover:bg-presence-online hover:text-white hover:rounded-2xl transition-all duration-500 shadow-sm border border-outline-variant">
+          <Compass className="w-6 h-6" />
+        </button>
+      </div>
+
+      <div className="w-[32px] h-px bg-outline-variant my-4" />
+
+      {/* Bottom Profile & Settings */}
+      <div className="flex flex-col items-center space-y-4 px-3">
         <button 
-           className="p-3 text-zinc-400 hover:text-primary hover:bg-surface-low rounded-2xl transition-all"
-           title="Settings"
+          onClick={() => setSettingsModalOpen(true)}
+          className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-text-muted hover:bg-primary hover:text-white transition-all group shadow-sm border border-outline-variant"
         >
-          <Settings className="w-6 h-6" />
+          <Settings className="w-6 h-6 group-hover:rotate-90 transition-transform duration-500" />
         </button>
 
-        <button 
-          onClick={() => setActiveView('profile')}
-          className={`w-11 h-11 rounded-2xl overflow-hidden ambient-shadow border-2 transition-all active:scale-95 ${activeView === 'profile' ? 'border-primary ring-4 ring-primary/10' : 'border-white hover:border-primary/20'}`}
-          title="Profile"
-        >
-          <img src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.email || profile?.id || 'default'}`} alt="Profile" className="w-full h-full object-cover" />
-        </button>
+        <div className="relative group cursor-pointer">
+            <div 
+              onClick={() => setIsStatusPickerOpen(!isStatusPickerOpen)}
+              className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-outline-variant group-hover:border-primary transition-all relative"
+              style={profile?.avatar_decoration ? { 
+                borderColor: profile.avatar_decoration,
+                boxShadow: `0 0 18px ${profile.avatar_decoration}50`
+              } : {}}
+            >
+              <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
+            </div>
+            {/* User Status Ring */}
+            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-surface-low group-hover:border-white transition-all
+              ${(() => {
+                const status = profile?.status || 'online'
+                if (status === 'online') return 'bg-presence-online'
+                if (status === 'idle') return 'bg-presence-idle'
+                if (status === 'dnd') return 'bg-presence-dnd'
+                return 'bg-presence-offline border-presence-offline opacity-50'
+              })()}
+            `} />
+            
+            <StatusPicker isOpen={isStatusPickerOpen} onClose={() => setIsStatusPickerOpen(false)} />
+        </div>
       </div>
     </div>
   )

@@ -11,6 +11,7 @@ export function Auth() {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,7 +37,10 @@ export function Auth() {
             email,
             password,
             options: {
-              data: { name },
+              data: { 
+                full_name: name,
+                username: username.replace('@', '').toLowerCase()
+              },
               emailRedirectTo: window.location.origin
             }
           })
@@ -79,48 +83,63 @@ export function Auth() {
   }
 
   return (
-    <div className="h-screen w-full bg-[#f8faff] flex items-center justify-center p-6 font-sans overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px]" />
-        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px]" />
+    <div className="min-h-screen w-full bg-[#5865f2] flex items-center justify-center p-4 font-sans overflow-hidden relative">
+      {/* Premium Background (Deep Radial Gradient) */}
+      <div className="absolute inset-0 bg-[#0c1033]">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#2b3595_0%,_transparent_70%)] opacity-30" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_#1a1f5c_0%,_transparent_50%)] opacity-40" />
+      </div>
+
+      {/* Floating Particles (Stars) */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ 
+              x: Math.random() * 100 + "%", 
+              y: Math.random() * 100 + "%",
+              scale: Math.random() * 0.5 + 0.5,
+              opacity: Math.random() * 0.3 + 0.1
+            }}
+            animate={{ 
+              y: [null, "-10%"],
+              opacity: [null, 0]
+            }}
+            transition={{ 
+              duration: Math.random() * 10 + 10, 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
+            className="absolute w-1 h-1 bg-white rounded-full blur-[1px]"
+          />
+        ))}
       </div>
 
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md relative z-10"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-[480px] bg-[#313338] rounded-xl p-8 shadow-2xl relative z-10 border border-black/10"
       >
-        <div className="bg-white rounded-3xl p-10 md:p-12 shadow-[0_20px_50px_rgba(53,37,205,0.08)] border border-gray-100">
-          {/* Logo Section */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center mb-4">
-              <img src="/logo.png" alt="Nexora" className="w-10 h-10 object-contain" />
-            </div>
-            <h1 className="text-2xl font-display font-bold text-gray-900 tracking-tight">Nexora</h1>
-            <p className="text-sm text-gray-400 mt-1">Simple. Secure. Connected.</p>
-          </div>
+        <AnimatePresence mode="wait">
+          {isVerifyStep ? (
+            <motion.form 
+              key="verify" 
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              onSubmit={handleVerifyOtp} 
+              className="flex flex-col items-center"
+            >
+              <h2 className="text-2xl font-bold text-white mb-2">Check your {authMethod}</h2>
+              <p className="text-zinc-400 text-sm mb-8 text-center px-4">
+                We sent a 6-digit verification code to <br />
+                <span className="text-white font-medium">{authMethod === 'email' ? email : phone}</span>
+              </p>
 
-          <AnimatePresence mode="wait">
-            {isVerifyStep ? (
-              <motion.form 
-                key="verify" 
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                onSubmit={handleVerifyOtp} 
-                className="space-y-6"
-              >
-                <div className="text-center">
-                   <h2 className="text-xl font-bold text-gray-900">Verify Code</h2>
-                   <p className="text-xs text-gray-400 mt-2">
-                      Enter the 6-digit code sent to <span className="text-gray-900 font-medium">{authMethod === 'email' ? email : phone}</span>
-                   </p>
-                </div>
-
-                <div className="relative">
-                  <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
+              <div className="w-full space-y-6">
+                <div>
+                  <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider mb-2 block">Verification Code</label>
                   <input 
                     type="text" 
                     value={otp}
@@ -128,14 +147,14 @@ export function Auth() {
                     required
                     maxLength={6}
                     placeholder="000000"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-12 text-2xl text-center font-bold text-gray-900 tracking-widest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-gray-200"
+                    className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-3 px-4 text-2xl text-center font-bold text-white tracking-[0.5em] focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-[#4E5058]"
                   />
                 </div>
 
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
+                  className="w-full bg-primary text-white font-bold py-3 rounded-md shadow-lg shadow-black/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center text-sm"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Verify Account</span>}
                 </button>
@@ -143,115 +162,152 @@ export function Auth() {
                 <button 
                   type="button" 
                   onClick={() => setIsVerifyStep(false)}
-                  className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                  className="w-full text-xs text-primary hover:underline font-medium"
                 >
-                  Back to Sign In
+                  Change {authMethod} or details
                 </button>
-              </motion.form>
-            ) : (
-              <motion.form 
-                key="auth" 
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                onSubmit={handleSubmit} 
-                className="space-y-5"
-              >
-                <div className="text-center mb-2">
-                   <h2 className="text-xl font-bold text-gray-900">
-                      {isSignUp ? "Create your account" : "Welcome back"}
-                   </h2>
-                   <p className="text-xs text-gray-400 mt-1">
-                      {isSignUp ? "Fill in your details to get started" : "Please enter your details to sign in"}
-                   </p>
-                </div>
+              </div>
+            </motion.form>
+          ) : (
+            <motion.form 
+              key="auth" 
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onSubmit={handleSubmit} 
+              className="space-y-6"
+            >
+              <div className="text-center mb-8">
+                 <h2 className="text-2xl font-bold text-white mb-2">
+                    {isSignUp ? "Create an account" : "Welcome back!"}
+                 </h2>
+                 <p className="text-[#B5BAC1] text-[15px]">
+                    {isSignUp ? "Jump in and start chatting" : "We're so excited to see you again!"}
+                 </p>
+              </div>
 
-                <div className="space-y-4">
-                  {isSignUp && (
-                    <div className="relative group">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
+              <div className="space-y-4">
+                {isSignUp && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">Full Name</label>
                       <input 
                         type="text" 
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Full Name"
                         required
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-12 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-gray-300"
+                        placeholder="John Doe"
+                        className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 px-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all placeholder:text-[#4E5058]"
                       />
                     </div>
-                  )}
-
-                  <div className="relative group">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
-                    <input 
-                      type="email" 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email address"
-                      required
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-12 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-gray-300"
-                    />
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">Username <span className="text-[#f23f42]">*</span></label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#B5BAC1] text-sm">@</span>
+                        <input 
+                          type="text" 
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          required
+                          placeholder="username"
+                          className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 pl-8 pr-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all placeholder:text-[#4E5058]"
+                        />
+                      </div>
+                    </div>
                   </div>
+                )}
 
-                  <div className="relative group">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
-                    <input 
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Password"
-                      required
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-12 pr-12 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-gray-300"
-                    />
+                <div className="space-y-2">
+                   <div className="flex justify-between items-center">
+                    <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">
+                      {authMethod === 'email' ? 'Email' : 'Phone Number'} <span className="text-[#f23f42]">*</span>
+                    </label>
                     <button 
                       type="button" 
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+                      onClick={() => setAuthMethod(authMethod === 'email' ? 'phone' : 'email')}
+                      className="text-[11px] text-primary hover:underline font-bold"
                     >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      Use {authMethod === 'email' ? 'Phone' : 'Email'} instead
                     </button>
-                  </div>
+                   </div>
+                  <input 
+                    type={authMethod === 'email' ? 'email' : 'tel'}
+                    value={authMethod === 'email' ? email : phone}
+                    onChange={(e) => authMethod === 'email' ? setEmail(e.target.value) : setPhone(e.target.value)}
+                    required
+                    className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 px-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all"
+                  />
                 </div>
 
-                <div className="pt-2">
-                  <button 
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
-                  >
-                    {loading ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <>
-                        <span>{isSignUp ? "Sign Up" : "Sign In"}</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="text-center pt-2">
-                   <p className="text-xs text-gray-400 font-medium">
-                      {isSignUp ? "Already have an account? " : "Don't have an account? "}
+                {!isSignUp && authMethod === 'email' && (
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">
+                      Password <span className="text-[#f23f42]">*</span>
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 px-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all"
+                      />
                       <button 
                         type="button" 
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-primary hover:underline underline-offset-4 transition-all"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B5BAC1] hover:text-white transition-colors"
                       >
-                         {isSignUp ? "Sign In" : "Sign Up"}
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
-                   </p>
-                </div>
-              </motion.form>
-            )}
-          </AnimatePresence>
-        </div>
-        
-        {/* Simple Footer */}
-        <div className="mt-8 flex justify-center space-x-6 opacity-30 select-none">
-          {['Terms', 'Privacy', 'Help'].map((item) => (
-            <span key={item} className="text-[10px] font-bold uppercase tracking-wider text-gray-900">{item}</span>
-          ))}
-        </div>
+                    </div>
+                    <button type="button" className="text-xs text-primary hover:underline mt-1 font-medium">Forgot your password?</button>
+                  </div>
+                )}
+
+                {isSignUp && (
+                  <div className="space-y-2">
+                    <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">
+                      Password <span className="text-[#f23f42]">*</span>
+                    </label>
+                    <input 
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 px-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <button 
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-primary text-white font-bold py-3 rounded-md shadow-lg shadow-black/20 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center text-sm"
+                >
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <span>{isSignUp ? "Continue" : "Log In"}</span>
+                  )}
+                </button>
+              </div>
+
+              <div className="pt-1">
+                 <p className="text-xs text-[#949BA4] font-medium">
+                    {isSignUp ? "Already have an account? " : "Need an account? "}
+                    <button 
+                      type="button" 
+                      onClick={() => setIsSignUp(!isSignUp)}
+                      className="text-primary hover:underline transition-all"
+                    >
+                       {isSignUp ? "Log In" : "Register"}
+                    </button>
+                 </p>
+              </div>
+            </motion.form>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   )

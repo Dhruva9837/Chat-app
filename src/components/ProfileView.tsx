@@ -1,112 +1,194 @@
 'use client'
 
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { User, LogOut, Shield, Bell, Monitor, Search, MoreVertical, Menu, CheckCircle, Sparkles, Globe, Briefcase } from 'lucide-react'
+import { User, LogOut, Shield, Bell, Monitor, Search, MoreVertical, Menu, CheckCircle, Sparkles, Globe, Briefcase, Camera, Loader2, Edit3, X, Save, Grid, Users as UsersIcon, Heart } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
+import { ThemeToggle } from './ThemeToggle'
+import { getAvatarUrl } from '@/lib/utils'
 
 export function ProfileView() {
-  const { profile, signOut } = useAuthStore()
+  const { profile, setProfile, signOut } = useAuthStore()
+  const [uploading, setUploading] = useState(false)
+  const [isEditingBio, setIsEditingBio] = useState(false)
+  const [bioContent, setBioContent] = useState(profile?.bio || '')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleSaveBio = async () => {
+    if (!profile) return
+    try {
+      setUploading(true)
+      const { error } = await supabase
+        .from('profiles')
+        .update({ bio: bioContent })
+        .eq('id', profile.id)
+      
+      if (error) throw error
+      setProfile({ ...profile, bio: bioContent })
+      setIsEditingBio(false)
+    } catch (err: any) {
+      alert(err.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !profile) return
+
+    try {
+      setUploading(true)
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${profile.id}-${Math.random()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('chat-media')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-media')
+        .getPublicUrl(filePath)
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id)
+
+      if (updateError) throw updateError
+      setProfile({ ...profile, avatar_url: publicUrl })
+
+    } catch (error: any) {
+       alert(`Upload Error: ${error.message}`)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   return (
-    <div className="flex-1 bg-[#f8faff] overflow-y-auto flex flex-col h-screen font-sans">
-      {/* Top Bar (Inspired by reference) */}
-      <div className="h-20 px-8 flex items-center justify-between sticky top-0 bg-[#f8faff]/80 backdrop-blur-md z-50">
+    <div className="flex-1 bg-surface-lowest overflow-y-auto flex flex-col h-screen font-sans transition-colors duration-500">
+      {/* Reference Header: Solid Teal */}
+      <div className="h-24 px-8 flex items-center justify-between sticky top-0 bg-primary z-50 shadow-lg">
          <div className="flex items-center space-x-6">
-            <button className="p-2 text-gray-900 hover:bg-surface-low rounded-lg transition-colors">
-               <Menu className="w-6 h-6" />
-            </button>
-            <h1 className="font-display font-black text-xl text-gray-900 tracking-tight">Profile Details</h1>
+            <h1 className="font-display font-black text-2xl text-white tracking-widest uppercase">My Profile</h1>
          </div>
          <div className="flex items-center space-x-4">
-            <button className="p-2 text-zinc-400 hover:text-primary transition-colors">
-               <Search className="w-5 h-5" />
-            </button>
-            <button className="p-2 text-zinc-400 hover:text-primary transition-colors">
+            <ThemeToggle />
+            <button className="p-2 text-white/80 hover:text-white transition-colors">
                <MoreVertical className="w-5 h-5" />
             </button>
          </div>
       </div>
 
-      <div className="flex-1 px-6 pb-24 flex flex-col items-center">
-         <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-[480px] bg-white rounded-[2.5rem] p-10 pb-16 ambient-shadow mt-4 relative overflow-hidden"
-         >
-            {/* Main Profile Info */}
-            <div className="flex flex-col items-center text-center">
-               <div className="relative mb-8">
-                  <div className="w-48 h-48 rounded-[2rem] bg-surface-low p-1.5 ambient-shadow rotate-3 hover:rotate-0 transition-transform duration-500 overflow-hidden">
+      <div className="flex-1 px-8 py-10 flex flex-col max-w-2xl mx-auto w-full">
+         {/* Profile Card Head */}
+         <div className="flex items-start justify-between mb-10 bg-surface-low p-8 rounded-[2.5rem]">
+            <div className="flex items-center space-x-6">
+               <div className="relative group">
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+                  <div 
+                    onClick={() => !uploading && fileInputRef.current?.click()}
+                    className="w-24 h-24 rounded-full bg-surface-lowest p-1 shadow-xl relative cursor-pointer group-hover:scale-105 transition-transform overflow-hidden"
+                  >
                      <img 
-                        src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.id || 'alex'}`} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover rounded-[1.8rem]" 
+                        src={getAvatarUrl(profile)} 
+                        alt="" 
+                        className="w-full h-full rounded-full object-cover" 
                      />
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 w-10 h-10 rounded-xl bg-[#006c49] border-4 border-white flex items-center justify-center text-white ambient-shadow">
-                     <CheckCircle className="w-5 h-5" />
+                     {uploading && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Loader2 className="w-6 h-6 text-white animate-spin" /></div>}
                   </div>
                </div>
-
-               <div className="flex items-center space-x-3 mb-4">
-                  <h2 className="font-display font-black text-4xl text-gray-900 tracking-tight leading-none">
-                     {profile?.name || 'Alex Rivers'}
-                  </h2>
-                  <span className="bg-[#bbf7d0] text-[#006c49] text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
-                     Online
-                  </span>
-               </div>
-
-               <p className="text-[#71717a] font-sans leading-relaxed text-[15px] mb-10 max-w-sm">
-                  {profile?.bio || "Digital Product Designer. Passionate about building simple and effective communication tools."}
-               </p>
-
-               {/* Skill Pills (Reference Style) */}
-               <div className="flex flex-wrap justify-center gap-3 mb-12">
-                  <SkillTag icon={Sparkles} label="STRATEGY" />
-                  <SkillTag icon={Globe} label="UX DESIGN" />
-                  <SkillTag icon={Briefcase} label="REMOTE OPS" />
-               </div>
-
-               {/* Stats (Reference Style) */}
-               <div className="w-full pt-10 border-t border-zinc-100/80 flex items-center justify-between px-2">
-                  <StatItem label="PROJECTS" value="42" />
-                  <div className="w-px h-10 bg-zinc-100" />
-                  <StatItem label="RATING" value="4.9" />
-                  <div className="w-px h-10 bg-zinc-100" />
-                  <StatItem label="JOINED" value="2021" />
+               <div>
+                  <h2 className="text-2xl font-display font-black text-text-main tracking-tight leading-none mb-2">{profile?.name || 'User'}</h2>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">UI/UX Designer</p>
                </div>
             </div>
-         </motion.div>
-         
+            <button onClick={() => setIsEditingBio(true)} className="p-3 bg-surface-lowest rounded-2xl shadow-sm text-primary hover:scale-110 active:scale-95 transition-all">
+               <Edit3 className="w-5 h-5" />
+            </button>
+         </div>
+
+         {/* Bio Section */}
+         <div className="mb-12 px-2">
+            <p className="text-[11px] font-black uppercase tracking-widest text-text-muted mb-4">Bio Details</p>
+            {isEditingBio ? (
+               <div className="space-y-4">
+                  <textarea 
+                    autoFocus
+                    value={bioContent}
+                    onChange={e => setBioContent(e.target.value)}
+                    className="w-full bg-surface-low border border-primary/20 rounded-3xl p-6 text-[15px] text-text-main outline-none focus:ring-4 focus:ring-primary/5 min-h-[120px]"
+                  />
+                  <div className="flex justify-end space-x-3">
+                     <button onClick={() => setIsEditingBio(false)} className="px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest text-text-muted">Cancel</button>
+                     <button onClick={handleSaveBio} className="px-8 py-2.5 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95">Save Changes</button>
+                  </div>
+               </div>
+            ) : (
+               <p className="text-text-muted font-sans leading-relaxed text-[15px]">
+                  {profile?.bio || "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout."}
+               </p>
+            )}
+         </div>
+
+         {/* Stats Row */}
+         <div className="grid grid-cols-3 gap-6 mb-12 py-8 border-y border-outline-variant">
+            <StatColumn label="Public Post" value="522" />
+            <StatColumn label="Followers" value="4389" />
+            <StatColumn label="Following" value="8543" />
+         </div>
+
+         {/* Sections: Friends & Photos */}
+         <div className="space-y-12">
+            <MediaGrid label="Friends" icon={UsersIcon} count="42" />
+            <MediaGrid label="Photos" icon={Grid} />
+         </div>
+
          <button 
            onClick={() => signOut()}
-           className="mt-12 group flex items-center space-x-3 text-tertiary-presence hover:bg-tertiary-presence/5 px-6 py-3 rounded-xl transition-all"
+           className="mt-16 w-full py-5 bg-surface-low text-tertiary-presence rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-tertiary-presence/5 transition-all flex items-center justify-center space-x-3"
          >
             <LogOut className="w-5 h-5" />
-            <span className="text-xs font-black uppercase tracking-[0.2em]">Log Out</span>
+            <span>Sign Out Workspace</span>
          </button>
       </div>
     </div>
   )
 }
 
-function SkillTag({ icon: Icon, label }: any) {
+function StatColumn({ label, value }: any) {
   return (
-    <div className="flex items-center space-x-2 bg-[#f8faff] ghost-border border-[#eef2ff] px-5 py-3 rounded-xl hover:bg-white transition-all ambient-shadow shadow-none hover:shadow-lg">
-       <Icon className="w-4 h-4 text-primary" />
-       <span className="text-[10px] font-black tracking-widest text-[#1b1b1b] uppercase">{label}</span>
+    <div className="flex flex-col items-center text-center">
+       <span className="text-xl font-display font-black text-text-main tabular-nums">{value}</span>
+       <span className="text-[9px] font-black uppercase tracking-[0.2em] text-text-muted mt-1">{label}</span>
     </div>
   )
 }
 
-function StatItem({ label, value }: any) {
+function MediaGrid({ label, icon: Icon, count }: any) {
   return (
-    <div className="flex flex-col items-center text-center">
-       <span className="text-[10px] font-black text-zinc-400 tracking-[0.2em] mb-2 uppercase">{label}</span>
-       <span className="text-2xl font-display font-black text-gray-900 tracking-tight">{value}</span>
+    <div>
+       <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+             <Icon className="w-4 h-4 text-primary" />
+             <h3 className="text-[11px] font-black uppercase tracking-widest text-text-main">{label}</h3>
+          </div>
+          <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">See all</button>
+       </div>
+       <div className="grid grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => (
+             <div key={i} className="aspect-square bg-surface-low rounded-2xl overflow-hidden hover:scale-105 transition-transform cursor-pointer relative group">
+                <img src={`https://picsum.photos/seed/${label}${i}/400`} className="w-full h-full object-cover opacity-80" alt="" />
+                {i === 4 && count && (
+                   <div className="absolute inset-0 bg-primary/80 flex items-center justify-center text-white text-xs font-black">+{count}</div>
+                )}
+             </div>
+          ))}
+       </div>
     </div>
   )
 }

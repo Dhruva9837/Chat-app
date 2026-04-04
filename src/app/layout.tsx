@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const inter = Inter({ 
   subsets: ["latin"], 
@@ -19,18 +20,22 @@ export const metadata: Metadata = {
   description: 'A clean, secure, and modern messaging platform for everyone.',
 };
 
+import { ThemeHandler } from "@/components/ThemeHandler";
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body 
-        className={`${inter.variable} ${manrope.variable} font-sans antialiased text-[#1b1b1b] selection:bg-[#3525cd]/10`}
-        suppressHydrationWarning
+        className={`${inter.variable} ${manrope.variable} font-sans antialiased text-text-main selection:bg-primary/10 transition-colors duration-500`}
       >
-        {children}
+        <ThemeProvider>
+          <ThemeHandler />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );
