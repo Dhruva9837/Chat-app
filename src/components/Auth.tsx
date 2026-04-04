@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Mail, Loader2, ArrowRight, ShieldCheck, User, Lock, Eye, EyeOff, Globe, Smartphone, Phone } from 'lucide-react'
+import { Mail, Loader2, ArrowRight, ShieldCheck, User, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
 export function Auth() {
@@ -22,7 +22,6 @@ export function Auth() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-
     try {
       if (authMethod === 'phone') {
         const { error } = await supabase.auth.signInWithOtp({ 
@@ -63,7 +62,7 @@ export function Auth() {
     setLoading(true)
     try {
       if (otp === '123456') {
-        setUser({ id: 'dev-user-001', email: email || 'architect@nexora.com', user_metadata: { name: name || 'Lead Architect' } })
+        setUser({ id: 'dev-user-001', email: email || 'user@nexora.com', user_metadata: { name: name || 'User' } })
         return
       }
       const verifyOptions = authMethod === 'phone' 
@@ -80,61 +79,48 @@ export function Auth() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-mesh-gradient relative overflow-hidden flex flex-col items-center justify-center p-6 font-sans">
-      {/* 1. Architectural Grid Overlay */}
-      <div className="absolute inset-0 bg-grid-white opacity-10 pointer-events-none" />
-      
-      {/* 2. Brand Identity */}
-      <motion.div 
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="relative z-20 flex flex-col items-center mb-12 text-center"
-      >
-        <motion.div 
-          animate={{ scale: [1, 1.05, 1], rotate: [0, 2, 0] }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="w-20 h-20 rounded-[2rem] bg-white p-0.5 ambient-shadow mb-6 border-4 border-white/10"
-        >
-          <img src="/logo.png" alt="Nexora" className="w-full h-full object-cover scale-150 rotate-3" />
-        </motion.div>
-        <h1 className="text-white font-display font-black text-5xl tracking-tighter uppercase mb-2">Nexora</h1>
-        <div className="inline-flex items-center space-x-3 px-4 py-1.5 bg-white/5 rounded-full border border-white/10">
-           <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-           <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Neural High-Fidelity Hub</span>
-        </div>
-      </motion.div>
+    <div className="h-screen w-full bg-[#f8faff] flex items-center justify-center p-6 font-sans overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-[10%] -right-[10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[100px]" />
+      </div>
 
-      {/* 3. Auth Core Engine */}
       <motion.div 
-        layout
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-lg relative z-20"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-md relative z-10"
       >
-        <div className="glass-ultra rounded-[4rem] p-12 md:p-16 border border-white/10 relative overflow-hidden group">
-          {/* Internal Glow */}
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-[80px] group-hover:bg-primary/20 transition-all duration-1000" />
-          
+        <div className="bg-white rounded-3xl p-10 md:p-12 shadow-[0_20px_50px_rgba(53,37,205,0.08)] border border-gray-100">
+          {/* Logo Section */}
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 bg-primary/5 rounded-2xl flex items-center justify-center mb-4">
+              <img src="/logo.png" alt="Nexora" className="w-10 h-10 object-contain" />
+            </div>
+            <h1 className="text-2xl font-display font-bold text-gray-900 tracking-tight">Nexora</h1>
+            <p className="text-sm text-gray-400 mt-1">Simple. Secure. Connected.</p>
+          </div>
+
           <AnimatePresence mode="wait">
             {isVerifyStep ? (
               <motion.form 
                 key="verify" 
-                initial={{ opacity: 0, x: 20 }}
+                initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                exit={{ opacity: 0, x: -10 }}
                 onSubmit={handleVerifyOtp} 
-                className="space-y-10"
+                className="space-y-6"
               >
-                <div className="text-center space-y-4">
-                   <h2 className="text-3xl font-display font-black text-white uppercase tracking-tight">Authorize Node</h2>
-                   <p className="text-white/40 text-[13px] font-medium leading-relaxed">
-                      Checking identity stream for <span className="text-white">{authMethod === 'email' ? email : phone}</span>
+                <div className="text-center">
+                   <h2 className="text-xl font-bold text-gray-900">Verify Code</h2>
+                   <p className="text-xs text-gray-400 mt-2">
+                      Enter the 6-digit code sent to <span className="text-gray-900 font-medium">{authMethod === 'email' ? email : phone}</span>
                    </p>
                 </div>
 
-                <div className="relative group">
-                  <ShieldCheck className="absolute left-6 top-1/2 -translate-y-1/2 w-6 h-6 text-white/30 group-focus-within:text-white transition-all" />
+                <div className="relative">
+                  <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
                   <input 
                     type="text" 
                     value={otp}
@@ -142,16 +128,24 @@ export function Auth() {
                     required
                     maxLength={6}
                     placeholder="000000"
-                    className="w-full bg-white/5 border-2 border-white/5 rounded-[2rem] py-6 px-16 text-4xl text-center font-display text-white tracking-[0.5em] focus:bg-white/10 focus:border-primary/30 outline-none transition-all placeholder:text-white/10"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-12 text-2xl text-center font-bold text-gray-900 tracking-widest focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-gray-200"
                   />
                 </div>
 
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-white text-primary font-black py-6 rounded-[2rem] text-xl transition-all shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center space-x-3"
+                  className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
                 >
-                  {loading ? <Loader2 className="w-8 h-8 animate-spin" /> : <span>Establish Link</span>}
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Verify Account</span>}
+                </button>
+                
+                <button 
+                  type="button" 
+                  onClick={() => setIsVerifyStep(false)}
+                  className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  Back to Sign In
                 </button>
               </motion.form>
             ) : (
@@ -160,95 +154,90 @@ export function Auth() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 onSubmit={handleSubmit} 
-                className="space-y-8"
+                className="space-y-5"
               >
-                {/* Abstract Background Element */}
-                <div className="absolute bottom-0 right-0 p-12 opacity-[0.03] select-none pointer-events-none">
-                   <h1 className="text-[12rem] font-display font-black leading-none uppercase tracking-tighter -mr-12 -mb-12">NEXORA</h1>
-                </div>
-                {/* 4. Action Selector */}
-                <div className="text-center mb-10">
-                   <h2 className="text-4xl font-display font-black text-white uppercase tracking-tighter leading-none mb-3">
-                      {isSignUp ? "Establish Neural Identity" : "Resume Encrypted Session"}
+                <div className="text-center mb-2">
+                   <h2 className="text-xl font-bold text-gray-900">
+                      {isSignUp ? "Create your account" : "Welcome back"}
                    </h2>
-                   <p className="text-white/40 text-[14px]">
-                      Accessing the decentralized nexora network nodes.
+                   <p className="text-xs text-gray-400 mt-1">
+                      {isSignUp ? "Fill in your details to get started" : "Please enter your details to sign in"}
                    </p>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {isSignUp && (
-                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative group">
-                      <User className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-all" />
+                    <div className="relative group">
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
                       <input 
                         type="text" 
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="Architect Name"
+                        placeholder="Full Name"
                         required
-                        className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-5 px-16 text-white outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all placeholder:text-white/20 font-sans"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-12 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-gray-300"
                       />
-                    </motion.div>
+                    </div>
                   )}
 
                   <div className="relative group">
-                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-all" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
                     <input 
                       type="email" 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Global ID (Email)"
+                      placeholder="Email address"
                       required
-                      className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-5 px-16 text-white outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all placeholder:text-white/20 font-sans"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-12 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-gray-300"
                     />
                   </div>
 
                   <div className="relative group">
-                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30 group-focus-within:text-white transition-all" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 group-focus-within:text-primary transition-colors" />
                     <input 
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Security Phrase"
+                      placeholder="Password"
                       required
-                      className="w-full bg-white/5 border-2 border-white/5 rounded-2xl py-5 px-16 pr-16 text-white outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all placeholder:text-white/20 font-sans"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 px-12 pr-12 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-gray-300"
                     />
                     <button 
                       type="button" 
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-6 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-all"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                <button 
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-white text-primary font-black py-6 rounded-[2rem] flex items-center justify-center space-x-4 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-primary/20 relative group"
-                >
-                   {loading ? (
-                     <Loader2 className="w-7 h-7 animate-spin" />
-                   ) : (
-                     <>
-                        <span className="text-2xl font-display uppercase tracking-tight">
-                          {isSignUp ? "Authorize Build" : "Log In"}
-                        </span>
-                        <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
-                     </>
-                   )}
-                </button>
+                <div className="pt-2">
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        <span>{isSignUp ? "Sign Up" : "Sign In"}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </div>
 
-                <div className="flex flex-col items-center pt-4">
-                   <p className="text-white/30 text-[14px] font-bold">
-                      {isSignUp ? "Already part of the network? " : "Not specialized yet? "}
+                <div className="text-center pt-2">
+                   <p className="text-xs text-gray-400 font-medium">
+                      {isSignUp ? "Already have an account? " : "Don't have an account? "}
                       <button 
                         type="button" 
                         onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-white hover:underline underline-offset-8 transition-all"
+                        className="text-primary hover:underline underline-offset-4 transition-all"
                       >
-                         {isSignUp ? "Log In" : "Create Account"}
+                         {isSignUp ? "Sign In" : "Sign Up"}
                       </button>
                    </p>
                 </div>
@@ -256,14 +245,14 @@ export function Auth() {
             )}
           </AnimatePresence>
         </div>
+        
+        {/* Simple Footer */}
+        <div className="mt-8 flex justify-center space-x-6 opacity-30 select-none">
+          {['Terms', 'Privacy', 'Help'].map((item) => (
+            <span key={item} className="text-[10px] font-bold uppercase tracking-wider text-gray-900">{item}</span>
+          ))}
+        </div>
       </motion.div>
-
-      {/* 5. Abstract Footer Details */}
-      <div className="mt-16 relative z-20 flex items-center space-x-12 opacity-30 group cursor-default">
-         {['Terms of Service', 'Privacy Policy', 'Node Status'].map((l) => (
-           <span key={l} className="text-[10px] font-black uppercase tracking-[0.3em] text-white hover:text-white hover:opacity-100 transition-all">{l}</span>
-         ))}
-      </div>
     </div>
   )
 }

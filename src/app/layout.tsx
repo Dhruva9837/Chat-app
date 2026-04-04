@@ -26,7 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${manrope.variable} font-sans antialiased text-[#1b1b1b] selection:bg-[#3525cd]/10`}>
+      <body 
+        className={`${inter.variable} ${manrope.variable} font-sans antialiased text-[#1b1b1b] selection:bg-[#3525cd]/10`}
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>
