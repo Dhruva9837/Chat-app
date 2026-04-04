@@ -60,7 +60,7 @@ export function ProfileView() {
                </div>
 
                <p className="text-[#71717a] font-sans leading-relaxed text-[15px] mb-10 max-w-sm">
-                  {profile?.bio || "Product Lead at Catalyst Labs. Building high-stakes communication tools for remote-first architectural teams."}
+                  {profile?.bio || "Digital Product Designer. Passionate about building simple and effective communication tools."}
                </p>
 
                {/* Skill Pills (Reference Style) */}
@@ -86,7 +86,7 @@ export function ProfileView() {
            className="mt-12 group flex items-center space-x-3 text-tertiary-presence hover:bg-tertiary-presence/5 px-6 py-3 rounded-xl transition-all"
          >
             <LogOut className="w-5 h-5" />
-            <span className="text-xs font-black uppercase tracking-[0.2em]">Terminate Session</span>
+            <span className="text-xs font-black uppercase tracking-[0.2em]">Log Out</span>
          </button>
       </div>
     </div>

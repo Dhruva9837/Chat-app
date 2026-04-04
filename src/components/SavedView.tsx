@@ -18,13 +18,13 @@ export function SavedView() {
         <header className="mb-20 space-y-6">
           <div className="flex items-center space-x-3 text-primary">
             <Star className="w-6 h-6 fill-primary" />
-            <span className="text-[11px] font-black uppercase tracking-[0.4em]">Curated Archive</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.4em]">Pinned Messages</span>
           </div>
           <h1 className="font-display font-black text-5xl md:text-6xl text-gray-900 tracking-tighter leading-none">
-            Saved Architecture
+            Saved Messages
           </h1>
           <p className="text-zinc-400 font-sans tracking-tight text-lg max-w-xl leading-relaxed">
-            High-fidelity message nodes and architectural assets pinned for orbital reference and long-term synthesis.
+            Important messages and shared files saved for quick access and reference.
           </p>
         </header>
 
@@ -63,15 +63,15 @@ export function SavedView() {
               <div className="w-12 h-12 rounded-full border-2 border-[#eef2ff] flex items-center justify-center text-zinc-300">
                  <Plus className="w-6 h-6" />
               </div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-300">Sync New Asset</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-300">Save new item</p>
            </div>
         </div>
 
         {/* Global Stats Footer */}
         <div className="mt-32 pt-12 border-t border-zinc-100 flex items-center justify-between opacity-40 select-none">
-           <span className="text-[10px] font-black uppercase tracking-[0.3em]">v1.0.4 Editorial Engine</span>
+           <span className="text-[10px] font-black uppercase tracking-[0.3em]">Nexora v1.0.4</span>
            <div className="flex space-x-8">
-              <span className="text-[10px] font-bold">3 ARCHIVED</span>
+              <span className="text-[10px] font-bold">3 SAVED</span>
               <span className="text-[10px] font-bold">12.4 GB TOTAL</span>
            </div>
         </div>

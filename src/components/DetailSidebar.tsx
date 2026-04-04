@@ -34,7 +34,7 @@ export function DetailSidebar() {
           className="hidden lg:flex flex-col h-screen bg-white border-l border-[#f1f1f1] overflow-hidden sticky top-0 shrink-0"
         >
           <div className="p-6 flex items-center justify-between">
-             <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-zinc-400">Contextual Info</h2>
+             <h2 className="text-[10px] uppercase font-black tracking-[0.2em] text-zinc-400">Chat Details</h2>
              <button onClick={toggleDetailSidebar} className="p-2 text-zinc-400 hover:text-primary transition-colors">
                 <X className="w-5 h-5" />
              </button>
@@ -54,7 +54,7 @@ export function DetailSidebar() {
                 {activeChat.name || 'Julian Vane'}
               </h3>
               <p className="text-[13px] font-sans text-zinc-400 font-bold uppercase tracking-tight">
-                Senior Architect @ ArchiStudio
+                Product Designer
               </p>
             </div>
 

@@ -110,7 +110,7 @@ export function ContactsView() {
       {/* Contacts List */}
       <div className="w-full md:w-[350px] lg:w-[400px] bg-white border-r border-[#f1f1f1] flex flex-col shrink-0 overflow-hidden">
         <div className="p-8 flex items-center justify-between pb-6">
-          <h1 className="font-display font-black text-3xl tracking-tight text-gray-900 leading-none">Network</h1>
+          <h1 className="font-display font-black text-3xl tracking-tight text-gray-900 leading-none">Contacts</h1>
           <button className="p-2.5 bg-[#eef2ff] text-primary rounded-xl hover:bg-primary hover:text-white transition-all shadow-sm">
              <UserPlus className="w-5 h-5" />
           </button>
@@ -123,7 +123,7 @@ export function ContactsView() {
               type="text" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search network contacts..." 
+              placeholder="Search contacts..." 
               className="w-full bg-[#f8faff] rounded-xl py-3.5 pl-11 pr-4 text-sm focus:bg-white outline-none transition-all placeholder:text-zinc-300 border border-transparent focus:border-primary/10"
             />
           </div>
@@ -133,7 +133,7 @@ export function ContactsView() {
            {loading ? (
              <div className="p-8 text-center text-zinc-400 font-bold tracking-tight animate-pulse flex flex-col items-center">
                 <Globe className="w-10 h-10 mb-4 text-primary/20 animate-spin" />
-                Scanning Network Node...
+                Loading contacts...
              </div>
            ) : (
              <AnimatePresence mode="popLayout">
@@ -168,7 +168,7 @@ export function ContactsView() {
                            {profile.name}
                          </h3>
                          <span className={`text-[10px] font-black tracking-[0.2em] uppercase ${profile.status === 'online' ? 'text-secondary-presence' : 'text-zinc-400'}`}>
-                           {profile.status || 'Offline Node'}
+                           {profile.status || 'Offline'}
                          </span>
                       </div>
                     </div>
@@ -190,13 +190,13 @@ export function ContactsView() {
             <div className="w-24 h-24 bg-white rounded-[2rem] shadow-xl flex items-center justify-center mb-8 rotate-3 border border-[#f1f1f1]">
                <Globe className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="font-display font-black text-2xl text-gray-900 tracking-tight uppercase tracking-widest mb-3">Architect Directory</h2>
+            <h2 className="font-display font-black text-2xl text-gray-900 tracking-tight uppercase tracking-widest mb-3">Contact Details</h2>
             <p className="text-zinc-400 font-sans tracking-tight leading-relaxed text-sm mb-10">
-               Access high-fidelity identity data and cryptographic contact streams. Select an architect to explore their node metadata.
+               View contact information and chat history. Select a contact to see more details.
             </p>
             <div className="flex space-x-4">
-               <ActionButton icon={Mail} label="Email Hub" />
-               <ActionButton icon={ShieldCheck} label="Verify Node" />
+               <ActionButton icon={Mail} label="Email" />
+               <ActionButton icon={ShieldCheck} label="Verify" />
             </div>
          </div>
       </div>

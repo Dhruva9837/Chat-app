@@ -25,7 +25,7 @@ export function Sidebar() {
           className="p-2.5 bg-[#eef2ff] text-primary rounded-xl hover:bg-primary hover:text-white transition-all active:scale-95 shadow-sm flex items-center space-x-2 group"
         >
            <Plus className="w-5 h-5" />
-           <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Project Node</span>
+           <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">New Chat</span>
         </button>
       </div>
 
@@ -75,15 +75,15 @@ export function Sidebar() {
                 <div className="w-16 h-16 bg-[#f8faff] rounded-[1.5rem] flex items-center justify-center mb-6 border border-black/5">
                    <Edit className="w-6 h-6 text-primary/40" />
                 </div>
-                <h3 className="font-display font-black text-lg text-gray-900 mb-2 uppercase tracking-tight">No Architecture Found</h3>
+                <h3 className="font-display font-black text-lg text-gray-900 mb-2 uppercase tracking-tight">No Chats Found</h3>
                 <p className="text-[13px] text-zinc-400 font-sans leading-relaxed mb-8">
-                  Your node list is currently empty. Initialize a new professional stream to begin.
+                  Your chat list is empty. Start a new conversation to get started.
                 </p>
                 <button 
                   onClick={() => setIsNewGroupOpen(true)}
                   className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >
-                  Initialize First Node
+                  Start your first chat
                 </button>
               </motion.div>
             ) : chats.map((chat: any, index: number) => {
@@ -94,7 +94,7 @@ export function Sidebar() {
               const otherParticipant = chat.chat_participants?.find((p: any) => p.user_id !== user?.id)
               const participantProfile = otherParticipant?.profiles
               
-              const chatName = chat.name || participantProfile?.name || 'Unknown Architect'
+              const chatName = chat.name || participantProfile?.name || 'Unknown User'
               const chatAvatar = isGroup 
                 ? `https://api.dicebear.com/7.x/initials/svg?seed=${chatName}&backgroundColor=00a3ff&fontFamily=monospace&bold=true`
                 : participantProfile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${participantProfile?.email || chat.id}`
@@ -163,9 +163,9 @@ export function Sidebar() {
                     </div>
                     <p className={`text-[13px] truncate font-sans tracking-tight leading-none transition-all ${unreadCount > 0 ? 'font-black text-gray-900' : 'text-zinc-400 group-hover:text-zinc-500'}`}>
                        {isTyping ? (
-                         <span className="text-primary font-black italic animate-pulse">Encoding stream...</span>
+                         <span className="text-primary font-black italic animate-pulse">Typing...</span>
                        ) : (
-                         lastMsg?.content || "Cipher stream ready"
+                         lastMsg?.content || "Connected"
                        )}
                     </p>
                   </div>

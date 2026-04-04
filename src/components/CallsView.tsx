@@ -62,9 +62,9 @@ export function CallsView() {
             <div className="w-24 h-24 bg-white rounded-[2rem] shadow-xl mx-auto flex items-center justify-center mb-8 rotate-3 border border-[#f1f1f1]">
                <Phone className="w-10 h-10 text-primary" />
             </div>
-            <h2 className="font-display font-black text-2xl text-gray-900 tracking-tight uppercase tracking-widest mb-3">Call Architecture</h2>
+            <h2 className="font-display font-black text-2xl text-gray-900 tracking-tight uppercase tracking-widest mb-3">Recent Calls</h2>
             <p className="text-zinc-400 font-sans tracking-tight leading-relaxed text-sm">
-               Synthesized call metadata and high-fidelity encrypted dialogue records. Select an entry to view architectural metrics.
+               Your complete history of incoming and outgoing calls. Select a record to view details.
             </p>
          </div>
       </div>

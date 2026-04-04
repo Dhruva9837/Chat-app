@@ -15,8 +15,8 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: 'Nexora — Architects Neural Hub',
-  description: 'High-fidelity decentralized messaging node for architectural discourse.',
+  title: 'Nexora — Simple & Secure Messaging',
+  description: 'A clean, secure, and modern messaging platform for everyone.',
 };
 
 export default function RootLayout({

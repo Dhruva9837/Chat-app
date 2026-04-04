@@ -124,8 +124,8 @@ export function NewGroupModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
         {/* Header */}
         <div className="px-10 pt-10 pb-6 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-20">
           <div>
-            <h2 className="text-3xl font-display font-black tracking-tighter text-gray-900 leading-none mb-1.5 uppercase tracking-widest">Project Room</h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Initialize collaboration node</p>
+            <h2 className="text-3xl font-display font-black tracking-tighter text-gray-900 leading-none mb-1.5 uppercase tracking-widest">New Group</h2>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Start a new conversation</p>
           </div>
           <button onClick={onClose} className="p-3 text-zinc-400 hover:text-gray-900 transition-colors bg-zinc-50 rounded-2xl">
             <X className="w-6 h-6" />
@@ -135,14 +135,14 @@ export function NewGroupModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
         <div className="flex-1 overflow-y-auto px-10 pb-10 space-y-8 no-scrollbar">
           {/* Group Info */}
           <div className="space-y-4">
-             <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-1">Room Identity</label>
+             <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-1">Group Info</label>
              <div className="relative group">
                 <div className="absolute left-6 top-1/2 -translate-y-1/2 text-primary">
                    <Flame className="w-5 h-5 fill-current" />
                 </div>
                 <input 
                   type="text"
-                  placeholder="Enter Room Name..."
+                  placeholder="Group Name..."
                   value={groupName}
                   onChange={e => setGroupName(e.target.value)}
                   className="w-full bg-[#f8faff] border border-black/5 rounded-3xl py-6 pl-16 pr-8 text-[17px] font-sans font-semibold focus:bg-white focus:ring-4 focus:ring-primary/5 transition-all outline-none text-gray-800"
@@ -152,7 +152,7 @@ export function NewGroupModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
 
           {/* Search */}
           <div className="space-y-4">
-             <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-1">Select Architects ({selectedIds.length} chosen)</label>
+             <label className="text-[11px] font-black uppercase tracking-widest text-zinc-400 ml-1">Select Members ({selectedIds.length} chosen)</label>
              <div className="relative group">
                 <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
                 <input 
@@ -214,7 +214,7 @@ export function NewGroupModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
                  : 'bg-primary text-white shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]'
              }`}
            >
-             {loading ? 'Initializing...' : 'Establish Node'}
+             {loading ? 'Creating...' : 'Create Group'}
            </button>
         </div>
       </motion.div>

@@ -131,15 +131,15 @@ export function ChatWindow() {
            <div className="text-center space-y-6">
               <div className="inline-flex items-center space-x-3 bg-white/80 backdrop-blur-sm border border-black/5 px-6 py-2 rounded-full shadow-sm">
                  <span className="w-2 h-2 bg-secondary-presence rounded-full animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-900">Neural Encryption Active</span>
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-900">Secure Encryption Active</span>
               </div>
               
               <h2 className="font-display font-black text-5xl tracking-tight text-gray-900 leading-[0.9] uppercase">
-                Welcome to the <span className="text-primary">Architecture</span> of Message
+                Welcome to <span className="text-primary">Nexora</span> Messaging
               </h2>
               
               <p className="text-zinc-400 font-sans tracking-tight text-[15px] leading-relaxed max-w-sm mx-auto">
-                Your end-to-end encrypted yap stream is ready. Select an architect from the node list or initialize a new project room to begin.
+                Your end-to-end encrypted chat is ready. Select a contact from the list or start a new group chat to begin.
               </p>
 
               <div className="pt-8 grid grid-cols-2 gap-4 w-full max-w-sm">
@@ -147,13 +147,13 @@ export function ChatWindow() {
                     <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary mb-4 group-hover:scale-110 transition-transform">
                        <Search className="w-5 h-5" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-900 leading-none">Find Node</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-900 leading-none">Search Chat</p>
                  </div>
                  <div className="p-6 bg-white rounded-[2rem] border border-black/5 ambient-shadow hover:shadow-xl transition-all group cursor-default">
                     <div className="w-10 h-10 rounded-xl bg-orange-500/5 flex items-center justify-center text-orange-500 mb-4 group-hover:scale-110 transition-transform">
                        <Plus className="w-5 h-5" />
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-900 leading-none">New Project</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-900 leading-none">New Group</p>
                  </div>
               </div>
            </div>
@@ -169,7 +169,7 @@ export function ChatWindow() {
 
   return (
     <div className="flex-1 flex flex-col bg-white relative h-screen font-sans border-r border-[#f1f1f1]">
-      {/* Header (Inspired by reference) */}
+      {/* Header */}
       <div className="h-24 px-10 flex items-center justify-between sticky top-0 glass-v2 z-50 border-b border-white/10">
         <div className="flex items-center space-x-6">
           <button 
@@ -203,10 +203,10 @@ export function ChatWindow() {
                     )}
                  </div>
                  <div>
-           <h2 className="font-display font-black text-xl tracking-tighter text-gray-900 leading-none mb-1.5 uppercase tracking-widest">Architects node</h2>
+           <h2 className="font-display font-black text-xl tracking-tighter text-gray-900 leading-none mb-1.5 uppercase tracking-widest">Chat Details</h2>
            <div className={`flex items-center text-[10px] uppercase font-black tracking-[0.2em] ${isOnline || isGroup ? 'text-secondary-presence' : 'text-zinc-400'}`}>
              <span className={`w-1.5 h-1.5 rounded-full mr-2 ${isOnline || isGroup ? 'bg-secondary-presence animate-pulse' : 'bg-zinc-300'}`} />
-             {isGroup ? `${memberCount} Architects Node` : (isOnline ? 'Active Stream' : 'Offline')}
+             {isGroup ? `${memberCount} Members` : (isOnline ? 'Online' : 'Offline')}
            </div>
          </div>
       </div>
@@ -226,7 +226,7 @@ export function ChatWindow() {
         <input 
           autoFocus
           type="text" 
-          placeholder="Filter cipher stream..."
+          placeholder="Search messages..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full bg-white/50 border border-black/5 rounded-full py-2 px-6 text-xs font-sans font-semibold outline-none focus:ring-2 focus:ring-primary/20"
@@ -262,7 +262,7 @@ export function ChatWindow() {
 
         <div className="flex items-center justify-center mb-12">
            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.5em] bg-white/50 backdrop-blur-md px-8 py-2.5 rounded-full border border-black/5">
-              Secure Terminal Connection established
+              Secure connection established
            </span>
         </div>
 
@@ -305,7 +305,7 @@ export function ChatWindow() {
                                 />
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                               </div>
-                              <p className={`text-[13px] font-black uppercase tracking-widest ${isMe ? 'text-white/60' : 'text-zinc-400'}`}>Media Node Received</p>
+                              <p className={`text-[13px] font-black uppercase tracking-widest ${isMe ? 'text-white/60' : 'text-zinc-400'}`}>Image Received</p>
                            </div>
                          ) : (
                            <p className="text-[16px] leading-[1.6] font-sans tracking-tight font-medium selection:bg-white/20">
@@ -404,7 +404,7 @@ export function ChatWindow() {
               setContent(e.target.value)
               handleTyping(e.target.value)
             }}
-            placeholder={`Type a high-fidelity message...`}
+            placeholder={`Type a message...`}
             className="flex-1 bg-transparent border-none py-4 px-4 text-[17px] focus:ring-0 outline-none text-gray-800 placeholder:text-zinc-300 font-sans font-medium"
           />
           <div className="flex items-center px-4 space-x-3">
