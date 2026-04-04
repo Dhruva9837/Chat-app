@@ -18,6 +18,7 @@ export type Chat = {
   created_at: string
   last_message?: Message
   unread_count?: number
+  chat_participants?: (Participant & { profiles: Profile })[]
 }
 
 export type Participant = {
@@ -26,6 +27,7 @@ export type Participant = {
   user_id: string
   role: 'owner' | 'admin' | 'member'
   joined_at: string
+  profiles?: Profile
 }
 
 export type Message = {
@@ -37,4 +39,5 @@ export type Message = {
   image_url?: string
   created_at: string
   is_read: boolean
+  sender_profile?: Profile
 }

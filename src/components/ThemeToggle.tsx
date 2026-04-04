@@ -6,11 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useChatStore } from '@/store/chatStore'
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useChatStore()
+  const { theme, setTheme } = useChatStore()
+
+  const handleToggle = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
+  }
 
   return (
     <button
-      onClick={toggleTheme}
+      onClick={handleToggle}
       className="relative w-14 h-14 rounded-2xl bg-surface-low ghost-border flex items-center justify-center overflow-hidden group transition-all active:scale-90"
     >
       <AnimatePresence mode="wait" initial={false}>

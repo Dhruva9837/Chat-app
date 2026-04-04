@@ -251,7 +251,7 @@ export function ChatWindow() {
                         ))}
                      </div>
 
-                     <RoleSection title="Agents" count={activeChat.chat_participants?.length - 1} />
+                     <RoleSection title="Agents" count={(activeChat.chat_participants?.length || 1) - 1} />
                      <div className="space-y-1">
                         {activeChat.chat_participants?.filter(p => !((p as any).role === 'admin' || (p as any).role === 'owner')).map(participant => (
                            <MemberItem key={participant.user_id} profile={participant.profiles} status={onlineUsers[participant.user_id]?.status || 'offline'} />
