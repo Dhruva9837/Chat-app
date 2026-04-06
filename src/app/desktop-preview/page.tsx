@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react';
 import { CleanSidebar } from '@/components/chat/CleanSidebar';
 import { CleanChatList } from '@/components/chat/CleanChatList';
