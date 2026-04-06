@@ -1,19 +1,21 @@
 'use client'
 
 import React from 'react'
-import { Sidebar } from './Sidebar'
-import { ChatWindow } from './ChatWindow'
-import { GlobalSidebar } from './GlobalSidebar'
-import { DetailSidebar } from './DetailSidebar'
-import { BottomNav } from './BottomNav'
+import { CleanSidebar } from './chat/CleanSidebar'
+import { CleanChatList } from './chat/CleanChatList'
+import { CleanChatWindow } from './chat/CleanChatWindow'
+import { CleanInfoPanel } from './chat/CleanInfoPanel'
 import { useChatStore } from '@/store/chatStore'
 import { ProfileView } from './ProfileView'
 import { FavoritesView } from './FavoritesView'
 import { SettingsView } from './SettingsView'
 import { AddFriendModal } from './AddFriendModal'
 import { SettingsModal } from './SettingsModal'
+import { NewGroupModal } from './NewGroupModal'
 import { usePresence } from '@/lib/hooks/usePresence'
 import { motion, AnimatePresence } from 'framer-motion'
+
+import { GroupsView } from './chat/GroupsView'
 
 export function ChatLayout() {
   const { activeChat, activeView } = useChatStore()
@@ -33,15 +35,27 @@ export function ChatLayout() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 overflow-hidden h-full"
           >
-            <div className={`${activeChat ? 'hidden lg:flex' : 'flex'} w-full md:w-[320px] lg:w-[380px] shrink-0`}>
-              <Sidebar />
+            <div className={`${activeChat ? 'hidden lg:flex' : 'flex'} w-full md:w-[320px] lg:w-[320px] shrink-0`}>
+              <CleanChatList />
             </div>
 
             <div className={`${activeChat ? 'flex' : 'hidden md:flex'} flex-1 h-full`}>
-              <ChatWindow />
+              <CleanChatWindow />
             </div>
 
-            <DetailSidebar />
+            <CleanInfoPanel />
+          </motion.div>
+        )
+      case 'groups':
+        return (
+          <motion.div 
+            key="groups"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.02 }}
+            className="flex-1 overflow-hidden"
+          >
+            <GroupsView />
           </motion.div>
         )
       case 'favorites':
@@ -86,9 +100,9 @@ export function ChatLayout() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-[100dvh] bg-[#f8f9ff] overflow-hidden">
+    <div className="flex flex-col md:flex-row h-[100dvh] bg-white overflow-hidden">
       <div className="hidden md:flex">
-         <GlobalSidebar />
+         <CleanSidebar />
       </div>
 
       <main className="flex-1 flex overflow-hidden relative">
@@ -98,12 +112,14 @@ export function ChatLayout() {
       </main>
 
       <div className="md:hidden">
-        <BottomNav />
+        {/* We can update BottomNav later if needed */}
+        {/* <BottomNav /> */}
       </div>
 
       {/* Modals & Overlays */}
       <AddFriendModal />
       <SettingsModal />
+      <NewGroupModal />
     </div>
   )
 }

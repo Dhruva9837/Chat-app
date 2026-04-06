@@ -26,6 +26,17 @@
   --color-presence-offline: var(--presence-offline);
   
   --radius-lg: 1.5rem;
+  
+  --color-mint-50: #effaf8;
+  --color-mint-100: #d7f1ec;
+  --color-mint-200: #b1e3db;
+  --color-mint-300: #7ed0c3;
+  --color-mint-400: #61d0bf;
+  --color-mint-500: #3db9a8;
+  --color-mint-600: #2ea193;
+  --color-mint-700: #298279;
+  --color-mint-800: #256862;
+  --color-mint-900: #235651;
 }
 
 /* --- LIGHT THEME OVERRIDES --- */
@@ -59,6 +70,26 @@
   --outline-variant: rgba(255, 255, 255, 0.03);
   
   background-color: var(--surface-lowest);
+}
+
+/* --- CLEAN LIGHT THEME (FROM REFERENCE) --- */
+.theme-clean-light {
+  --primary: #61D0BF; /* Mint/Teal from Send Button */
+  --primary-accent: #FF9F8E; /* Soft Orange icon */
+  --primary-bg: #F7F9FB; /* Main background */
+  
+  --surface-lowest: #FFFFFF; /* Sidebar & Chat Bubbles */
+  --surface-low: #F1F5F9; /* Message bubbles (received) */
+  --surface-main: #E2E8F0;
+  
+  --text-main: #2D3748;
+  --text-muted: #718096;
+  
+  --outline-variant: rgba(0, 0, 0, 0.05);
+  
+  background-color: var(--primary-bg);
+  color: var(--text-main);
+  font-family: var(--font-sans);
 }
 
 /* --- NEXORA PREMIUM ANIMATIONS --- */
@@ -166,6 +197,33 @@
     background: rgba(53, 37, 205, 0.05);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(53, 37, 205, 0.1);
+  }
+  
+  .clean-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
+  
+  .clean-sidebar-shadow {
+    box-shadow: 10px 0 30px -10px rgba(0, 0, 0, 0.03);
+  }
+  
+  .clean-bubble-sent {
+    background: var(--primary);
+    color: white;
+    border-radius: 18px 18px 4px 18px;
+  }
+  
+  .clean-bubble-received {
+    background: #FFFFFF;
+    color: var(--text-main);
+    border-radius: 4px 18px 18px 18px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+  }
+  
+  .clean-input {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
   }
   .ambient-shadow {
     box-shadow: 0 10px 30px -5px rgba(11, 28, 48, 0.08);

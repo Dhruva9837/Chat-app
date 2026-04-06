@@ -6,7 +6,7 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { name, members, icon, created_by } = body
 
-    if (!name || !members || !Array.isArray(members) || members.length === 0 || !created_by) {
+    if (!name || !members || !Array.isArray(members) || !created_by) {
       return NextResponse.json({ error: 'Missing required fields: name, members, or created_by' }, { status: 400 })
     }
 

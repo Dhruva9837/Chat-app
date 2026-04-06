@@ -17,11 +17,12 @@ interface ChatState {
   messages: Message[]
   nextCursor: string | null
   hasMore: boolean
-  activeView: 'chat' | 'favorites' | 'profile' | 'settings'
+  activeView: 'chat' | 'favorites' | 'profile' | 'settings' | 'groups'
   showDetailSidebar: boolean
   isAddFriendModalOpen: boolean
   isSettingsModalOpen: boolean
   isProfileModalOpen: boolean
+  isNewGroupModalOpen: boolean
   theme: 'dark' | 'light' | 'midnight'
   activeVoiceChannelId: string | null
   voiceParticipants: Record<string, string[]>
@@ -35,6 +36,7 @@ interface ChatState {
   setIsAddFriendModalOpen: (open: boolean) => void
   setSettingsModalOpen: (open: boolean) => void
   setProfileModalOpen: (open: boolean) => void
+  setNewGroupModalOpen: (open: boolean) => void
   setTheme: (theme: 'dark' | 'light' | 'midnight') => void
   joinVoiceChannel: (id: string) => void
   leaveVoiceChannel: () => void
@@ -66,6 +68,7 @@ export const useChatStore = create<ChatState>((set) => ({
   isAddFriendModalOpen: false,
   isSettingsModalOpen: false,
   isProfileModalOpen: false,
+  isNewGroupModalOpen: false,
   theme: (typeof window !== 'undefined' ? localStorage.getItem('nexora-theme') as any : 'dark') || 'dark',
   activeVoiceChannelId: null,
   voiceParticipants: {},
@@ -74,6 +77,7 @@ export const useChatStore = create<ChatState>((set) => ({
   sidebarTab: 'message',
   fontSize: 16,
   friendRequests: [],
+  setNewGroupModalOpen: (open) => set({ isNewGroupModalOpen: open }),
   setChats: (chats) => set({ chats }),
   setActiveChat: (chat) => set({ 
     activeChat: chat, 

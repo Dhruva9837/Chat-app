@@ -16,22 +16,21 @@ interface Profile {
   avatar_url: string
 }
 
-export function NewGroupModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
+export function NewGroupModal() {
   const { user } = useAuthStore()
-  const { addChat, setActiveChat } = useChatStore()
+  const { addChat, setActiveChat, isNewGroupModalOpen, setNewGroupModalOpen } = useChatStore()
   const [groupName, setGroupName] = useState('')
   const [search, setSearch] = useState('')
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   
-  // Icon State
   const [iconFile, setIconFile] = useState<File | null>(null)
   const [iconPreview, setIconPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!isNewGroupModalOpen) {
       setGroupName('')
       setSelectedIds([])
       setSearch('')
@@ -44,10 +43,11 @@ export function NewGroupModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
       const { data } = await supabase
         .from('profiles')
         .select('*')
+        .neq('id', user?.id) // Don't show self
       if (data) setProfiles(data)
     }
     fetchProfiles()
-  }, [isOpen, user?.id])
+  }, [isNewGroupModalOpen, user?.id])
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -63,138 +63,52 @@ export function NewGroupModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
     }
   }
 
-  const handleCreateChat = async () => {
-    if (selectedIds.length === 0 || !user) return
+  const handleCreateGroup = async () => {
+    if (!user || !groupName) return
     setLoading(true)
 
     try {
-      const isGroup = !!groupName && selectedIds.length > 0;
+      let iconUrl = null
       
-      if (!isGroup && selectedIds.length === 1) {
-        // --- DIRECT MESSAGE LOGIC (Remains similar but cleaned up) ---
-        const otherId = selectedIds[0];
+      if (iconFile) {
+        const fileExt = iconFile.name.split('.').pop()
+        const fileName = `${Math.random()}.${fileExt}`
+        const filePath = `group-icons/${fileName}`
         
-        const { data: existingChats } = await supabase
-          .from('chats')
-          .select(`
-            id,
-            type,
-            chat_participants!inner(user_id)
-          `)
-          .eq('type', 'dm')
-          .eq('chat_participants.user_id', user.id);
-
-        let finalChatId = null;
-
-        if (existingChats) {
-          for (const chat of existingChats) {
-            const { data: participants } = await supabase
-              .from('chat_participants')
-              .select('user_id')
-              .eq('chat_id', chat.id);
-            
-            const participantIds = participants?.map(p => p.user_id) || [];
-            
-            if (otherId === user.id) {
-              if (participantIds.length === 1 && participantIds[0] === user.id) {
-                finalChatId = chat.id;
-                break;
-              }
-            } else {
-              if (participantIds.length === 2 && participantIds.includes(otherId)) {
-                finalChatId = chat.id;
-                break;
-              }
-            }
-          }
-        }
-
-        if (finalChatId) {
-          const { data: fullChat } = await supabase
-            .from('chats')
-            .select('*, chat_participants(*, profiles(*))')
-            .eq('id', finalChatId)
-            .single();
-          if (fullChat) {
-            addChat(fullChat as any);
-            setActiveChat(fullChat as any);
-          }
-          onClose();
-          return;
-        }
-
-        // Create new DM via standard insert (DMs don't need the complex API yet)
-        const { data: newChat, error: chatError } = await supabase
-          .from('chats')
-          .insert({ type: 'dm' })
-          .select()
-          .single();
-
-        if (chatError) throw chatError;
-
-        const participantRecords = otherId === user.id 
-          ? [{ chat_id: newChat.id, user_id: user.id }]
-          : [{ chat_id: newChat.id, user_id: user.id }, { chat_id: newChat.id, user_id: otherId }];
-
-        await supabase.from('chat_participants').insert(participantRecords);
-
-        const { data: fullChat } = await supabase
-          .from('chats')
-          .select('*, chat_participants(*, profiles(*))')
-          .eq('id', newChat.id)
-          .single();
-
-        if (fullChat) {
-          addChat(fullChat as any);
-          setActiveChat(fullChat as any);
-        }
-      } else if (isGroup) {
-        // --- GROUP LOGIC (Using New API) ---
-        let iconUrl = null
-        
-        // 1. Upload Icon if present
-        if (iconFile) {
-          const fileExt = iconFile.name.split('.').pop()
-          const fileName = `${Math.random()}.${fileExt}`
-          const filePath = `group-icons/${fileName}`
+        const { error: uploadError } = await supabase.storage
+          .from('chat-media')
+          .upload(filePath, iconFile)
           
-          const { error: uploadError } = await supabase.storage
-            .from('chat-media') // Using existing bucket
-            .upload(filePath, iconFile)
-            
-          if (uploadError) throw uploadError
-          
-          const { data: { publicUrl } } = supabase.storage
-            .from('chat-media')
-            .getPublicUrl(filePath)
-            
-          iconUrl = publicUrl
-        }
-
-        // 2. Call the new API
-        const response = await fetch('/api/groups/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: groupName,
-            members: selectedIds,
-            icon: iconUrl,
-            created_by: user.id
-          })
-        })
-
-        const fullChat = await response.json()
+        if (uploadError) throw uploadError
         
-        if (!response.ok) throw new Error(fullChat.error || 'Failed to create group')
-
-        // 3. Update Store
-        if (fullChat) {
-          addChat(fullChat)
-          setActiveChat(fullChat)
-        }
+        const { data: { publicUrl } } = supabase.storage
+          .from('chat-media')
+          .getPublicUrl(filePath)
+          
+        iconUrl = publicUrl
       }
 
-      onClose()
+      const response = await fetch('/api/groups/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: groupName,
+          members: selectedIds || [], // Can be empty now
+          icon: iconUrl,
+          created_by: user.id
+        })
+      })
+
+      const fullChat = await response.json()
+      
+      if (!response.ok) throw new Error(fullChat.error || 'Failed to create group')
+
+      if (fullChat) {
+        addChat(fullChat)
+        setActiveChat(fullChat)
+      }
+
+      setNewGroupModalOpen(false)
     } catch (error: any) {
       console.error(error);
       alert(error.message)
@@ -207,188 +121,179 @@ export function NewGroupModal({ isOpen, onClose }: { isOpen: boolean, onClose: (
     p.name.toLowerCase().includes(search.toLowerCase()) || 
     (p.username && p.username.toLowerCase().includes(search.toLowerCase().replace('@', ''))) ||
     p.email.toLowerCase().includes(search.toLowerCase())
-  ).filter(p => !selectedIds.includes(p.id)) // Hide selected ones from the main list for cleaner UI
+  ).filter(p => !selectedIds.includes(p.id))
 
   const selectedProfiles = profiles.filter(p => selectedIds.includes(p.id))
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-[#050505]/80 backdrop-blur-xl" 
-      />
-      
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="w-full max-w-lg bg-surface-lowest rounded-[3rem] relative z-10 overflow-hidden ambient-shadow-2xl flex flex-col max-h-[85vh] border border-outline-variant transition-colors"
-      >
-        {/* Header */}
-        <div className="px-10 pt-10 pb-6 flex items-center justify-between sticky top-0 bg-surface-lowest/80 backdrop-blur-md z-20">
-          <div>
-            <h2 className="text-3xl font-display font-black tracking-tighter text-text-main leading-none mb-1.5 uppercase tracking-widest">New Group</h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-text-muted">Start a new conversation</p>
-          </div>
-          <button onClick={onClose} className="p-3 text-text-muted hover:text-text-main transition-colors bg-surface-low rounded-2xl">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-10 pb-10 space-y-8 no-scrollbar">
-          {/* Group Info Section */}
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            {/* Icon Upload Overlay */}
-            <div className="relative group shrink-0">
-               <div 
-                 onClick={() => fileInputRef.current?.click()}
-                 className="w-24 h-24 rounded-[2rem] bg-surface-low border-2 border-dashed border-outline-variant group-hover:border-primary transition-all cursor-pointer overflow-hidden flex items-center justify-center relative shadow-sm"
-               >
-                 {iconPreview ? (
-                   <>
-                    <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                       <Camera className="w-8 h-8 text-white" />
-                    </div>
-                   </>
-                 ) : (
-                   <div className="flex flex-col items-center justify-center text-text-muted group-hover:text-primary transition-colors">
-                      <Upload className="w-6 h-6 mb-1" />
-                      <span className="text-[9px] font-black uppercase tracking-tighter">Icon</span>
-                   </div>
-                 )}
-               </div>
-               {iconPreview && (
-                 <button 
-                   onClick={() => { setIconFile(null); setIconPreview(null); }}
-                   className="absolute -top-2 -right-2 w-8 h-8 bg-surface-lowest border border-outline-variant text-presence-dnd rounded-xl flex items-center justify-center hover:bg-surface-low transition-colors shadow-sm z-10"
-                 >
-                   <Trash2 className="w-4 h-4" />
-                 </button>
-               )}
-               <input 
-                 type="file" 
-                 ref={fileInputRef} 
-                 onChange={handleIconChange} 
-                 accept="image/*" 
-                 className="hidden" 
-               />
-            </div>
-
-            <div className="flex-1 w-full space-y-4">
-               <label className="text-[11px] font-black uppercase tracking-widest text-text-muted ml-1">Group Name</label>
-               <div className="relative group">
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 text-primary">
-                     <Flame className="w-5 h-5 fill-current" />
-                  </div>
-                    <input 
-                      type="text"
-                      placeholder="Group Name (e.g. Dream Team)..."
-                      value={groupName}
-                      onChange={e => setGroupName(e.target.value)}
-                      className="w-full bg-surface-low border border-outline-variant rounded-3xl py-5 pl-16 pr-8 text-[17px] font-sans font-semibold focus:bg-surface-lowest focus:ring-4 focus:ring-primary/5 transition-all outline-none text-text-main"
-                    />
-               </div>
-            </div>
-          </div>
-
-          {/* Selected Members Mini Preview */}
-          <AnimatePresence>
-            {selectedIds.length > 0 && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-4"
+    <AnimatePresence>
+      {isNewGroupModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setNewGroupModalOpen(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+          />
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="w-full max-w-xl bg-surface-lowest rounded-[2.5rem] relative z-10 overflow-hidden shadow-2xl flex flex-col max-h-[90vh] border border-outline-variant transition-colors"
+          >
+            {/* Header */}
+            <div className="px-10 pt-10 pb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-text-main leading-tight">Create Group</h2>
+                <p className="text-sm text-text-muted font-medium mt-1">Add members and set group details</p>
+              </div>
+              <button 
+                onClick={() => setNewGroupModalOpen(false)} 
+                className="w-11 h-11 flex items-center justify-center text-text-muted hover:text-text-main transition-colors bg-surface-low rounded-2xl hover:bg-surface-main transition-all"
               >
-                <label className="text-[11px] font-black uppercase tracking-widest text-text-muted ml-1">Included Members</label>
-                <div className="flex flex-wrap gap-3">
-                   {selectedProfiles.map(p => (
-                     <div key={p.id} className="group relative">
-                        <div className="relative">
-                          <img 
-                            src={getAvatarUrl(p)} 
-                            className="w-12 h-12 rounded-2xl object-cover border-2 border-primary shadow-lg shadow-primary/10" 
-                            alt="" 
-                          />
-                          <button 
-                             onClick={() => toggleSelect(p.id)}
-                             className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-presence-dnd text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-md"
-                          >
-                             <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                     </div>
-                   ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Search */}
-          <div className="space-y-4">
-             <label className="text-[11px] font-black uppercase tracking-widest text-text-muted ml-1">Add Members</label>
-             <div className="relative group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-text-muted w-5 h-5" />
-                <input 
-                  type="text"
-                  placeholder="Filter users..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full bg-surface-low border border-outline-variant rounded-3xl py-4 pl-16 pr-8 text-[15px] font-sans font-medium focus:bg-surface-lowest transition-all outline-none text-text-main"
-                />
-             </div>
-          </div>
-
-          {/* List */}
-          <div className="grid grid-cols-1 gap-2.5">
-            {filteredProfiles.map(profile => (
-              <button
-                key={profile.id}
-                onClick={() => toggleSelect(profile.id)}
-                className="flex items-center space-x-5 p-4 rounded-3xl transition-all border-2 bg-surface-lowest border-outline-variant hover:bg-surface-low active:scale-[0.98]"
-              >
-                <div className="w-14 h-14 rounded-2xl overflow-hidden ambient-shadow border-2 border-surface-lowest shrink-0 transition-colors">
-                  <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1 text-left">
-                  <h3 className="font-display font-black text-lg tracking-tight text-text-main leading-none mb-1">{profile.name}</h3>
-                  <p className="text-[11px] font-black uppercase tracking-widest text-primary">@{profile.username || 'user'}</p>
-                </div>
-                <div className="w-8 h-8 rounded-full border-2 border-outline-variant flex items-center justify-center text-transparent transition-all">
-                  <Plus className="w-5 h-5 text-text-muted group-hover:text-primary" />
-                </div>
+                <X size={22} strokeWidth={2.5} />
               </button>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* Footer */}
-        <div className="p-10 border-t border-outline-variant bg-surface-low/50 flex space-x-4">
-           <button 
-             onClick={onClose}
-             className="flex-1 bg-surface-lowest border border-outline-variant rounded-3xl py-5 font-display font-black text-text-muted hover:text-text-main transition-all uppercase tracking-widest"
-           >
-             Cancel
-           </button>
-            <button 
-              disabled={selectedIds.length === 0 || loading || (selectedIds.length > 1 && !groupName)}
-              onClick={handleCreateChat}
-              className={`flex-[2] rounded-3xl py-5 font-display font-black uppercase tracking-widest transition-all shadow-2xl ${
-                selectedIds.length === 0 || loading || (selectedIds.length > 1 && !groupName)
-                  ? 'bg-surface-low text-text-muted cursor-not-allowed shadow-none'
-                  : 'bg-primary text-white shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]'
-              }`}
-            >
-              {loading ? 'Creating...' : selectedIds.length > 1 ? 'Create Group' : 'Start Chat'}
-            </button>
+            <div className="flex-1 overflow-y-auto px-10 pb-8 space-y-8 no-scrollbar">
+              {/* Group Metadata */}
+              <div className="flex items-center gap-8 py-2">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-24 h-24 rounded-3xl bg-surface-low border-2 border-dashed border-outline-variant hover:border-mint-500/50 transition-all cursor-pointer overflow-hidden flex items-center justify-center relative group shrink-0"
+                >
+                  {iconPreview ? (
+                    <>
+                      <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Camera className="w-8 h-8 text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-text-muted group-hover:text-mint-500 transition-colors">
+                      <Camera size={28} />
+                    </div>
+                  )}
+                  <input type="file" ref={fileInputRef} onChange={handleIconChange} accept="image/*" className="hidden" />
+                </div>
+                
+                <div className="flex-1 space-y-2">
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest ml-1">Group Name</span>
+                  <input 
+                    type="text"
+                    placeholder="Enter group name..."
+                    value={groupName}
+                    onChange={e => setGroupName(e.target.value)}
+                    className="w-full bg-surface-low border border-outline-variant rounded-2xl py-4 px-6 text-base focus:bg-surface-lowest focus:ring-4 focus:ring-mint-500/10 transition-all outline-none text-text-main font-bold placeholder-text-muted/50"
+                  />
+                </div>
+              </div>
+
+              {/* Selected Preview */}
+              <AnimatePresence>
+                {selectedIds.length > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="space-y-4"
+                  >
+                    <div className="flex justify-between items-center px-1">
+                       <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Added Members ({selectedIds.length})</span>
+                       <button onClick={() => setSelectedIds([])} className="text-[10px] font-bold text-rose-500 hover:text-rose-600 transition-colors">REMOVE ALL</button>
+                    </div>
+                    <div className="flex flex-wrap gap-4 p-4 bg-surface-low rounded-3xl border border-outline-variant">
+                      {selectedProfiles.map(p => (
+                        <motion.div 
+                          key={p.id} 
+                          layout
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="relative group"
+                        >
+                          <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-mint-500/30 shadow-md">
+                            <img src={getAvatarUrl(p)} className="w-full h-full object-cover" alt="" />
+                          </div>
+                          <button 
+                            onClick={() => toggleSelect(p.id)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-surface-lowest border border-outline-variant text-rose-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-xl z-10"
+                          >
+                            <X size={14} strokeWidth={3} />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Add Members Search */}
+              <div className="space-y-4">
+                <div className="relative group">
+                  <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-mint-500 transition-colors" />
+                  <input 
+                    type="text"
+                    placeholder="Search people to add..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full bg-surface-lowest border border-outline-variant rounded-2xl py-4 pl-14 pr-6 text-sm font-medium focus:ring-4 focus:ring-mint-500/5 transition-all outline-none text-text-main shadow-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
+                  {filteredProfiles.map(profile => (
+                    <button
+                      key={profile.id}
+                      onClick={() => toggleSelect(profile.id)}
+                      className="flex items-center gap-4 p-4 rounded-2xl transition-all border border-transparent hover:bg-surface-low hover:border-outline-variant group active:scale-[0.99]"
+                    >
+                      <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-outline-variant bg-surface-lowest shrink-0">
+                        <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h4 className="font-bold text-text-main leading-none mb-1 group-hover:text-mint-500 transition-colors">{profile.name}</h4>
+                        <p className="text-xs text-text-muted font-bold truncate">@{profile.username || 'user'}</p>
+                      </div>
+                      <div className="w-8 h-8 rounded-xl border border-outline-variant flex items-center justify-center text-text-muted group-hover:bg-mint-500 group-hover:border-mint-500 group-hover:text-white transition-all">
+                        <Plus size={18} strokeWidth={3} />
+                      </div>
+                    </button>
+                  ))}
+                  {filteredProfiles.length === 0 && search && (
+                    <div className="text-center py-10">
+                      <p className="text-sm font-bold text-text-muted/50">No users found matching "{search}"</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-8 border-t border-outline-variant bg-surface-low/30 flex gap-4">
+              <button 
+                onClick={() => setNewGroupModalOpen(false)}
+                className="flex-1 px-8 py-4 bg-surface-lowest border border-outline-variant rounded-2xl font-bold text-text-muted hover:text-text-main hover:bg-surface-low transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                disabled={loading || !groupName}
+                onClick={handleCreateGroup}
+                className={`flex-1 px-8 py-4 rounded-2xl font-bold transition-all shadow-xl ${
+                  loading || !groupName
+                    ? 'bg-surface-low text-text-muted cursor-not-allowed border border-outline-variant'
+                    : 'bg-mint-500 text-white shadow-mint-500/20 hover:bg-mint-600 hover:scale-[1.02] active:scale-[0.98]'
+                }`}
+              >
+                {loading ? 'Creating...' : 'Launch Group'}
+              </button>
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-    </div>
-  )
+      )}
+    </AnimatePresence>
+  );
 }
