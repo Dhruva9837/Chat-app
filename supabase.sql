@@ -142,3 +142,28 @@ create policy "Authenticated users can upload media." on storage.objects
 
 -- Add avatar_decoration support
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_decoration TEXT;
+
+-- Friend Requests table
+create table if not exists public.friend_requests (
+  id uuid primary key default uuid_generate_v4(),
+  sender_id uuid references public.profiles(id) on delete cascade not null,
+  receiver_id uuid references public.profiles(id) on delete cascade not null,
+  status text check (status in ('pending', 'accepted', 'rejected')) default 'pending',
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  unique(sender_id, receiver_id)
+);
+
+-- RLS for Friend Requests
+alter table public.friend_requests enable row level security;
+
+create policy "Users can view requests involving them" on public.friend_requests
+  for select using (auth.uid() = sender_id or auth.uid() = receiver_id);
+
+create policy "Users can send requests" on public.friend_requests
+  for insert with check (auth.uid() = sender_id);
+
+create policy "Users can update requests received" on public.friend_requests
+  for update using (auth.uid() = receiver_id);
+
+-- ENABLE REALTIME for friend requests
+alter publication supabase_realtime add table public.friend_requests;

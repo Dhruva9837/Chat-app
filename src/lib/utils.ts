@@ -1,19 +1,20 @@
-export function getAvatarUrl(profile: any, chatId?: string) {
-  if (!profile) return `https://api.dicebear.com/7.x/avataaars/svg?seed=${chatId || 'default'}`
+export function getAvatarUrl(data: any, chatId?: string) {
+  if (!data) return `https://api.dicebear.com/7.x/avataaars/svg?seed=${chatId || 'default'}`
   
-  if (profile.avatar_url) return profile.avatar_url
+  if (data.group_icon) return data.group_icon
+  if (data.avatar_url) return data.avatar_url
 
   // Use gender-based logic as a default for missing avatars
-  if (profile.gender === 'female') {
-    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${profile.email || profile.id}`
+  if (data.gender === 'female') {
+    return `https://api.dicebear.com/7.x/adventurer/svg?seed=${data.email || data.id}`
   }
   
-  if (profile.gender === 'male') {
-    return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${profile.email || profile.id}`
+  if (data.gender === 'male') {
+    return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${data.email || data.id}`
   }
 
   // Final fallback
-  return `https://unavatar.io/${profile.email}?fallback=https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.email || profile.id}`
+  return `https://unavatar.io/${data.email}?fallback=https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email || data.id}`
 }
 
 export function formatTime(dateString: string | Date) {

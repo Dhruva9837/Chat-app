@@ -15,6 +15,8 @@ export type Chat = {
   id: string
   type: 'private' | 'group'
   name?: string
+  group_icon?: string
+  created_by?: string
   created_at: string
   last_message?: Message
   unread_count?: number

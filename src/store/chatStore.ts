@@ -1,6 +1,15 @@
 import { create } from 'zustand'
-import { useAuthStore } from './authStore'
 import { Chat, Message, Profile, Participant } from '@/types/database'
+import { useAuthStore } from './authStore'
+
+export type FriendRequest = {
+  id: string
+  sender_id: string
+  receiver_id: string
+  status: 'pending' | 'accepted' | 'declined'
+  sender_profile: Profile
+  receiver_profile: Profile
+}
 
 interface ChatState {
   chats: Chat[]
@@ -8,10 +17,8 @@ interface ChatState {
   messages: Message[]
   nextCursor: string | null
   hasMore: boolean
-  activeView: 'chat' | 'saved' | 'profile' | 'settings' | 'calls' | 'contacts'
-  activeServerId: string | 'home'
+  activeView: 'chat' | 'favorites' | 'profile' | 'settings'
   showDetailSidebar: boolean
-  isCreateServerModalOpen: boolean
   isAddFriendModalOpen: boolean
   isSettingsModalOpen: boolean
   isProfileModalOpen: boolean
@@ -22,11 +29,10 @@ interface ChatState {
   typingUsers: Record<string, boolean>
   sidebarTab: 'message' | 'group'
   fontSize: number
+  friendRequests: FriendRequest[]
   setChats: (chats: Chat[]) => void
   setActiveChat: (chat: Chat | null) => void
-  setActiveServerId: (id: string | 'home') => void
-  setCreateServerModalOpen: (open: boolean) => void
-  setAddFriendModalOpen: (open: boolean) => void
+  setIsAddFriendModalOpen: (open: boolean) => void
   setSettingsModalOpen: (open: boolean) => void
   setProfileModalOpen: (open: boolean) => void
   setTheme: (theme: 'dark' | 'light' | 'midnight') => void
@@ -36,7 +42,7 @@ interface ChatState {
   addMessage: (message: Message) => void
   receiveGlobalMessage: (message: Message, currentUserId: string) => void
   prependMessages: (messages: Message[], nextCursor: string | null) => void
-  setActiveView: (view: 'chat' | 'saved' | 'profile' | 'settings' | 'calls' | 'contacts') => void
+  setActiveView: (view: 'chat' | 'favorites' | 'profile' | 'settings') => void
   toggleDetailSidebar: () => void
   setOnlineUsers: (users: Record<string, any>) => void
   setTypingUser: (userId: string, isTyping: boolean) => void
@@ -44,6 +50,9 @@ interface ChatState {
   updateChat: (chatId: string, updates: Partial<Chat>) => void
   setSidebarTab: (tab: 'message' | 'group') => void
   setFontSize: (size: number) => void
+  setFriendRequests: (requests: FriendRequest[]) => void
+  addFriendRequest: (request: FriendRequest) => void
+  removeFriendRequest: (id: string) => void
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -53,9 +62,7 @@ export const useChatStore = create<ChatState>((set) => ({
   nextCursor: null,
   hasMore: true,
   activeView: 'chat',
-  activeServerId: 'home',
   showDetailSidebar: false,
-  isCreateServerModalOpen: false,
   isAddFriendModalOpen: false,
   isSettingsModalOpen: false,
   isProfileModalOpen: false,
@@ -66,6 +73,7 @@ export const useChatStore = create<ChatState>((set) => ({
   typingUsers: {},
   sidebarTab: 'message',
   fontSize: 16,
+  friendRequests: [],
   setChats: (chats) => set({ chats }),
   setActiveChat: (chat) => set({ 
     activeChat: chat, 
@@ -74,9 +82,8 @@ export const useChatStore = create<ChatState>((set) => ({
     hasMore: true,
     activeView: 'chat' 
   }),
-  setActiveServerId: (id) => set({ activeServerId: id }),
-  setCreateServerModalOpen: (open) => set({ isCreateServerModalOpen: open }),
-  setAddFriendModalOpen: (open) => set({ isAddFriendModalOpen: open }),
+  setActiveView: (view) => set({ activeView: view }),
+  setIsAddFriendModalOpen: (open) => set({ isAddFriendModalOpen: open }),
   setSettingsModalOpen: (open) => set({ isSettingsModalOpen: open }),
   setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
   setTheme: (theme) => {
@@ -146,7 +153,6 @@ export const useChatStore = create<ChatState>((set) => ({
     nextCursor,
     hasMore: !!nextCursor
   })),
-  setActiveView: (view) => set({ activeView: view }),
   toggleDetailSidebar: () => set((state) => ({ showDetailSidebar: !state.showDetailSidebar })),
   setOnlineUsers: (onlineUsers) => set({ onlineUsers }),
   setTypingUser: (userId, isTyping) => set((state) => ({
@@ -161,4 +167,12 @@ export const useChatStore = create<ChatState>((set) => ({
   })),
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
   setFontSize: (size: number) => set({ fontSize: size }),
+  setFriendRequests: (reqs) => set({ friendRequests: reqs }),
+  addFriendRequest: (req) => set((state) => {
+    if (state.friendRequests.some(r => r.id === req.id)) return state
+    return { friendRequests: [req, ...state.friendRequests] }
+  }),
+  removeFriendRequest: (id) => set((state) => ({
+    friendRequests: state.friendRequests.filter(r => r.id !== id)
+  }))
 }))

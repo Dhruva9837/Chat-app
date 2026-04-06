@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { getAvatarUrl } from '@/lib/utils'
 
 export function AddFriendModal() {
-  const { isAddFriendModalOpen, setAddFriendModalOpen, setActiveChat, setChats, chats } = useChatStore()
+  const { isAddFriendModalOpen, setIsAddFriendModalOpen, setActiveChat, setChats, chats, friendRequests } = useChatStore()
   const { user } = useAuthStore()
   const [username, setUsername] = useState('')
   const [searching, setSearching] = useState(false)
@@ -42,40 +42,68 @@ export function AddFriendModal() {
     }
   }
 
-  const handleStartChat = async () => {
+  const existingChat = result ? chats.find(c => 
+    c.type === 'private' && 
+    (c as any).chat_participants?.some((p: any) => p.user_id === result.id)
+  ) : null
+
+  const pendingRequestSent = result ? friendRequests.find(r => r.sender_id === user?.id && r.receiver_id === result.id && r.status === 'pending') : null
+  const pendingRequestReceived = result ? friendRequests.find(r => r.receiver_id === user?.id && r.sender_id === result.id && r.status === 'pending') : null
+
+  const handleAction = async () => {
     if (!result || !user) return
 
-    try {
-      // 1. Check if chat already exists
-      const existingChat = chats.find(c => 
-        c.type === 'private' && 
-        (c as any).chat_participants?.some((p: any) => p.user_id === result.id)
-      )
+    // 1. If already friends (has chat)
+    if (existingChat) {
+      setActiveChat(existingChat)
+      setIsAddFriendModalOpen(false)
+      return
+    }
 
-      if (existingChat) {
-        setActiveChat(existingChat)
-        setAddFriendModalOpen(false)
-        return
+    // 2. If request already sent
+    if (pendingRequestSent) return;
+
+    // 3. If request received, ACCEPT it
+    if (pendingRequestReceived) {
+      try {
+        const { error } = await supabase
+          .from('friend_requests')
+          .update({ status: 'accepted' })
+          .eq('id', pendingRequestReceived.id)
+        
+        if (error) throw error
+
+        const { data: newChat, error: chatError } = await supabase
+          .from('chats')
+          .insert({ type: 'private' })
+          .select()
+          .single()
+
+        if (chatError) throw chatError
+
+        await supabase.from('chat_participants').insert([
+          { chat_id: newChat.id, user_id: user.id },
+          { chat_id: newChat.id, user_id: result.id }
+        ])
+
+        setActiveChat({ ...newChat, chat_participants: [{ profiles: result }] } as any)
+        setIsAddFriendModalOpen(false)
+      } catch (err: any) {
+        alert(err.message)
       }
+      return
+    }
 
-      // 2. Create new private chat
-      const { data: newChat, error: chatError } = await supabase
-        .from('chats')
-        .insert({ type: 'private' })
-        .select()
-        .single()
-
-      if (chatError) throw chatError
-
-      // 3. Add participants
-      await supabase.from('chat_participants').insert([
-        { chat_id: newChat.id, user_id: user.id },
-        { chat_id: newChat.id, user_id: result.id }
-      ])
-
-      // 4. Refresh local chats (should ideally be handled by subscription)
-      setActiveChat({ ...newChat, chat_participants: [{ profiles: result }] } as any)
-      setAddFriendModalOpen(false)
+    // 4. Otherwise, send new request
+    try {
+      const { error } = await supabase
+        .from('friend_requests')
+        .insert({
+           sender_id: user.id,
+           receiver_id: result.id,
+           status: 'pending'
+        })
+      if (error) throw error
     } catch (err: any) {
       alert(err.message)
     }
@@ -89,7 +117,7 @@ export function AddFriendModal() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setAddFriendModalOpen(false)}
+            onClick={() => setIsAddFriendModalOpen(false)}
             className="absolute inset-0 bg-black/60 backdrop-blur-md"
           />
           
@@ -102,7 +130,7 @@ export function AddFriendModal() {
             {/* Header */}
             <div className="p-8 bg-primary text-white relative">
                 <button 
-                  onClick={() => setAddFriendModalOpen(false)}
+                  onClick={() => setIsAddFriendModalOpen(false)}
                   className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all"
                 >
                   <X className="w-5 h-5" />
@@ -171,11 +199,22 @@ export function AddFriendModal() {
                                 <p className="text-sm font-black text-primary uppercase tracking-widest mb-8">@{result.username}</p>
                                 
                                 <button 
-                                    onClick={handleStartChat}
-                                    className="flex items-center space-x-3 bg-text-main text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-primary transition-all hover:scale-105 active:scale-95 shadow-xl"
+                                    onClick={handleAction}
+                                    disabled={!!pendingRequestSent}
+                                    className={`flex items-center space-x-3 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl ${
+                                      existingChat ? 'bg-text-main text-white hover:bg-primary hover:scale-105 active:scale-95' :
+                                      pendingRequestSent ? 'bg-surface-low text-text-muted border border-outline-variant cursor-not-allowed' :
+                                      pendingRequestReceived ? 'bg-presence-online text-white hover:scale-105 active:scale-95 shadow-presence-online/20' :
+                                      'bg-primary text-white hover:bg-primary/90 hover:scale-105 active:scale-95'
+                                    }`}
                                 >
                                     <MessageSquare className="w-5 h-5" />
-                                    <span>Send Message</span>
+                                    <span>
+                                      {existingChat ? 'Send Message' : 
+                                       pendingRequestSent ? 'Request Sent' :
+                                       pendingRequestReceived ? 'Accept Request' :
+                                       'Send Friend Request'}
+                                    </span>
                                 </button>
                             </motion.div>
                         )}

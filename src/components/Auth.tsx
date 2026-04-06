@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Loader2, ArrowRight, ShieldCheck, User, Lock, Eye, EyeOff } from 'lucide-react'
@@ -19,6 +19,16 @@ export function Auth() {
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email')
   const [isSignUp, setIsSignUp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
+
+  // Load saved email on mount
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('nexora_remembered_email')
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRememberMe(true)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,6 +60,12 @@ export function Auth() {
         } else {
           const { data, error } = await supabase.auth.signInWithPassword({ email, password })
           if (error) throw error
+          // Save or clear remembered email
+          if (rememberMe) {
+            localStorage.setItem('nexora_remembered_email', email)
+          } else {
+            localStorage.removeItem('nexora_remembered_email')
+          }
           setUser(data.user)
         }
       }
@@ -259,7 +275,35 @@ export function Auth() {
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                    <button type="button" className="text-xs text-primary hover:underline mt-1 font-medium">Forgot your password?</button>
+                    {/* Remember me + Forgot password row */}
+                    <div className="flex items-center justify-between mt-2">
+                      <label className="flex items-center gap-2 cursor-pointer select-none group">
+                        <div
+                          onClick={() => setRememberMe(!rememberMe)}
+                          className={`w-4 h-4 rounded flex items-center justify-center border transition-all duration-200 ${
+                            rememberMe
+                              ? 'bg-primary border-primary'
+                              : 'bg-[#1e1f22] border-[#4E5058] group-hover:border-primary/60'
+                          }`}
+                        >
+                          {rememberMe && (
+                            <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 8" fill="none">
+                              <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="sr-only"
+                        />
+                        <span className="text-[12px] text-[#949BA4] group-hover:text-[#B5BAC1] transition-colors font-medium">
+                          Remember me
+                        </span>
+                      </label>
+                      <button type="button" className="text-xs text-primary hover:underline font-medium">Forgot password?</button>
+                    </div>
                   </div>
                 )}
 

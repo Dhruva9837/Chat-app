@@ -4,16 +4,49 @@ import React, { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { User, LogOut, Shield, Bell, Monitor, Search, MoreVertical, Menu, CheckCircle, Sparkles, Globe, Briefcase, Camera, Loader2, Edit3, X, Save, Grid, Users as UsersIcon, Heart } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { useChatStore } from '@/store/chatStore'
 import { supabase } from '@/lib/supabase'
-import { ThemeToggle } from './ThemeToggle'
 import { getAvatarUrl } from '@/lib/utils'
 
 export function ProfileView() {
   const { profile, setProfile, signOut } = useAuthStore()
+  const { chats } = useChatStore()
   const [uploading, setUploading] = useState(false)
   const [isEditingBio, setIsEditingBio] = useState(false)
   const [bioContent, setBioContent] = useState(profile?.bio || '')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [mediaUrls, setMediaUrls] = useState<string[]>([])
+
+  const friends = React.useMemo(() => {
+    if (!profile) return []
+    const f = new Map()
+    chats.forEach(c => {
+      if (c.type === 'private' && c.chat_participants) {
+        c.chat_participants.forEach((p: any) => {
+          if (p.user_id !== profile.id && p.profiles) {
+            f.set(p.user_id, p.profiles)
+          }
+        })
+      }
+    })
+    return Array.from(f.values()).slice(0, 4)
+  }, [chats, profile])
+
+  React.useEffect(() => {
+    if (!profile?.id) return
+    const fetchMedia = async () => {
+      const { data } = await supabase
+        .from('messages')
+        .select('image_url')
+        .eq('sender_id', profile.id)
+        .eq('message_type', 'image')
+        .not('image_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(4)
+      if (data) setMediaUrls(data.map(d => d.image_url))
+    }
+    fetchMedia()
+  }, [profile?.id])
 
   const handleSaveBio = async () => {
     if (!profile) return
@@ -77,7 +110,6 @@ export function ProfileView() {
             <h1 className="font-display font-black text-2xl text-white tracking-widest uppercase">My Profile</h1>
          </div>
          <div className="flex items-center space-x-4">
-            <ThemeToggle />
             <button className="p-2 text-white/80 hover:text-white transition-colors">
                <MoreVertical className="w-5 h-5" />
             </button>
@@ -144,8 +176,8 @@ export function ProfileView() {
 
          {/* Sections: Friends & Photos */}
          <div className="space-y-12">
-            <MediaGrid label="Friends" icon={UsersIcon} count="42" />
-            <MediaGrid label="Photos" icon={Grid} />
+            {friends.length > 0 && <MediaGrid label="Friends" icon={UsersIcon} items={friends.map((f: any) => getAvatarUrl(f))}  />}
+            {mediaUrls.length > 0 && <MediaGrid label="Photos" icon={Grid} items={mediaUrls} />}
          </div>
 
          <button 
@@ -169,7 +201,8 @@ function StatColumn({ label, value }: any) {
   )
 }
 
-function MediaGrid({ label, icon: Icon, count }: any) {
+function MediaGrid({ label, icon: Icon, items }: any) {
+  if (!items || items.length === 0) return null
   return (
     <div>
        <div className="flex items-center justify-between mb-6">
@@ -177,15 +210,11 @@ function MediaGrid({ label, icon: Icon, count }: any) {
              <Icon className="w-4 h-4 text-primary" />
              <h3 className="text-[11px] font-black uppercase tracking-widest text-text-main">{label}</h3>
           </div>
-          <button className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">See all</button>
        </div>
        <div className="grid grid-cols-4 gap-4">
-          {[1,2,3,4].map(i => (
+          {items.map((url: string, i: number) => (
              <div key={i} className="aspect-square bg-surface-low rounded-2xl overflow-hidden hover:scale-105 transition-transform cursor-pointer relative group">
-                <img src={`https://picsum.photos/seed/${label}${i}/400`} className="w-full h-full object-cover opacity-80" alt="" />
-                {i === 4 && count && (
-                   <div className="absolute inset-0 bg-primary/80 flex items-center justify-center text-white text-xs font-black">+{count}</div>
-                )}
+                <img src={url} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" alt="" />
              </div>
           ))}
        </div>

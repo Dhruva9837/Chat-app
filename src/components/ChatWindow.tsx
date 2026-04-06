@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { 
   Send, 
   Smile, 
@@ -24,7 +24,13 @@ import {
   Flame,
   ThumbsUp,
   Laugh,
-  ArrowLeft
+  ArrowLeft,
+  ImageIcon,
+  X,
+  Loader2,
+  MessageSquare,
+  SquarePen,
+  Circle
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChatStore } from '@/store/chatStore'
@@ -33,12 +39,26 @@ import { supabase } from '@/lib/supabase'
 import { getAvatarUrl, formatTime } from '@/lib/utils'
 
 export function ChatWindow() {
-  const { activeChat, setActiveChat, messages, onlineUsers, typingUsers, showDetailSidebar, toggleDetailSidebar, fontSize } = useChatStore()
+  const { 
+    activeChat, 
+    setActiveChat, 
+    messages, 
+    onlineUsers, 
+    typingUsers, 
+    showDetailSidebar, 
+    toggleDetailSidebar, 
+    fontSize, 
+    setIsAddFriendModalOpen 
+  } = useChatStore()
   const { user, profile } = useAuthStore()
   const [newMessage, setNewMessage] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [activeTab, setActiveTab] = useState<'chat' | 'pins' | 'threads'>('chat')
   const scrollRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [pendingFile, setPendingFile] = useState<File | null>(null)
   
   // Local reactions for the demo (since DB schema update is restricted)
   const [localReactions, setLocalReactions] = useState<Record<string, any>>({})
@@ -50,55 +70,135 @@ export function ChatWindow() {
   }, [messages])
 
   if (!activeChat) {
+    const onlineCount = Object.values(onlineUsers || {}).filter(u => (u as any).status === 'online').length
+
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-surface-lowest p-8 text-center animate-in fade-in duration-700">
-        <div className="w-24 h-24 bg-surface-low rounded-[2.5rem] flex items-center justify-center mb-8 shadow-inner">
-           <Sparkles className="w-12 h-12 text-primary animate-pulse" />
-        </div>
-        <h2 className="text-3xl font-display font-black uppercase tracking-tighter text-text-main mb-3">Welcome to Nexora</h2>
-        <p className="text-text-muted max-w-sm text-sm font-medium leading-relaxed uppercase tracking-widest opacity-60">Select a private space or community server to begin your next secure transmission.</p>
-        <div className="mt-12 flex space-x-4">
-           <button className="px-6 py-3 bg-primary text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:scale-105 transition-all">Start Discovery</button>
-           <button className="px-6 py-3 bg-surface-low text-text-main rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-white transition-all">View Tutorial</button>
-        </div>
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#f8f9fc] p-8 text-center animate-in fade-in duration-700 relative overflow-hidden">
+        {/* Subtle background decoration */}
+        <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none" 
+          style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, #000 1px, transparent 0)', backgroundSize: '40px 40px' }} 
+        />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="relative mb-12"
+        >
+          {/* Central Icon Container */}
+          <div className="w-48 h-48 bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white flex items-center justify-center relative">
+            <div className="w-24 h-24 bg-primary rounded-[2rem] flex items-center justify-center shadow-[0_15px_30px_rgba(35,116,225,0.3)] relative">
+               <MessageSquare className="w-12 h-12 text-white fill-white/10" />
+               
+               {/* Plus Overlay */}
+               <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-2xl shadow-lg border-4 border-[#f8f9fc] flex items-center justify-center">
+                  <Plus className="w-5 h-5 text-primary stroke-[3]" />
+               </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
+          className="space-y-4 max-w-sm"
+        >
+          <h2 className="text-4xl font-display font-black tracking-tight text-[#1a1c1e]">Quiet in here...</h2>
+          <p className="text-[#6c727a] text-lg font-medium leading-relaxed">
+            Start a conversation with your team to see your message history appear here.
+          </p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
+          className="mt-12 flex flex-col items-center space-y-6"
+        >
+           <button 
+             onClick={() => setIsAddFriendModalOpen(true)}
+             className="flex items-center space-x-3 px-10 py-5 bg-primary text-white rounded-[2rem] font-bold text-lg shadow-[0_15px_30px_rgba(35,116,225,0.3)] hover:scale-105 active:scale-95 transition-all group"
+           >
+             <SquarePen className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+             <span>Start New Chat</span>
+           </button>
+           
+           <button 
+              key="browse-contacts-link"
+              className="text-primary font-bold text-lg hover:underline transition-all"
+           >
+             Browse Contacts
+           </button>
+        </motion.div>
+
+        {/* Presence Indicator Pill */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1, duration: 1 }}
+          className="absolute bottom-12"
+        >
+          <div className="flex items-center space-x-3 px-6 py-3 bg-white rounded-full shadow-sm border border-[#eee] text-[12px] font-black uppercase tracking-widest text-[#444]">
+            <Circle className="w-2.5 h-2.5 fill-[#23a55a] text-[#23a55a]" />
+            <span>{onlineCount} CONTACTS ONLINE</span>
+          </div>
+        </motion.div>
       </div>
     )
   }
 
-  const isGroup = activeChat.type === 'group'
-  const otherParticipant = !isGroup ? activeChat.chat_participants?.find(p => p.user_id !== user?.id)?.profiles : null
-  const chatName = isGroup ? activeChat.name : (otherParticipant?.name || 'Private Chat')
-  
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim()) return
+    if (!newMessage.trim() && !pendingFile) return
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    let imageUrl = null
+    if (pendingFile) {
+      const fileName = `${Date.now()}-${pendingFile.name}`
+      const { data, error } = await supabase.storage
+        .from('chat-media')
+        .upload(fileName, pendingFile)
+      
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('chat-media')
+          .getPublicUrl(fileName)
+        imageUrl = publicUrl
+      }
+    }
 
     const { error } = await supabase
       .from('messages')
       .insert({
+        content: newMessage,
         chat_id: activeChat.id,
-        sender_id: user?.id,
-        content: newMessage.trim(),
-        message_type: 'text'
+        sender_id: user.id,
+        image_url: imageUrl
       })
 
-    if (!error) setNewMessage('')
+    if (!error) {
+      setNewMessage('')
+      setPendingFile(null)
+      setImagePreview(null)
+    }
   }
 
   const addReaction = (messageId: string, emoji: string) => {
-    setLocalReactions(prev => {
-        const messageReactions = prev[messageId] || {}
-        return {
-            ...prev,
-            [messageId]: {
-                ...messageReactions,
-                [emoji]: (messageReactions[emoji] || 0) + 1
-            }
-        }
-    })
+    setLocalReactions(prev => ({
+      ...prev,
+      [messageId]: {
+        ...prev[messageId],
+        [emoji]: (prev[messageId]?.[emoji] || 0) + 1
+      }
+    }))
   }
 
-  // Filter typing users for THIS specific chat
+  const otherParticipant = activeChat.chat_participants?.find(p => p.user_id !== user?.id)?.profiles
+  const isGroup = activeChat.type === 'group'
+  const chatName = isGroup ? activeChat.name : otherParticipant?.name
   const chatTypingUsers = Object.entries(typingUsers || {}).filter(([id, typing]) => typing && id !== user?.id)
 
   return (
@@ -107,21 +207,13 @@ export function ChatWindow() {
         {/* Chat Header */}
         <header className="h-[84px] bg-surface-lowest/80 backdrop-blur-xl border-b border-outline-variant flex items-center justify-between px-8 z-30 shrink-0">
           <div className="flex items-center space-x-5">
-            <button 
-              onClick={() => setActiveChat(null)}
-              className="md:hidden w-10 h-10 rounded-[1.2rem] bg-surface-low border border-outline-variant flex items-center justify-center text-text-main shadow-md active:scale-90 transition-transform"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
             <div className="relative group">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/50 group-hover:scale-105 transition-all duration-500">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden ring-2 ring-outline-variant/20 hover:ring-primary transition-all duration-500 shadow-sm border border-white">
                 <img src={getAvatarUrl(isGroup ? activeChat : otherParticipant)} alt="" className="w-full h-full object-cover" />
               </div>
-              {!isGroup && (
-                <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-surface-lowest 
-                  ${onlineUsers[otherParticipant?.id || ''] ? 'bg-presence-online shadow-[0_0_15px_rgba(35,165,90,0.5)]' : 'bg-presence-offline border-zinc-400'}`} 
-                />
-              )}
+              <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-4 border-surface-low 
+                ${isGroup ? 'bg-primary' : (onlineUsers[otherParticipant?.id || '']?.status === 'online' ? 'bg-presence-online' : 'bg-presence-offline')}
+              `} />
             </div>
             <div>
               <div className="flex items-center space-x-2">
@@ -132,27 +224,26 @@ export function ChatWindow() {
                 {isGroup && <span className="px-2 py-0.5 bg-primary/10 text-primary text-[8px] font-black rounded-md tracking-widest uppercase">Verified</span>}
               </div>
               <p className="text-[10px] font-black text-text-muted mt-1 uppercase tracking-widest flex items-center">
-                {isGroup ? <><Users className="w-3 h-3 mr-1" /> {activeChat.chat_participants?.length || 0} Members</> : (onlineUsers[otherParticipant?.id || ''] ? 'Connected to Neural Grid' : 'Standard Transmission')}
+                {isGroup ? <><Users className="w-3 h-3 mr-1" /> {activeChat.chat_participants?.length || 0} Members</> : (onlineUsers[otherParticipant?.id || '']?.status === 'online' ? 'Connected to Neural Grid' : 'Standard Transmission')}
               </p>
             </div>
           </div>
-          
           <div className="flex items-center space-x-3">
-             <div className="hidden md:flex bg-surface-low rounded-xl p-1 border border-outline-variant">
-                <button className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-white shadow-sm text-primary' : 'text-text-muted hover:text-text-main'}`} onClick={() => setActiveTab('chat')}>History</button>
-                <button className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'pins' ? 'bg-white shadow-sm text-primary' : 'text-text-muted hover:text-text-main'}`} onClick={() => setActiveTab('pins')}>Pinned</button>
-             </div>
-             <div className="w-px h-6 bg-outline-variant mx-2" />
-             <div className="flex space-x-1">
-                <HeaderAction icon={Phone} label="Voice Call" />
-                <HeaderAction icon={Video} label="Video Call" />
-                <HeaderAction 
-                  icon={Info} 
-                  label="Details" 
-                  active={showDetailSidebar} 
-                  onClick={toggleDetailSidebar} 
-                />
-             </div>
+            <button className="w-12 h-12 flex items-center justify-center text-text-muted hover:bg-primary/5 hover:text-primary rounded-xl transition-all">
+              <Phone className="w-5 h-5" />
+            </button>
+            <button className="w-12 h-12 flex items-center justify-center text-text-muted hover:bg-primary/5 hover:text-primary rounded-xl transition-all">
+              <Video className="w-5 h-5" />
+            </button>
+            <button 
+              onClick={toggleDetailSidebar}
+              className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all ${showDetailSidebar ? 'bg-primary text-white' : 'text-text-muted hover:bg-primary/5 hover:text-primary'}`}
+            >
+              <Info className="w-5 h-5" />
+            </button>
+            <button className="w-12 h-12 flex items-center justify-center text-text-muted hover:bg-primary/5 hover:text-primary rounded-xl transition-all">
+              <MoreVertical className="w-5 h-5" />
+            </button>
           </div>
         </header>
 
@@ -213,22 +304,16 @@ export function ChatWindow() {
                         {/* Render Reactions */}
                         <div className={`absolute -bottom-4 flex space-x-1 ${isOwn ? 'right-0' : 'left-0'}`}>
                             {Object.entries(reactions).map(([emoji, count]: any) => (
-                                <motion.div 
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    key={emoji} 
-                                    className="px-2 py-0.5 bg-surface-lowest border border-outline-variant rounded-full shadow-sm text-[10px] flex items-center space-x-1"
-                                >
-                                    <span>{emoji}</span>
-                                    <span className="font-black text-text-muted">{count}</span>
-                                </motion.div>
+                                <div key={emoji} className="bg-surface-lowest border border-outline-variant px-1.5 py-0.5 rounded-full text-[10px] shadow-sm flex items-center">
+                                    <span>{emoji} {count}</span>
+                                </div>
                             ))}
                         </div>
                       </div>
                       
-                      {msg.message_type === 'image' && msg.image_url && (
-                        <div className="mt-3 rounded-[2rem] overflow-hidden border-4 border-white shadow-2xl rotate-1 hover:rotate-0 transition-transform duration-500 cursor-zoom-in">
-                          <img src={msg.image_url} alt="" className="max-w-xs md:max-w-md object-cover" />
+                      {msg.image_url && (
+                        <div className="mt-3 rounded-2xl overflow-hidden shadow-sm border border-outline-variant/30">
+                          <img src={msg.image_url} alt="Shared" className="max-w-[300px] h-auto" />
                         </div>
                       )}
                     </div>
@@ -237,155 +322,96 @@ export function ChatWindow() {
               )
             })}
           </div>
-
-          {/* Member List (Unified with Detail Sidebar concept) */}
-          <AnimatePresence>
-            {isGroup && showDetailSidebar && (
-              <motion.div 
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 280, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                className="h-full bg-surface-low/50 backdrop-blur-md border-l border-outline-variant hidden lg:flex flex-col"
-              >
-                <div className="p-6">
-                  <h3 className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] mb-6">Participants — {activeChat.chat_participants?.length}</h3>
-                  <div className="space-y-4">
-                     {/* Role-based groupings */}
-                     <RoleSection title="Admin" count={1} />
-                     <div className="space-y-1">
-                        {activeChat.chat_participants?.filter(p => (p as any).role === 'admin' || (p as any).role === 'owner').map(participant => (
-                           <MemberItem key={participant.user_id} profile={participant.profiles} status={onlineUsers[participant.user_id]?.status || 'offline'} isSpeaking={onlineUsers[participant.user_id]?.status === 'online'} />
-                        ))}
-                     </div>
-
-                     <RoleSection title="Agents" count={(activeChat.chat_participants?.length || 1) - 1} />
-                     <div className="space-y-1">
-                        {activeChat.chat_participants?.filter(p => !((p as any).role === 'admin' || (p as any).role === 'owner')).map(participant => (
-                           <MemberItem key={participant.user_id} profile={participant.profiles} status={onlineUsers[participant.user_id]?.status || 'offline'} />
-                        ))}
-                     </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
-        {/* Input Area */}
-        <footer className="px-8 pb-8 pt-2 relative z-30">
-          <div className="max-w-5xl mx-auto">
-             {/* Premium Typing Indicator */}
-             <AnimatePresence>
-               {chatTypingUsers.length > 0 && (
-                 <motion.div 
-                   initial={{ opacity: 0, y: 10 }}
-                   animate={{ opacity: 1, y: 0 }}
-                   exit={{ opacity: 0, y: 10 }}
-                   className="absolute -top-6 left-12 flex items-center space-x-3"
-                 >
-                   <div className="flex space-x-1">
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-typing-bounce" style={{ animationDelay: '0s' }} />
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-typing-bounce" style={{ animationDelay: '0.2s' }} />
-                      <div className="w-1.5 h-1.5 bg-primary rounded-full animate-typing-bounce" style={{ animationDelay: '0.4s' }} />
-                   </div>
-                   <span className="text-[9px] font-black text-primary uppercase tracking-widest">
-                     {chatTypingUsers.length === 1 
-                        ? `${chatTypingUsers[0][1]} is typing...` 
-                        : `${chatTypingUsers.length} people are typing...`}
-                   </span>
-                 </motion.div>
-               )}
-             </AnimatePresence>
-
-             <form onSubmit={handleSendMessage} className="relative bg-surface-low border border-outline-variant rounded-[2.5rem] p-2 pr-4 flex items-center shadow-2xl transition-all focus-within:ring-4 focus-within:ring-primary/5 focus-within:bg-white group">
-                <button className="w-12 h-12 rounded-full flex items-center justify-center text-text-muted hover:bg-primary/10 hover:text-primary transition-all">
-                   <Plus className="w-6 h-6" />
-                </button>
+        {/* Input Dock Area */}
+        <div className="px-8 pb-8 pt-4">
+          <form onSubmit={handleSendMessage} className="relative group">
+            {/* Input Overlay with gradient border */}
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-transparent to-primary/20 rounded-[2rem] opacity-0 group-focus-within:opacity-100 transition-opacity blur-[8px]" />
+            
+            <div className="relative bg-surface-lowest border border-outline-variant rounded-[2.5rem] p-3 flex items-center shadow-[0_10px_40px_rgba(0,0,0,0.03)] focus-within:shadow-xl focus-within:border-primary/30 transition-all">
+              <button 
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-12 h-12 flex items-center justify-center text-text-muted hover:bg-primary hover:text-white rounded-full transition-all"
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setPendingFile(file)
+                    setImagePreview(URL.createObjectURL(file))
+                  }
+                }}
+              />
+              
+              <div className="flex-1 px-4">
+                {imagePreview && (
+                  <div className="mb-2 relative w-20 h-20">
+                    <img src={imagePreview} className="w-full h-full object-cover rounded-xl" />
+                    <button onClick={() => { setImagePreview(null); setPendingFile(null); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><X className="w-3 h-3" /></button>
+                  </div>
+                )}
                 <input 
-                   type="text"
-                   placeholder={`Message ${chatName}...`}
-                   value={newMessage}
-                   onChange={(e) => setNewMessage(e.target.value)}
-                   className="flex-1 bg-transparent border-none outline-none px-4 py-3.5 text-sm font-bold text-text-main placeholder:text-text-muted/40 placeholder:uppercase placeholder:tracking-widest"
+                  type="text"
+                  placeholder={`Transmit message to ${chatName}...`}
+                  value={newMessage}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value)
+                    // Typing logic could go here
+                  }}
+                  className="w-full bg-transparent border-none outline-none text-text-main placeholder-text-muted font-medium text-lg"
                 />
-                <div className="flex items-center space-x-1 pl-4">
-                  <InputUtility icon={Smile} />
-                  <InputUtility icon={Mic} />
-                  <InputUtility icon={Paperclip} />
-                </div>
-                <button className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-xl ${newMessage.trim() ? 'bg-primary text-white rotate-0 scale-100' : 'bg-surface-low text-text-muted scale-90 rotate-12 opacity-50'}`}>
-                   <Send className="w-6 h-6" />
+              </div>
+
+              <div className="flex items-center space-x-2 mr-2">
+                <button type="button" className="w-11 h-11 flex items-center justify-center text-text-muted hover:bg-surface-low rounded-full transition-all">
+                  <Smile className="w-5 h-5" />
                 </button>
-             </form>
+                <div className="w-px h-6 bg-outline-variant" />
+                <button 
+                  type="submit"
+                  disabled={!newMessage.trim() && !pendingFile}
+                  className="w-11 h-11 bg-primary text-white rounded-full flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:grayscale transition-all"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </form>
+          <div className="mt-4 px-6 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+             <div className="flex items-center space-x-4">
+                <div className="flex items-center">
+                    <Sparkles className="w-3 h-3 mr-1.5 text-primary" />
+                    <span>Neural Link Active</span>
+                </div>
+                {chatTypingUsers.length > 0 && (
+                   <span className="text-primary animate-pulse">{chatTypingUsers[0][0].split('-')[0]} is typing...</span>
+                )}
+             </div>
+             <div>
+                PGP 2048 Bit Encryption
+             </div>
           </div>
-        </footer>
+        </div>
       </div>
     </div>
   )
 }
 
-function RoleSection({ title, count }: { title: string, count: number }) {
-    return (
-        <div className="flex items-center justify-between mt-6 mb-2 px-2">
-            <span className="text-[9px] font-black uppercase text-text-muted tracking-[0.2em]">{title}</span>
-            <span className="text-[9px] font-black text-text-muted opacity-40">— {count}</span>
-        </div>
-    )
-}
-
-function MemberItem({ profile, status, isSpeaking }: { profile: any, status: string, isSpeaking?: boolean }) {
-    return (
-        <div className={`flex items-center space-x-3 p-2 rounded-xl hover:bg-white/50 transition-all cursor-pointer group ${status === 'offline' ? 'opacity-40 grayscale-[0.5]' : ''}`}>
-           <div 
-              className={`relative shrink-0 ${isSpeaking ? 'animate-speak-pulse rounded-2xl' : ''}`}
-              style={profile?.avatar_decoration ? { 
-                boxShadow: `0 0 18px ${profile.avatar_decoration}50`
-              } : {}}
-            >
-              <div className="w-9 h-9 rounded-2xl overflow-hidden border-2 border-transparent group-hover:border-primary transition-all"
-                style={profile?.avatar_decoration ? { borderColor: profile.avatar_decoration } : {}}
-              >
-                 <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
-              </div>
-              <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-4 border-surface-low
-                ${status === 'online' ? 'bg-presence-online' : status === 'idle' ? 'bg-presence-idle' : status === 'dnd' ? 'bg-presence-dnd' : 'bg-presence-offline'}`} 
-              />
-           </div>
-           <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-text-main truncate group-hover:text-primary transition-colors">{profile?.name}</p>
-              <p className="text-[8px] font-black text-text-muted uppercase tracking-widest">{status === 'online' ? 'Active' : status}</p>
-           </div>
-        </div>
-    )
-}
-
 function ReactionButton({ icon: Icon, emoji, onClick }: { icon?: any, emoji?: string, onClick: () => void }) {
-    return (
-        <button 
-            onClick={onClick}
-            className="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-surface-low transition-all text-lg hover:scale-110 active:scale-95"
-        >
-            {Icon ? <Icon className="w-4 h-4 text-text-muted" /> : emoji}
-        </button>
-    )
-}
-
-function HeaderAction({ icon: Icon, label, active, onClick }: { icon: any, label: string, active?: boolean, onClick?: () => void }) {
-   return (
-      <button 
-        onClick={onClick}
-        title={label}
-        className={`p-2.5 rounded-xl transition-all relative group ${active ? 'bg-primary text-white shadow-xl' : 'text-text-muted hover:bg-surface-low hover:text-text-main'}`}
-      >
-         <Icon className="w-5 h-5 group-hover:rotate-6 transition-transform" />
-      </button>
-   )
-}
-
-function InputUtility({ icon: Icon }: { icon: any }) {
-    return (
-        <button className="w-10 h-10 rounded-xl flex items-center justify-center text-text-muted hover:bg-surface-lowest hover:text-primary transition-all">
-            <Icon className="w-5 h-5" />
-        </button>
-    )
+  return (
+    <button 
+      onClick={onClick}
+      className="p-1.5 hover:bg-primary/10 rounded-lg text-lg transition-all"
+    >
+      {Icon ? <Icon className="w-4 h-4 text-text-muted" /> : emoji}
+    </button>
+  )
 }

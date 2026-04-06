@@ -37,6 +37,8 @@ export function SettingsModal() {
     sound: true
   })
 
+  const [mobileShowContent, setMobileShowContent] = React.useState(false)
+
   const toggleSetting = (key: string) => {
     setLocalSettings(s => ({ ...s, [key]: !s[key as keyof typeof s] }))
   }
@@ -91,8 +93,6 @@ export function SettingsModal() {
     { label: 'Notifications', icon: Bell },
     { label: 'Log Out', icon: LogOut, action: signOut, color: 'text-presence-dnd' }
   ]
-
-  const [mobileShowContent, setMobileShowContent] = React.useState(false)
 
   return (
     <motion.div 

@@ -190,6 +190,11 @@
     scrollbar-width: none;
   }
 
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   .glass-premium {
     background: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(24px) saturate(180%);

@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase'
 
 export default function Home() {
   const { user, setUser, setProfile, loading, setLoading } = useAuthStore()
-  const { setChats } = useChatStore()
+  const { setChats, setFriendRequests, addFriendRequest } = useChatStore()
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -25,7 +25,7 @@ export default function Home() {
           setUser(session.user)
           
           // Parallel fetch for profile and initial chats
-          const [profileRes, chatsRes] = await Promise.all([
+          const [profileRes, chatsRes, requestsRes] = await Promise.all([
             supabase
               .from('profiles')
               .select('*')
@@ -46,11 +46,17 @@ export default function Home() {
                   sender_id
                 )
               `)
-              .order('created_at', { ascending: false })
+              .order('created_at', { ascending: false }),
+            supabase
+              .from('friend_requests')
+              .select(`
+                *,
+                sender_profile:profiles!friend_requests_sender_id_fkey(id, name, username, avatar_url),
+                receiver_profile:profiles!friend_requests_receiver_id_fkey(id, name, username, avatar_url)
+              `)
           ])
 
           if (profileRes.data) setProfile(profileRes.data)
-          
           if (chatsRes.data) {
             const processedChats = chatsRes.data.map(chat => ({
               ...chat,
@@ -66,6 +72,10 @@ export default function Home() {
             })
             
             setChats(processedChats as any)
+          }
+
+          if (requestsRes.data) {
+            setFriendRequests(requestsRes.data as any[])
           }
         } else {
           setUser(null)
@@ -115,9 +125,36 @@ export default function Home() {
       })
       .subscribe()
 
+    // 3. Friend Requests Listener
+    const requestsChannel = supabase
+      .channel('friend-requests')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'friend_requests'
+      }, async (payload) => {
+        // We re-fetch the friend requests list if something changes 
+        // to securely grab the joined profiles without repeating SQL logic
+        const { user: currentUser } = useAuthStore.getState()
+        if (currentUser) {
+          const { data } = await supabase
+            .from('friend_requests')
+            .select(`
+              *,
+              sender_profile:profiles!friend_requests_sender_id_fkey(id, name, username, avatar_url),
+              receiver_profile:profiles!friend_requests_receiver_id_fkey(id, name, username, avatar_url)
+            `)
+          if (data) {
+            useChatStore.getState().setFriendRequests(data as any[])
+          }
+        }
+      })
+      .subscribe()
+
     return () => {
       subscription.unsubscribe()
       supabase.removeChannel(globalChannel)
+      supabase.removeChannel(requestsChannel)
     }
   }, [])
 
