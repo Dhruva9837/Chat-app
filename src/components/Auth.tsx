@@ -7,7 +7,6 @@ import {
   Mail,
   Loader2,
   ArrowRight,
-  ShieldCheck,
   User,
   Lock,
   Eye,
@@ -19,14 +18,12 @@ import { BrandLogo } from "./BrandLogo";
 export function Auth() {
   const { setUser } = useAuthStore();
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [isVerifyStep, setIsVerifyStep] = useState(false);
-  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -44,43 +41,33 @@ export function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (authMethod === "phone") {
-        const { error } = await supabase.auth.signInWithOtp({
-          phone,
-          options: { channel: "sms" },
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              username: username.replace("@", "").toLowerCase(),
+            },
+            emailRedirectTo: window.location.origin,
+          },
         });
         if (error) throw error;
-        setIsVerifyStep(true);
+        if (data.session) setUser(data.user);
+        else setIsVerifyStep(true);
       } else {
-        if (isSignUp) {
-          const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                full_name: name,
-                username: username.replace("@", "").toLowerCase(),
-              },
-              emailRedirectTo: window.location.origin,
-            },
-          });
-          if (error) throw error;
-          if (data.session) setUser(data.user);
-          else setIsVerifyStep(true);
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        if (rememberMe) {
+          localStorage.setItem("nexora_remembered_email", email);
         } else {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-          if (error) throw error;
-          // Save or clear remembered email
-          if (rememberMe) {
-            localStorage.setItem("nexora_remembered_email", email);
-          } else {
-            localStorage.removeItem("nexora_remembered_email");
-          }
-          setUser(data.user);
+          localStorage.removeItem("nexora_remembered_email");
         }
+        setUser(data.user);
       }
     } catch (error: any) {
       console.error("Auth Request Error:", error);
@@ -102,15 +89,11 @@ export function Auth() {
         });
         return;
       }
-      const verifyOptions =
-        authMethod === "phone"
-          ? { phone, token: otp, type: "sms" as const }
-          : {
-              email,
-              token: otp,
-              type: (isSignUp ? "signup" : "magiclink") as any,
-            };
-      const { data, error } = await supabase.auth.verifyOtp(verifyOptions);
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: (isSignUp ? "signup" : "magiclink") as any,
+      });
       if (error) throw error;
       if (data.user) setUser(data.user);
     } catch (error: any) {
@@ -167,9 +150,7 @@ export function Auth() {
                   </h2>
                   <p className="text-text-muted text-sm px-4">
                     Confirm the 6-digit code sent to <br />
-                    <span className="text-primary font-bold">
-                      {authMethod === "email" ? email : phone}
-                    </span>
+                    <span className="text-primary font-bold">{email}</span>
                   </p>
                 </div>
 
@@ -240,7 +221,7 @@ export function Auth() {
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
-                            placeholder="John Doe"
+                            placeholder="Name"
                             className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3 pl-11 pr-4 text-text-main text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all placeholder:text-text-muted/40"
                           />
                         </div>
@@ -262,42 +243,17 @@ export function Auth() {
                   )}
 
                   <div className="space-y-1.5">
-                    <div className="flex justify-between items-center ml-1">
-                      <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em]">
-                        {authMethod === "email" ? "Email" : "Phone Number"}
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setAuthMethod(
-                            authMethod === "email" ? "phone" : "email",
-                          )
-                        }
-                        className="text-[10px] text-primary hover:text-indigo-400 font-black uppercase tracking-widest transition-colors"
-                      >
-                        Use {authMethod === "email" ? "Phone" : "Email"}
-                      </button>
-                    </div>
+                    <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">
+                      Email
+                    </label>
                     <div className="relative">
-                      {authMethod === "email" ? (
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                      ) : (
-                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                      )}
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                       <input
-                        type={authMethod === "email" ? "email" : "tel"}
-                        value={authMethod === "email" ? email : phone}
-                        onChange={(e) =>
-                          authMethod === "email"
-                            ? setEmail(e.target.value)
-                            : setPhone(e.target.value)
-                        }
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         required
-                        placeholder={
-                          authMethod === "email"
-                            ? "user@example.com"
-                            : "+1 (555) 000-0000"
-                        }
+                        placeholder="user@example.com"
                         className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3.5 pl-12 pr-4 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all"
                       />
                     </div>
