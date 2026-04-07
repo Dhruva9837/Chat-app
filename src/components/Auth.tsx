@@ -79,20 +79,17 @@ export function Auth() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (otp.length !== 6) {
+      alert("Please enter a valid 6-digit code.");
+      return;
+    }
+
     setLoading(true);
     try {
-      if (otp === "123456") {
-        setUser({
-          id: "dev-user-001",
-          email: email || "user@nexora.com",
-          user_metadata: { name: name || "User" },
-        });
-        return;
-      }
       const { data, error } = await supabase.auth.verifyOtp({
         email,
         token: otp,
-        type: (isSignUp ? "signup" : "magiclink") as any,
+        type: "signup", // Ensuring type is signup for registration flow
       });
       if (error) throw error;
       if (data.user) setUser(data.user);
