@@ -79,8 +79,8 @@ export function Auth() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length !== 6) {
-      alert("Please enter a valid 6-digit code.");
+    if (otp.length < 6) {
+      alert("Please enter a valid verification code.");
       return;
     }
 
@@ -158,9 +158,9 @@ export function Auth() {
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                       required
-                      maxLength={6}
-                      placeholder="······"
-                      className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-4 px-4 text-3xl text-center font-display font-black text-white tracking-[0.5em] focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all placeholder:text-text-muted/30"
+                      maxLength={8}
+                      placeholder="········"
+                      className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-4 px-4 text-3xl text-center font-display font-black text-white tracking-[0.3em] focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all placeholder:text-text-muted/30"
                     />
                   </div>
 
