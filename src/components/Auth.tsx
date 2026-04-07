@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Loader2, ArrowRight, ShieldCheck, User, Lock, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import { BrandLogo } from './BrandLogo'
 
 export function Auth() {
   const { setUser } = useAuthStore()
@@ -99,259 +100,240 @@ export function Auth() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#5865f2] flex items-center justify-center p-4 font-sans overflow-hidden relative">
-      {/* Premium Background (Deep Radial Gradient) */}
-      <div className="absolute inset-0 bg-[#0c1033]">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#2b3595_0%,_transparent_70%)] opacity-30" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,_#1a1f5c_0%,_transparent_50%)] opacity-40" />
-      </div>
-
-      {/* Floating Particles (Stars) */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ 
-              x: Math.random() * 100 + "%", 
-              y: Math.random() * 100 + "%",
-              scale: Math.random() * 0.5 + 0.5,
-              opacity: Math.random() * 0.3 + 0.1
-            }}
-            animate={{ 
-              y: [null, "-10%"],
-              opacity: [null, 0]
-            }}
-            transition={{ 
-              duration: Math.random() * 10 + 10, 
-              repeat: Infinity, 
-              ease: "linear" 
-            }}
-            className="absolute w-1 h-1 bg-white rounded-full blur-[1px]"
-          />
-        ))}
+    <div className="min-h-screen w-full bg-surface-lowest flex items-center justify-center p-6 font-sans overflow-hidden relative">
+      {/* --- PREMIUM DYNAMIC BACKGROUND --- */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full animate-pulse delay-700" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 contrast-150 brightness-150" />
       </div>
 
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-[480px] bg-[#313338] rounded-xl p-8 shadow-2xl relative z-10 border border-black/10"
+        initial={{ opacity: 0, y: 20, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[460px] relative z-10"
       >
-        <AnimatePresence mode="wait">
-          {isVerifyStep ? (
-            <motion.form 
-              key="verify" 
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              onSubmit={handleVerifyOtp} 
-              className="flex flex-col items-center"
-            >
-              <h2 className="text-2xl font-bold text-white mb-2">Check your {authMethod}</h2>
-              <p className="text-zinc-400 text-sm mb-8 text-center px-4">
-                We sent a 6-digit verification code to <br />
-                <span className="text-white font-medium">{authMethod === 'email' ? email : phone}</span>
-              </p>
+        {/* --- GLASS CARD --- */}
+        <div className="backdrop-blur-2xl bg-surface-main/40 rounded-[2.5rem] border border-outline-variant p-8 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] relative overflow-hidden group">
+          {/* Subtle Inner Glow */}
+          <div className="absolute -inset-x-20 -top-20 h-40 bg-gradient-to-b from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
 
-              <div className="w-full space-y-6">
-                <div>
-                  <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider mb-2 block">Verification Code</label>
-                  <input 
-                    type="text" 
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    required
-                    maxLength={6}
-                    placeholder="000000"
-                    className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-3 px-4 text-2xl text-center font-bold text-white tracking-[0.5em] focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-[#4E5058]"
-                  />
+          {/* Logo Section */}
+          <div className="flex flex-col items-center mb-10 translate-y-0 text-center">
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            >
+              <BrandLogo />
+            </motion.div>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {isVerifyStep ? (
+              <motion.form 
+                key="verify" 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                onSubmit={handleVerifyOtp} 
+                className="space-y-8"
+              >
+                <div className="text-center space-y-2">
+                  <h2 className="text-2xl font-display font-black tracking-tight text-text-main">Final Step</h2>
+                  <p className="text-text-muted text-sm px-4">
+                    Confirm the 6-digit code sent to <br/>
+                    <span className="text-primary font-bold">{authMethod === 'email' ? email : phone}</span>
+                  </p>
                 </div>
 
-                <button 
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-primary text-white font-bold py-3 rounded-md shadow-lg shadow-black/20 hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center text-sm"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Verify Account</span>}
-                </button>
-                
-                <button 
-                  type="button" 
-                  onClick={() => setIsVerifyStep(false)}
-                  className="w-full text-xs text-primary hover:underline font-medium"
-                >
-                  Change {authMethod} or details
-                </button>
-              </div>
-            </motion.form>
-          ) : (
-            <motion.form 
-              key="auth" 
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onSubmit={handleSubmit} 
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                 <h2 className="text-2xl font-bold text-white mb-2">
-                    {isSignUp ? "Create an account" : "Welcome back!"}
-                 </h2>
-                 <p className="text-[#B5BAC1] text-[15px]">
-                    {isSignUp ? "Jump in and start chatting" : "We're so excited to see you again!"}
-                 </p>
-              </div>
+                <div className="space-y-6">
+                  <div className="flex justify-center gap-2">
+                    <input 
+                      type="text" 
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      required
+                      maxLength={6}
+                      placeholder="······"
+                      className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-4 px-4 text-3xl text-center font-display font-black text-white tracking-[0.5em] focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all placeholder:text-text-muted/30"
+                    />
+                  </div>
 
-              <div className="space-y-4">
-                {isSignUp && (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">Full Name</label>
-                      <input 
-                        type="text" 
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        required
-                        placeholder="John Doe"
-                        className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 px-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all placeholder:text-[#4E5058]"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">Username <span className="text-[#f23f42]">*</span></label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#B5BAC1] text-sm">@</span>
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-14 bg-gradient-to-r from-primary to-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all flex items-center justify-center text-sm disabled:opacity-50"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Verify Infinity Identity</span>}
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    onClick={() => setIsVerifyStep(false)}
+                    className="w-full text-xs text-text-muted hover:text-primary transition-colors font-bold uppercase tracking-widest"
+                  >
+                    Wrong Details? Go Back
+                  </button>
+                </div>
+              </motion.form>
+            ) : (
+              <motion.form 
+                key="auth" 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                onSubmit={handleSubmit} 
+                className="space-y-6"
+              >
+                <div className="text-center space-y-1 mb-8">
+                   <h2 className="text-3xl font-display font-black text-text-main tracking-tight">
+                      {isSignUp ? "Join Nexora" : "Nexus Entry"}
+                   </h2>
+                   <p className="text-text-muted text-[14px]">
+                      {isSignUp ? "Connect across the neural grid" : "Welcome back to the collective"}
+                   </p>
+                </div>
+
+                <div className="space-y-4">
+                  {isSignUp && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">Identity</label>
+                        <div className="relative">
+                           <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                           <input 
+                            type="text" 
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                            placeholder="Full Name"
+                            className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3 pl-11 pr-4 text-text-main text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all placeholder:text-text-muted/40"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">Callsign</label>
                         <input 
                           type="text" 
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
                           required
-                          placeholder="username"
-                          className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 pl-8 pr-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all placeholder:text-[#4E5058]"
+                          placeholder="@username"
+                          className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3 px-4 text-text-main text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all placeholder:text-text-muted/40"
                         />
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div className="space-y-2">
-                   <div className="flex justify-between items-center">
-                    <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">
-                      {authMethod === 'email' ? 'Email' : 'Phone Number'} <span className="text-[#f23f42]">*</span>
-                    </label>
-                    <button 
-                      type="button" 
-                      onClick={() => setAuthMethod(authMethod === 'email' ? 'phone' : 'email')}
-                      className="text-[11px] text-primary hover:underline font-bold"
-                    >
-                      Use {authMethod === 'email' ? 'Phone' : 'Email'} instead
-                    </button>
-                   </div>
-                  <input 
-                    type={authMethod === 'email' ? 'email' : 'tel'}
-                    value={authMethod === 'email' ? email : phone}
-                    onChange={(e) => authMethod === 'email' ? setEmail(e.target.value) : setPhone(e.target.value)}
-                    required
-                    className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 px-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all"
-                  />
-                </div>
-
-                {!isSignUp && authMethod === 'email' && (
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">
-                      Password <span className="text-[#f23f42]">*</span>
-                    </label>
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center ml-1">
+                      <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em]">
+                        {authMethod === 'email' ? 'Electronic Mail' : 'Neural Link (Phone)'}
+                      </label>
+                      <button 
+                        type="button" 
+                        onClick={() => setAuthMethod(authMethod === 'email' ? 'phone' : 'email')}
+                        className="text-[10px] text-primary hover:text-indigo-400 font-black uppercase tracking-widest transition-colors"
+                      >
+                        Use {authMethod === 'email' ? 'Link' : 'Mail'}
+                      </button>
+                    </div>
                     <div className="relative">
+                      {authMethod === 'email' ? <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" /> : <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />}
+                      <input 
+                        type={authMethod === 'email' ? 'email' : 'tel'}
+                        value={authMethod === 'email' ? email : phone}
+                        onChange={(e) => authMethod === 'email' ? setEmail(e.target.value) : setPhone(e.target.value)}
+                        required
+                        placeholder={authMethod === 'email' ? "user@nexora.cloud" : "+1 (555) 000-0000"}
+                        className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3.5 pl-12 pr-4 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">Neural Access Key</label>
+                    <div className="relative">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
                       <input 
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 px-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all"
+                        placeholder="••••••••••••"
+                        className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3.5 pl-12 pr-12 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all"
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B5BAC1] hover:text-white transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main transition-colors"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                    {/* Remember me + Forgot password row */}
-                    <div className="flex items-center justify-between mt-2">
-                      <label className="flex items-center gap-2 cursor-pointer select-none group">
-                        <div
-                          onClick={() => setRememberMe(!rememberMe)}
-                          className={`w-4 h-4 rounded flex items-center justify-center border transition-all duration-200 ${
-                            rememberMe
-                              ? 'bg-primary border-primary'
-                              : 'bg-[#1e1f22] border-[#4E5058] group-hover:border-primary/60'
-                          }`}
-                        >
-                          {rememberMe && (
-                            <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 8" fill="none">
-                              <path d="M1 4L3.5 6.5L9 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          )}
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={rememberMe}
-                          onChange={(e) => setRememberMe(e.target.checked)}
-                          className="sr-only"
-                        />
-                        <span className="text-[12px] text-[#949BA4] group-hover:text-[#B5BAC1] transition-colors font-medium">
-                          Remember me
-                        </span>
-                      </label>
-                      <button type="button" className="text-xs text-primary hover:underline font-medium">Forgot password?</button>
-                    </div>
+                    
+                    {!isSignUp && (
+                      <div className="flex items-center justify-between mt-2 px-1">
+                        <label className="flex items-center gap-2 cursor-pointer select-none group">
+                          <input
+                            type="checkbox"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            className="w-4 h-4 rounded-md bg-surface-lowest border-outline-variant text-primary focus:ring-primary focus:ring-offset-0 transition-all cursor-pointer"
+                          />
+                          <span className="text-[11px] text-text-muted group-hover:text-text-main transition-colors font-bold uppercase tracking-wider">
+                            Hold Link
+                          </span>
+                        </label>
+                        <button type="button" className="text-[11px] text-primary hover:underline font-black uppercase tracking-wider">Reset Key?</button>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {isSignUp && (
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-black uppercase text-[#B5BAC1] tracking-wider block">
-                      Password <span className="text-[#f23f42]">*</span>
-                    </label>
-                    <input 
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="w-full bg-[#1e1f22] border border-black/20 rounded-md py-2.5 px-4 text-white focus:ring-1 focus:ring-primary/40 outline-none transition-all"
-                    />
-                  </div>
-                )}
-              </div>
+                <div className="pt-4">
+                  <button 
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-14 bg-gradient-to-r from-primary to-indigo-600 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center text-xs disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span>{isSignUp ? "Initialize Protocol" : "Authorize Nexus"}</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
+                    )}
+                  </button>
+                </div>
 
-              <div className="pt-2">
-                <button 
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-primary text-white font-bold py-3 rounded-md shadow-lg shadow-black/20 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center text-sm"
-                >
-                  {loading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <span>{isSignUp ? "Continue" : "Log In"}</span>
-                  )}
-                </button>
-              </div>
+                <div className="pt-2 text-center">
+                   <p className="text-[11px] text-text-muted font-bold uppercase tracking-widest">
+                      {isSignUp ? "Already indexed? " : "New entity? "}
+                      <button 
+                        type="button" 
+                        onClick={() => setIsSignUp(!isSignUp)}
+                        className="text-primary hover:text-indigo-400 transition-colors"
+                      >
+                         {isSignUp ? "Authorize" : "Register"}
+                      </button>
+                   </p>
+                </div>
+              </motion.form>
+            )}
+          </AnimatePresence>
+        </div>
 
-              <div className="pt-1">
-                 <p className="text-xs text-[#949BA4] font-medium">
-                    {isSignUp ? "Already have an account? " : "Need an account? "}
-                    <button 
-                      type="button" 
-                      onClick={() => setIsSignUp(!isSignUp)}
-                      className="text-primary hover:underline transition-all"
-                    >
-                       {isSignUp ? "Log In" : "Register"}
-                    </button>
-                 </p>
-              </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
+        {/* --- FOOTER DECORATION --- */}
+        <div className="mt-8 flex justify-center gap-8 items-center text-[10px] font-black text-text-muted/40 uppercase tracking-[0.3em]">
+           <span className="hover:text-primary transition-colors cursor-help">Secure Node</span>
+           <div className="w-1 h-1 bg-text-muted/20 rounded-full" />
+           <span className="hover:text-primary transition-colors cursor-help">End-to-End</span>
+           <div className="w-1 h-1 bg-text-muted/20 rounded-full" />
+           <span className="hover:text-primary transition-colors cursor-help">v2.0.4 Nexora</span>
+        </div>
       </motion.div>
     </div>
   )
