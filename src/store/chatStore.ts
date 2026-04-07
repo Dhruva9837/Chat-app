@@ -17,8 +17,9 @@ interface ChatState {
   messages: Message[]
   nextCursor: string | null
   hasMore: boolean
-  activeView: 'chat' | 'favorites' | 'profile' | 'settings' | 'groups'
+  activeView: 'chat' | 'favorites' | 'profile' | 'settings' | 'groups' | 'calendar'
   showDetailSidebar: boolean
+  showInfoPanel: boolean
   isAddFriendModalOpen: boolean
   isSettingsModalOpen: boolean
   isProfileModalOpen: boolean
@@ -31,6 +32,12 @@ interface ChatState {
   sidebarTab: 'message' | 'group'
   fontSize: number
   friendRequests: FriendRequest[]
+  friends: any[]
+  pinnedChats: string[]
+  fetchFriends: (userId: string) => Promise<void>
+  fetchRequests: (userId: string) => Promise<void>
+  togglePinChat: (chatId: string) => void
+  setShowInfoPanel: (show: boolean) => void
   setChats: (chats: Chat[]) => void
   setActiveChat: (chat: Chat | null) => void
   setIsAddFriendModalOpen: (open: boolean) => void
@@ -43,8 +50,9 @@ interface ChatState {
   setMessages: (messages: Message[]) => void
   addMessage: (message: Message) => void
   receiveGlobalMessage: (message: Message, currentUserId: string) => void
+  updateGlobalMessage: (message: Message) => void
   prependMessages: (messages: Message[], nextCursor: string | null) => void
-  setActiveView: (view: 'chat' | 'favorites' | 'profile' | 'settings') => void
+  setActiveView: (view: 'chat' | 'favorites' | 'profile' | 'settings' | 'groups' | 'calendar') => void
   toggleDetailSidebar: () => void
   setOnlineUsers: (users: Record<string, any>) => void
   setTypingUser: (userId: string, isTyping: boolean) => void
@@ -65,6 +73,7 @@ export const useChatStore = create<ChatState>((set) => ({
   hasMore: true,
   activeView: 'chat',
   showDetailSidebar: false,
+  showInfoPanel: false,
   isAddFriendModalOpen: false,
   isSettingsModalOpen: false,
   isProfileModalOpen: false,
@@ -77,6 +86,37 @@ export const useChatStore = create<ChatState>((set) => ({
   sidebarTab: 'message',
   fontSize: 16,
   friendRequests: [],
+  friends: [],
+  pinnedChats: (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('nexora-pinned') || '[]') : []),
+  fetchFriends: async (userId) => {
+    try {
+      const resp = await fetch(`/api/friends/list?userId=${userId}`)
+      const data = await resp.json()
+      if (resp.ok) set({ friends: data.friends })
+    } catch (err) {
+      console.error('Failed to fetch friends:', err)
+    }
+  },
+  fetchRequests: async (userId) => {
+    try {
+      const resp = await fetch(`/api/friends/requests?userId=${userId}`)
+      const data = await resp.json()
+      if (resp.ok) set({ friendRequests: [...data.incoming, ...data.outgoing] })
+    } catch (err) {
+      console.error('Failed to fetch requests:', err)
+    }
+  },
+  togglePinChat: (chatId) => set((state) => {
+    const isPinned = state.pinnedChats.includes(chatId);
+    const newPinned = isPinned 
+      ? state.pinnedChats.filter(id => id !== chatId) 
+      : [...state.pinnedChats, chatId];
+    
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('nexora-pinned', JSON.stringify(newPinned));
+    }
+    return { pinnedChats: newPinned };
+  }),
   setNewGroupModalOpen: (open) => set({ isNewGroupModalOpen: open }),
   setChats: (chats) => set({ chats }),
   setActiveChat: (chat) => set({ 
@@ -87,6 +127,7 @@ export const useChatStore = create<ChatState>((set) => ({
     activeView: 'chat' 
   }),
   setActiveView: (view) => set({ activeView: view }),
+  setShowInfoPanel: (show: boolean) => set({ showInfoPanel: show }),
   setIsAddFriendModalOpen: (open) => set({ isAddFriendModalOpen: open }),
   setSettingsModalOpen: (open) => set({ isSettingsModalOpen: open }),
   setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
@@ -122,6 +163,22 @@ export const useChatStore = create<ChatState>((set) => ({
   addMessage: (message) => set((state) => {
     if (state.messages.some(m => m.id === message.id)) return state
     return { messages: [...state.messages, message] }
+  }),
+  updateGlobalMessage: (message) => set((state) => {
+    const updatedChats = state.chats.map(chat => {
+      if (chat.last_message?.id === message.id) {
+        return {
+          ...chat,
+          last_message: message,
+          unread_count: message.is_read ? 0 : chat.unread_count
+        }
+      }
+      return chat
+    });
+
+    const updatedMessages = state.messages.map(m => m.id === message.id ? message : m);
+
+    return { chats: updatedChats, messages: updatedMessages };
   }),
   receiveGlobalMessage: (message, currentUserId) => set((state) => {
     const isForActiveChat = state.activeChat?.id === message.chat_id

@@ -27,6 +27,35 @@ export function SettingsModal() {
   const [editUsername, setEditUsername] = useState(profile?.username || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0 || !profile?.id) return
+    const file = e.target.files[0]
+    setUploadingAvatar(true)
+    setError('')
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${profile.id}-${Math.random()}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('chat-media')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-media')
+        .getPublicUrl(filePath)
+
+      await updateProfile({ avatar_url: publicUrl })
+    } catch (err: any) {
+      setError(err.message || 'Error uploading image')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   // Local settings (in a real app, these would come from a user_settings table)
   const [localSettings, setLocalSettings] = useState({
@@ -85,7 +114,6 @@ export function SettingsModal() {
   const tabs = [
     { label: 'User Settings', type: 'header' },
     { label: 'My Account', icon: User },
-    { label: 'Profiles', icon: Eye },
     { label: 'Privacy & Safety', icon: Shield },
     { label: 'App Settings', type: 'header' },
     { label: 'Appearance', icon: Palette },
@@ -99,12 +127,12 @@ export function SettingsModal() {
       initial={{ opacity: 0, scale: 1.05 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
-      className="fixed inset-0 z-[200] bg-surface-lowest flex flex-col md:flex-row overflow-hidden font-sans"
+      className="fixed inset-0 z-[200] bg-[#0F0F12] flex flex-col md:flex-row overflow-hidden font-sans"
     >
       {/* Left Sidebar - Full width on mobile, fixed on desktop */}
       <div className={`${
         mobileShowContent ? 'hidden md:flex' : 'flex'
-      } w-full md:w-[280px] lg:w-[320px] bg-surface-low border-b md:border-b-0 md:border-r border-outline-variant flex-col pt-16 md:pt-24 pb-12 px-8 overflow-y-auto no-scrollbar shrink-0`}>
+      } w-full md:w-[280px] lg:w-[320px] bg-[#161618] border-b md:border-b-0 md:border-r border-outline-variant flex-col pt-16 md:pt-24 pb-12 px-8 overflow-y-auto no-scrollbar shrink-0`}>
         {/* Mobile Header */}
         <div className="flex items-center justify-between md:hidden mb-6">
           <h2 className="text-base font-black uppercase tracking-widest text-text-main">Settings</h2>
@@ -152,7 +180,7 @@ export function SettingsModal() {
       {/* Main Content Area - hidden on mobile until tab selected */}
       <div className={`${
         mobileShowContent ? 'flex' : 'hidden md:flex'
-      } flex-1 bg-surface-lowest relative flex-col overflow-hidden`}>
+      } flex-1 bg-[#0F0F12] relative flex-col overflow-hidden`}>
         {/* Mobile Back Button */}
         <button 
           onClick={() => setMobileShowContent(false)}
@@ -163,7 +191,7 @@ export function SettingsModal() {
         </button>
         <button 
           onClick={() => setSettingsModalOpen(false)}
-          className="absolute top-8 right-8 p-4 bg-primary text-white hover:bg-primary-container rounded-2xl transition-all group z-50 shadow-2xl shadow-primary/20 scale-110 active:scale-95 hidden md:flex items-center space-x-2"
+          className="absolute top-8 right-8 p-4 bg-noir-accent text-white hover:bg-noir-accent/80 rounded-2xl transition-all group z-50 shadow-2xl shadow-noir-accent/20 scale-110 active:scale-95 hidden md:flex items-center space-x-2"
         >
           <X className="w-5 h-5" />
           <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">Close</span>
@@ -175,16 +203,23 @@ export function SettingsModal() {
               <h1 className="text-3xl font-display font-black uppercase tracking-tight text-text-main">My Account</h1>
               
               {/* Profile Card */}
-              <div className="bg-surface-low rounded-[2.5rem] p-8 border border-outline-variant overflow-hidden relative group shadow-sm transition-all duration-500">
-                <div className="absolute top-0 left-0 w-full h-24 bg-primary" />
+              <div className="bg-[#161618] rounded-[2.5rem] p-8 border border-outline-variant overflow-hidden relative group shadow-sm transition-all duration-500">
+                <div className="absolute top-0 left-0 w-full h-24 bg-noir-accent/20" />
                 <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between px-2">
                    <div className="flex flex-col md:flex-row items-center md:items-end space-y-4 md:space-y-0 md:space-x-6">
-                      <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-8 border-surface-low relative group/avatar shadow-2xl bg-white cursor-pointer">
+                      <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-8 border-[#161618] relative group/avatar shadow-2xl bg-[#0F0F12] cursor-pointer">
                         <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center transition-all">
-                           <Edit2 className="w-5 h-5 text-white mb-1" />
-                           <span className="text-[8px] font-black text-white uppercase tracking-tighter">Change</span>
-                        </div>
+                        <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center transition-all opacity-0 group-hover/avatar:opacity-100 cursor-pointer">
+                           <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                           {uploadingAvatar ? (
+                             <span className="text-[10px] font-black text-white uppercase tracking-widest mt-2 animate-pulse">Uploading...</span>
+                           ) : (
+                             <>
+                               <Edit2 className="w-5 h-5 text-white mb-1" />
+                               <span className="text-[8px] font-black text-white uppercase tracking-tighter">Upload</span>
+                             </>
+                           )}
+                        </label>
                       </div>
                       <div className="pb-2 text-center md:text-left">
                         <h2 className="text-2xl font-display font-black uppercase tracking-tight text-text-main">{profile?.name || 'Nexora User'}</h2>
@@ -205,7 +240,7 @@ export function SettingsModal() {
                 </div>
 
                 {/* Account Details Box */}
-                <div className="mt-8 bg-surface-lowest/40 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 border border-outline-variant space-y-10">
+                <div className="mt-8 bg-[#161618]/80 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 border border-outline-variant space-y-10">
                     <DetailRow label="Display Name" 
                      value={isEditing ? (
                        <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Enter display name" className="bg-surface-low border border-outline-variant rounded-xl px-4 py-2 outline-none text-text-main w-full focus:ring-2 ring-primary/20 transition-all font-bold" />
@@ -244,95 +279,7 @@ export function SettingsModal() {
             </motion.div>
           )}
 
-          {activeTab === 'Profiles' && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-              <h1 className="text-3xl font-display font-black uppercase tracking-tight text-text-main">Profiles</h1>
-              <div className="space-y-8">
-                <AppearanceOption label="User Profile" desc="Personalize how you appear to others on Nexora." />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                   <div className="space-y-6">
-                      <div>
-                         <div className="flex flex-wrap gap-3">
-                            {/* None Option */}
-                            <button 
-                               onClick={() => updateProfile({ avatar_decoration: undefined })}
-                               className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${!profile?.avatar_decoration ? 'border-primary bg-primary/10 shadow-lg scale-110' : 'border-outline-variant hover:border-zinc-400'}`}
-                            >
-                               <X className="w-5 h-5 text-text-muted" />
-                            </button>
-                            {/* Colors */}
-                            {['#6366f1', '#a855f7', '#ec4899', '#f43f5e', '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6'].map(color => {
-                               const isActive = profile?.avatar_decoration === color
-                               return (
-                               <button 
-                               key={color} 
-                               onClick={() => updateProfile({ avatar_decoration: color })}
-                               className={`w-10 h-10 rounded-full border-4 border-white shadow-md transition-all relative group ${isActive ? 'scale-125 ring-4 ring-primary translate-y-[-4px] z-10' : 'hover:scale-110 hover:translate-y-[-2px]'}`} 
-                               style={{ backgroundColor: color }}
-                             >
-                                {isActive && (
-                                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute inset-0 flex items-center justify-center">
-                                      <Check className="w-5 h-5 text-white drop-shadow-md" />
-                                   </motion.div>
-                                )}
-                             </button>
-                               )
-                            })}
-                         </div>
-                      </div>
-                      <div className="p-6 bg-surface-low rounded-[1.8rem] border border-outline-variant">
-                         <h4 className="text-xs font-black uppercase tracking-tight text-text-main mb-2">Profile Theme</h4>
-                         <p className="text-[10px] text-text-muted font-bold mb-4 uppercase tracking-widest">Choose between dark and custom profile themes.</p>
-                         <div className="w-full h-8 bg-primary rounded-lg shadow-lg border border-white" />
-                      </div>
-                   </div>
-                   {/* Preview Card */}
-                   <div className="bg-surface-low rounded-[2.5rem] p-8 border border-outline-variant relative overflow-hidden h-fit shadow-xl">
-                      <div className="absolute top-0 left-0 w-full h-16 bg-primary/20" />
-                       <div className="relative z-10 flex flex-col items-center">
-                          <div className="relative group/preview mb-4">
-                             <div className="w-24 h-24 rounded-3xl overflow-hidden border-4 border-surface-low shadow-2xl bg-white transition-transform group-hover/preview:scale-105">
-                                <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
-                             </div>
-                             <button 
-                               onClick={() => setActiveTab('My Account')}
-                               className="absolute -bottom-2 -right-2 bg-primary text-white p-2 rounded-xl shadow-lg border-2 border-surface-low hover:scale-110 active:scale-95 transition-all"
-                             >
-                                <Edit2 className="w-3.5 h-3.5" />
-                             </button>
-                          </div>
-                          <h3 className="font-display font-black text-xl uppercase tracking-tight text-text-main">{profile?.name || 'Nexora User'}</h3>
-                          <p className="text-xs font-black text-primary uppercase tracking-widest mt-1">@{profile?.username || 'user'}</p>
-                          <div className="w-full h-px bg-outline-variant my-5" />
-                          <p className="text-[11px] text-text-muted text-center font-bold uppercase tracking-wider leading-relaxed px-4">
-                             {profile?.bio || 'Customize your digital identity in the Nexus Nebula.'}
-                          </p>
-                       </div>
-                    </div>
-                 </div>
 
-                 {/* New Action Bar in Profiles */}
-                 <div className="mt-8 flex flex-col md:flex-row items-center justify-between p-8 bg-surface-low rounded-[2.5rem] border border-outline-variant gap-6">
-                    <div className="flex items-center space-x-4">
-                       <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-                          <Palette className="w-6 h-6 text-primary" />
-                       </div>
-                       <div>
-                          <h4 className="text-sm font-black uppercase text-text-main tracking-tight">Profile Decoration</h4>
-                          <p className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Your changes are synced in real-time.</p>
-                       </div>
-                    </div>
-                    <button 
-                       onClick={() => setActiveTab('My Account')}
-                       className="w-full md:w-auto bg-primary text-white px-8 py-3.5 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center space-x-3"
-                    >
-                       <span>Save & Edit Identity</span>
-                       <User className="w-4 h-4" />
-                    </button>
-                 </div>
-              </div>
-            </motion.div>
-          )}
 
           {activeTab === 'Privacy & Safety' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
@@ -391,10 +338,10 @@ export function SettingsModal() {
                    />
                    
                    {/* Real-time Preview Box */}
-                   <div className="mt-6 p-6 bg-surface-lowest rounded-[1.5rem] border border-outline-variant relative overflow-hidden group">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-primary/20" />
+                   <div className="mt-6 p-6 bg-[#0F0F12] rounded-[1.5rem] border border-outline-variant relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-noir-accent/50" />
                       <p className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-3">Live Preview</p>
-                      <div className={`p-4 rounded-2xl bg-surface-low border border-outline-variant/30 text-text-main font-bold transition-all duration-200 shadow-sm`} style={{ fontSize: `${fontSize}px` }}>
+                      <div className={`p-4 rounded-2xl bg-[#161618] border border-outline-variant/30 text-text-main font-bold transition-all duration-200 shadow-sm`} style={{ fontSize: `${fontSize}px` }}>
                          This is how your messages will look on Nexora.
                       </div>
                    </div>
@@ -446,11 +393,11 @@ function TabItem({ tab, activeTab, setActiveTab }: any) {
       onClick={() => setActiveTab(tab.label)}
       className={`flex items-center space-x-4 px-5 py-3.5 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all group ${
         isActive 
-          ? 'bg-primary text-white shadow-xl shadow-primary/30 scale-[1.02]' 
-          : 'text-text-muted hover:bg-surface-low hover:text-text-main'
+          ? 'bg-noir-accent text-white shadow-xl shadow-noir-accent/30 scale-[1.02]' 
+          : 'text-text-muted hover:bg-[#242426] hover:text-white'
       }`}
     >
-      <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-text-muted group-hover:text-primary transition-colors'}`} />
+      <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-text-muted group-hover:text-noir-accent transition-colors'}`} />
       <span className="truncate">{tab.label}</span>
     </button>
   )

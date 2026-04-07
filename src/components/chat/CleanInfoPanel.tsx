@@ -1,123 +1,155 @@
+'use client'
+
 import React from 'react';
 import { 
-  FileText, 
-  Image as ImageIcon, 
-  Film, 
-  Layers, 
-  ChevronRight, 
-  ArrowRight,
-  HardDrive,
-  MoreHorizontal
+  X, 
+  Bell, 
+  Calendar, 
+  Layout, 
+  MessageSquare,
+  FileText,
+  Link,
+  ChevronRight,
+  MicOff,
+  Clock,
+  Eye,
+  Download
 } from 'lucide-react';
-
 import { useChatStore } from '@/store/chatStore';
 import { getAvatarUrl } from '@/lib/utils';
-
-const fileTypes = [
-  { icon: FileText, label: 'Documents', count: 126, size: '193MB', color: 'bg-indigo-50 text-indigo-500' },
-  { icon: ImageIcon, label: 'Photos', count: 53, size: '321MB', color: 'bg-amber-50 text-amber-500' },
-  { icon: Film, label: 'Movies', count: 3, size: '210MB', color: 'bg-teal-50 text-teal-500' },
-  { icon: Layers, label: 'Other', count: 49, size: '194MB', color: 'bg-rose-50 text-rose-500' },
-];
+import { motion, AnimatePresence } from 'framer-motion';
 
 export const CleanInfoPanel = () => {
-  const { activeChat } = useChatStore();
+  const { activeChat, showInfoPanel, setShowInfoPanel } = useChatStore();
 
-  if (!activeChat) return null;
+  if (!activeChat || !showInfoPanel) return null;
 
   const isGroup = activeChat.type === 'group';
-  const memberCount = activeChat.chat_participants?.length || 0;
   
-  const otherProfile = !isGroup 
-    ? activeChat.chat_participants?.find((p: any) => p.user_id !== activeChat.created_by)?.profiles 
-    : null;
+  const photos = [
+    { src: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=200&auto=format&fit=crop', id: 1 },
+    { src: 'https://images.unsplash.com/photo-1590947132387-155cc02f3212?q=80&w=200&auto=format&fit=crop', id: 2 },
+    { src: 'https://images.unsplash.com/photo-1574126154517-d1e0d89ef734?q=80&w=200&auto=format&fit=crop', id: 3 },
+  ];
 
-  const chatName = isGroup ? (activeChat.name || 'Unnamed Group') : (otherProfile?.name || 'User');
-  const chatSubtitle = isGroup ? `${memberCount} members` : 'Personal Chat';
+  const sharedFiles = [
+    { name: 'Contract for the provision of printing services', size: '2.0 Mb', id: 1 },
+    { name: 'Changes in the schedule of the department of material ...', size: '1.4 Mb', id: 2 },
+    { name: 'Contract for the provision of printing services', size: '3.1 Mb', id: 3 },
+  ];
+
+  const sharedLinks = [
+    { title: 'Economic Policy', url: 'https://vm.fi/en/economic-policy', icon: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRz-O9F9o_ZIDf8hE6o0mF_U1iE6f_o1G8nOg&s' },
+    { title: 'Microsoft', url: 'https://www.microsoft.com/', icon: 'https://www.microsoft.com/favicon.ico' },
+  ];
 
   return (
-    <div className="w-80 h-full bg-surface-lowest flex flex-col border-l border-outline-variant shadow-sm transition-colors duration-300">
+    <motion.aside 
+      initial={{ x: 300, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      exit={{ x: 300, opacity: 0 }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className="w-[340px] h-full noir-sidebar-right flex flex-col z-10 shrink-0 select-none overflow-hidden"
+    >
       {/* Header */}
-      <div className="p-6 flex items-center justify-between border-b border-outline-variant">
-        <button className="w-8 h-8 rounded-full bg-surface-low flex items-center justify-center text-text-muted hover:bg-surface-main transition-all">
-          <ChevronRight size={18} className="rotate-180" />
+      <div className="px-8 pt-10 pb-6 flex items-center justify-between">
+        <h2 className="text-[17px] font-display font-black text-white tracking-tight uppercase">Chat Details</h2>
+        <button 
+          onClick={() => setShowInfoPanel(false)}
+          className="p-1.5 text-text-muted hover:text-white transition-colors"
+        >
+          <X size={20} />
         </button>
-        <h2 className="text-base font-bold text-text-main">Shared files</h2>
-        <button className="w-8 h-8 rounded-full bg-surface-low flex items-center justify-center text-text-muted hover:bg-surface-main transition-all">
-          <ArrowRight size={18} />
-        </button>
       </div>
 
-      {/* Group/User Detail Card */}
-      <div className="p-6">
-        <div className="bg-surface-low/30 rounded-[2rem] p-8 border border-outline-variant flex flex-col items-center gap-6 relative overflow-hidden group">
-          <div className="w-32 h-32 rounded-3xl overflow-hidden shadow-2xl border-4 border-surface-lowest -rotate-6 group-hover:rotate-0 transition-transform duration-500 scale-110">
-            <img 
-              src={getAvatarUrl(isGroup ? activeChat : otherProfile)} 
-              alt={chatName} 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="text-center mt-2">
-            <h3 className="text-lg font-bold text-text-main truncate max-w-[200px]">{chatName}</h3>
-            <p className="text-xs text-text-muted font-bold mt-1 uppercase tracking-wider">{chatSubtitle}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Stats Grid */}
-      <div className="px-6 grid grid-cols-2 gap-4">
-        <div className="bg-mint-500 rounded-2xl p-5 text-white shadow-lg shadow-mint-500/10 relative overflow-hidden group cursor-pointer">
-          <div className="flex items-center gap-2 mb-3">
-             <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center">
-                <FileText size={14} />
-             </div>
-             <span className="text-[10px] font-bold uppercase tracking-widest opacity-90">All files</span>
-          </div>
-          <p className="text-3xl font-bold">231</p>
-          <div className="absolute -right-1 -bottom-1 w-2 h-2 bg-white rounded-full opacity-50"></div>
-        </div>
-        <div className="bg-surface-low rounded-2xl p-5 text-text-main border border-outline-variant relative overflow-hidden hover:bg-surface-main transition-all cursor-pointer">
-          <div className="flex items-center gap-2 mb-3 text-text-muted">
-             <div className="w-6 h-6 rounded-lg bg-surface-main flex items-center justify-center text-text-muted">
-                <ImageIcon size={14} />
-             </div>
-             <span className="text-[10px] font-bold uppercase tracking-widest">All links</span>
-          </div>
-          <p className="text-3xl font-bold">45</p>
-          <div className="absolute right-4 top-4 w-1.5 h-1.5 bg-mint-500 rounded-full"></div>
-        </div>
-      </div>
-
-      {/* File Categories */}
-      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-4 no-scrollbar">
-        <div className="flex justify-between items-center mb-6">
-          <h4 className="text-xs font-bold text-text-muted uppercase tracking-[0.2em]">File type</h4>
-          <button className="text-text-muted hover:text-text-main">
-             <MoreHorizontal size={18} />
-          </button>
-        </div>
-        
-        {fileTypes.map((type, idx) => (
-          <div 
-            key={idx} 
-            className="flex items-center gap-4 p-2 rounded-2xl hover:bg-surface-low cursor-pointer group transition-all"
+      {/* Action Grid */}
+      <div className="px-8 flex items-center justify-between mb-10">
+        {[
+          { icon: Bell, label: 'Notify' },
+          { icon: Calendar, label: 'Events' },
+          { icon: Layout, label: 'Media' },
+          { icon: MicOff, label: 'Mute' },
+        ].map((action, idx) => (
+          <button 
+            key={idx}
+            className="w-[58px] h-[58px] bg-[#242426] rounded-[1.2rem] flex items-center justify-center text-text-muted hover:text-white transition-all hover:bg-[#2A2A2C] border border-outline-variant shadow-sm"
           >
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${type.color} shadow-sm group-hover:scale-105 transition-all duration-300`}>
-              <type.icon size={22} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h5 className="text-sm font-bold text-text-main group-hover:text-mint-500 transition-colors">{type.label}</h5>
-              <p className="text-[11px] text-text-muted font-bold mt-0.5">
-                {type.count} files, {type.size}
-              </p>
-            </div>
-            <div className="text-text-muted group-hover:text-mint-500 group-hover:translate-x-1 transition-all">
-              <ChevronRight size={18} />
-            </div>
-          </div>
+            <action.icon size={22} strokeWidth={2} />
+          </button>
         ))}
       </div>
-    </div>
+
+      {/* Scrollable Content Sections */}
+      <div className="flex-1 overflow-y-auto no-scrollbar px-8 pb-10 space-y-10">
+        
+        {/* Photos & Videos */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+             <h3 className="text-[11px] font-black text-text-muted uppercase tracking-widest leading-none">
+               Photos and Videos <span className="ml-2 opacity-50">104</span>
+             </h3>
+             <button className="text-[10px] font-black text-text-muted hover:text-white transition-colors uppercase tracking-widest">See all</button>
+          </div>
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+             {photos.map(photo => (
+               <div key={photo.id} className="w-[110px] h-[75px] rounded-[1rem] overflow-hidden shrink-0 border border-outline-variant cursor-pointer group">
+                  <img src={photo.src} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+               </div>
+             ))}
+          </div>
+        </section>
+
+        {/* Shared Files */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+             <h3 className="text-[11px] font-black text-text-muted uppercase tracking-widest">
+               Shared Files <span className="ml-2 opacity-50">1 384</span>
+             </h3>
+             <button className="text-[10px] font-black text-text-muted hover:text-white uppercase tracking-widest">See all</button>
+          </div>
+          <div className="space-y-4">
+             {sharedFiles.map(file => (
+               <div key={file.id} className="flex items-center gap-4 group cursor-pointer">
+                  <div className="w-[46px] h-[46px] bg-[#242426] rounded-[1rem] flex items-center justify-center text-text-muted group-hover:bg-[#2A2A2C] transition-colors border border-outline-variant">
+                     <FileText size={20} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-[12px] font-bold text-white truncate group-hover:text-noir-accent transition-colors">
+                      {file.name}
+                    </h4>
+                    <p className="text-[10px] text-text-muted font-black uppercase tracking-widest mt-0.5">
+                      {file.size}
+                    </p>
+                  </div>
+               </div>
+             ))}
+          </div>
+        </section>
+
+        {/* Shared Links */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+             <h3 className="text-[11px] font-black text-text-muted uppercase tracking-widest">
+               Shared Links <span className="ml-2 opacity-50">32</span>
+             </h3>
+             <button className="text-[10px] font-black text-text-muted hover:text-white uppercase tracking-widest">See all</button>
+          </div>
+          <div className="space-y-4">
+             {sharedLinks.map((link, idx) => (
+               <div key={idx} className="flex items-center gap-4 group cursor-pointer">
+                  <div className="w-[46px] h-[46px] bg-[#242426] rounded-[1rem] overflow-hidden flex items-center justify-center border border-outline-variant shrink-0 group-hover:scale-105 transition-transform duration-300">
+                     <img src={link.icon} alt="" className="w-full h-full object-cover opacity-80" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                     <h4 className="text-[12px] font-bold text-white group-hover:text-noir-accent transition-colors">{link.title}</h4>
+                     <p className="text-[10px] text-text-muted truncate lowercase mt-1">{link.url}</p>
+                  </div>
+               </div>
+             ))}
+          </div>
+        </section>
+
+      </div>
+    </motion.aside>
   );
 };

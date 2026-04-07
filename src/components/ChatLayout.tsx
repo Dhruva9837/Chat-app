@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { CleanSidebar } from './chat/CleanSidebar'
+import { GlobalSidebar } from './chat/GlobalSidebar'
 import { CleanChatList } from './chat/CleanChatList'
 import { CleanChatWindow } from './chat/CleanChatWindow'
 import { CleanInfoPanel } from './chat/CleanInfoPanel'
@@ -16,6 +16,7 @@ import { usePresence } from '@/lib/hooks/usePresence'
 import { motion, AnimatePresence } from 'framer-motion'
 
 import { GroupsView } from './chat/GroupsView'
+import { CalendarView } from './chat/CalendarView'
 
 export function ChatLayout() {
   const { activeChat, activeView } = useChatStore()
@@ -94,27 +95,34 @@ export function ChatLayout() {
             <ProfileView />
           </motion.div>
         )
+      case 'calendar':
+        return (
+          <motion.div 
+            key="calendar"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.02 }}
+            className="flex-1 overflow-hidden"
+          >
+            <CalendarView />
+          </motion.div>
+        )
       default:
         return null
     }
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-[100dvh] bg-white overflow-hidden">
-      <div className="hidden md:flex">
-         <CleanSidebar />
-      </div>
+    <div className="flex h-[100dvh] bg-noir-bg overflow-hidden text-text-main font-sans selection:bg-primary/30">
+      {/* 1. Slim Utility Sidebar */}
+      <GlobalSidebar />
 
+      {/* 2. Main Content Area (Chat List + Chat Window + Info Panel) */}
       <main className="flex-1 flex overflow-hidden relative">
         <AnimatePresence mode="wait">
           {renderView()}
         </AnimatePresence>
       </main>
-
-      <div className="md:hidden">
-        {/* We can update BottomNav later if needed */}
-        {/* <BottomNav /> */}
-      </div>
 
       {/* Modals & Overlays */}
       <AddFriendModal />

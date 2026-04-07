@@ -7,9 +7,10 @@ create extension if not exists "uuid-ossp";
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text not null,
+  username text unique, -- Added for friend searches
   email text unique not null,
   avatar_url text,
-  status text check (status in ('online', 'offline', 'typing')) default 'offline',
+  status text check (status in ('online', 'offline', 'typing', 'idle', 'dnd')) default 'offline',
   last_seen timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
@@ -98,10 +99,11 @@ create policy "Users can insert messages in their chats." on public.messages
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, name, email, avatar_url)
+  insert into public.profiles (id, name, username, email, avatar_url)
   values (
     new.id, 
     coalesce(new.raw_user_meta_data->>'full_name', new.email), 
+    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
     new.email, 
     coalesce(
       new.raw_user_meta_data->>'avatar_url', 
@@ -167,3 +169,46 @@ create policy "Users can update requests received" on public.friend_requests
 
 -- ENABLE REALTIME for friend requests
 alter publication supabase_realtime add table public.friend_requests;
+
+-- Friends Table (Accepted friendships)
+create table if not exists public.friends (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  friend_id uuid references public.profiles(id) on delete cascade not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  unique(user_id, friend_id)
+);
+
+-- RLS for Friends
+alter table public.friends enable row level security;
+
+create policy "Users can view their friends" on public.friends
+  for select using (auth.uid() = user_id or auth.uid() = friend_id);
+
+create policy "Users can manage their friendships" on public.friends
+  for delete using (auth.uid() = user_id);
+
+-- Blocks Table
+create table if not exists public.blocks (
+  id uuid primary key default uuid_generate_v4(),
+  blocker_id uuid references public.profiles(id) on delete cascade not null,
+  blocked_id uuid references public.profiles(id) on delete cascade not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  unique(blocker_id, blocked_id)
+);
+
+-- RLS for Blocks
+alter table public.blocks enable row level security;
+
+create policy "Users can see who they blocked" on public.blocks
+  for select using (auth.uid() = blocker_id);
+
+create policy "Users can block others" on public.blocks
+  for insert with check (auth.uid() = blocker_id);
+
+create policy "Users can unblock" on public.blocks
+  for delete using (auth.uid() = blocker_id);
+
+-- ENABLE REALTIME for new tables
+alter publication supabase_realtime add table public.friends;
+alter publication supabase_realtime add table public.blocks;

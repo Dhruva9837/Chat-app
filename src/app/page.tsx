@@ -123,6 +123,15 @@ export default function Home() {
            useChatStore.getState().receiveGlobalMessage(newMessage, currentUser.id)
         }
       })
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'messages' 
+      }, (payload) => {
+        const newMessage = payload.new as any
+        // Instead of typical receive, use update global to fix last_msg references
+        useChatStore.getState().updateGlobalMessage(newMessage)
+      })
       .subscribe()
 
     // 3. Friend Requests Listener
@@ -151,10 +160,38 @@ export default function Home() {
       })
       .subscribe()
 
+    // 4. Global Presence Listener
+    const presenceChannel = supabase.channel('global_presence')
+    
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState()
+        const onlineUsersMap: Record<string, any> = {}
+        for (const [key, stateArray] of Object.entries(state)) {
+           if (stateArray.length > 0) {
+              const payload = stateArray[0] as any
+              onlineUsersMap[payload.userId] = { status: 'online', ...payload }
+           }
+        }
+        useChatStore.getState().setOnlineUsers(onlineUsersMap)
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+           const { user: currentUser } = useAuthStore.getState()
+           if (currentUser) {
+              await presenceChannel.track({
+                 userId: currentUser.id,
+                 onlineAt: new Date().toISOString()
+              })
+           }
+        }
+      })
+
     return () => {
       subscription.unsubscribe()
       supabase.removeChannel(globalChannel)
       supabase.removeChannel(requestsChannel)
+      supabase.removeChannel(presenceChannel)
     }
   }, [])
 

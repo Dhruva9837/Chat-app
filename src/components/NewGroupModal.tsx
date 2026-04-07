@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, Search, Users, Check, Flame, Upload, Camera, Trash2, Plus } from 'lucide-react'
+import { X, Search, Users, Check, Flame, Upload, Camera, Trash2, Plus, ArrowRight, Shield } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/store/authStore'
@@ -43,7 +43,7 @@ export function NewGroupModal() {
       const { data } = await supabase
         .from('profiles')
         .select('*')
-        .neq('id', user?.id) // Don't show self
+        .neq('id', user?.id)
       if (data) setProfiles(data)
     }
     fetchProfiles()
@@ -93,24 +93,21 @@ export function NewGroupModal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: groupName,
-          members: selectedIds || [], // Can be empty now
+          members: selectedIds || [],
           icon: iconUrl,
           created_by: user.id
         })
       })
 
       const fullChat = await response.json()
-      
       if (!response.ok) throw new Error(fullChat.error || 'Failed to create group')
 
       if (fullChat) {
         addChat(fullChat)
         setActiveChat(fullChat)
       }
-
       setNewGroupModalOpen(false)
     } catch (error: any) {
-      console.error(error);
       alert(error.message)
     } finally {
       setLoading(false)
@@ -126,169 +123,170 @@ export function NewGroupModal() {
   const selectedProfiles = profiles.filter(p => selectedIds.includes(p.id))
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isNewGroupModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setNewGroupModalOpen(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm" 
+            className="absolute inset-0 bg-black/80 backdrop-blur-2xl" 
           />
           
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="w-full max-w-xl bg-surface-lowest rounded-[2.5rem] relative z-10 overflow-hidden shadow-2xl flex flex-col max-h-[90vh] border border-outline-variant transition-colors"
+            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+            className="relative w-full max-w-[600px] noir-card rounded-[2.8rem] flex flex-col max-h-[85vh] overflow-hidden shadow-[0_35px_80px_-15px_rgba(0,0,0,0.8)]"
           >
-            {/* Header */}
-            <div className="px-10 pt-10 pb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-text-main leading-tight">Create Group</h2>
-                <p className="text-sm text-text-muted font-medium mt-1">Add members and set group details</p>
-              </div>
-              <button 
+            {/* Header Area */}
+            <div className="px-12 pt-12 pb-6 flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-noir-accent/20 rounded-[1.4rem] flex items-center justify-center text-noir-accent border border-noir-accent/20">
+                     <Users size={24} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-display font-black text-white tracking-tight uppercase">Protocol Group</h2>
+                    <div className="flex items-center gap-2 mt-0.5">
+                       <Shield size={12} className="text-noir-accent" />
+                       <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">End-to-End Encrypted</span>
+                    </div>
+                  </div>
+               </div>
+               <button 
                 onClick={() => setNewGroupModalOpen(false)} 
-                className="w-11 h-11 flex items-center justify-center text-text-muted hover:text-text-main transition-colors bg-surface-low rounded-2xl hover:bg-surface-main transition-all"
-              >
-                <X size={22} strokeWidth={2.5} />
-              </button>
+                className="p-2 text-text-muted hover:text-white transition-colors"
+               >
+                <X size={24} />
+               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-10 pb-8 space-y-8 no-scrollbar">
-              {/* Group Metadata */}
-              <div className="flex items-center gap-8 py-2">
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-24 h-24 rounded-3xl bg-surface-low border-2 border-dashed border-outline-variant hover:border-mint-500/50 transition-all cursor-pointer overflow-hidden flex items-center justify-center relative group shrink-0"
-                >
-                  {iconPreview ? (
-                    <>
-                      <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Camera className="w-8 h-8 text-white" />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-text-muted group-hover:text-mint-500 transition-colors">
-                      <Camera size={28} />
-                    </div>
-                  )}
-                  <input type="file" ref={fileInputRef} onChange={handleIconChange} accept="image/*" className="hidden" />
-                </div>
-                
-                <div className="flex-1 space-y-2">
-                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest ml-1">Group Name</span>
-                  <input 
-                    type="text"
-                    placeholder="Enter group name..."
-                    value={groupName}
-                    onChange={e => setGroupName(e.target.value)}
-                    className="w-full bg-surface-low border border-outline-variant rounded-2xl py-4 px-6 text-base focus:bg-surface-lowest focus:ring-4 focus:ring-mint-500/10 transition-all outline-none text-text-main font-bold placeholder-text-muted/50"
-                  />
-                </div>
-              </div>
-
-              {/* Selected Preview */}
-              <AnimatePresence>
-                {selectedIds.length > 0 && (
-                  <motion.div 
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-4"
+            <div className="flex-1 overflow-y-auto no-scrollbar px-12 py-6 space-y-10">
+               
+               {/* Identity Section */}
+               <div className="flex items-center gap-10">
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-[120px] h-[120px] rounded-[2.2rem] bg-[#1A1A1C] border-2 border-dashed border-outline-variant hover:border-noir-accent/50 transition-all cursor-pointer overflow-hidden flex items-center justify-center relative group shrink-0"
                   >
-                    <div className="flex justify-between items-center px-1">
-                       <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Added Members ({selectedIds.length})</span>
-                       <button onClick={() => setSelectedIds([])} className="text-[10px] font-bold text-rose-500 hover:text-rose-600 transition-colors">REMOVE ALL</button>
-                    </div>
-                    <div className="flex flex-wrap gap-4 p-4 bg-surface-low rounded-3xl border border-outline-variant">
-                      {selectedProfiles.map(p => (
-                        <motion.div 
-                          key={p.id} 
-                          layout
-                          initial={{ scale: 0.8, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          className="relative group"
-                        >
-                          <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-mint-500/30 shadow-md">
-                            <img src={getAvatarUrl(p)} className="w-full h-full object-cover" alt="" />
-                          </div>
-                          <button 
-                            onClick={() => toggleSelect(p.id)}
-                            className="absolute -top-2 -right-2 w-6 h-6 bg-surface-lowest border border-outline-variant text-rose-500 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-xl z-10"
-                          >
-                            <X size={14} strokeWidth={3} />
-                          </button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    {iconPreview ? (
+                      <>
+                        <img src={iconPreview} alt="Preview" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-noir-bg/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Camera size={32} className="text-white" />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-text-muted group-hover:text-white transition-colors">
+                        <Camera size={32} />
+                        <span className="text-[9px] font-black uppercase mt-2">Upload</span>
+                      </div>
+                    )}
+                    <input type="file" ref={fileInputRef} onChange={handleIconChange} accept="image/*" className="hidden" />
+                  </div>
 
-              {/* Add Members Search */}
-              <div className="space-y-4">
-                <div className="relative group">
-                  <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-mint-500 transition-colors" />
-                  <input 
-                    type="text"
-                    placeholder="Search people to add..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    className="w-full bg-surface-lowest border border-outline-variant rounded-2xl py-4 pl-14 pr-6 text-sm font-medium focus:ring-4 focus:ring-mint-500/5 transition-all outline-none text-text-main shadow-sm"
-                  />
-                </div>
+                  <div className="flex-1">
+                     <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.3em] mb-3 block ml-1">Identity Label</span>
+                     <input 
+                        type="text"
+                        placeholder="Labeling the collective..."
+                        value={groupName}
+                        onChange={e => setGroupName(e.target.value)}
+                        className="w-full bg-[#1A1A1C] border border-outline-variant rounded-[1.8rem] py-5 px-8 text-[15px] font-bold outline-none focus:ring-4 focus:ring-noir-accent/20 transition-all text-white placeholder:text-text-muted uppercase tracking-widest"
+                     />
+                  </div>
+               </div>
 
-                <div className="grid grid-cols-1 gap-2 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
-                  {filteredProfiles.map(profile => (
-                    <button
-                      key={profile.id}
-                      onClick={() => toggleSelect(profile.id)}
-                      className="flex items-center gap-4 p-4 rounded-2xl transition-all border border-transparent hover:bg-surface-low hover:border-outline-variant group active:scale-[0.99]"
-                    >
-                      <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm border border-outline-variant bg-surface-lowest shrink-0">
-                        <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <h4 className="font-bold text-text-main leading-none mb-1 group-hover:text-mint-500 transition-colors">{profile.name}</h4>
-                        <p className="text-xs text-text-muted font-bold truncate">@{profile.username || 'user'}</p>
-                      </div>
-                      <div className="w-8 h-8 rounded-xl border border-outline-variant flex items-center justify-center text-text-muted group-hover:bg-mint-500 group-hover:border-mint-500 group-hover:text-white transition-all">
-                        <Plus size={18} strokeWidth={3} />
-                      </div>
-                    </button>
-                  ))}
-                  {filteredProfiles.length === 0 && search && (
-                    <div className="text-center py-10">
-                      <p className="text-sm font-bold text-text-muted/50">No users found matching "{search}"</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+               {/* Selected Members Preview */}
+               <AnimatePresence>
+                 {selectedIds.length > 0 && (
+                   <motion.div 
+                     initial={{ opacity: 0, scale: 0.98 }}
+                     animate={{ opacity: 1, scale: 1 }}
+                     className="space-y-4"
+                   >
+                     <div className="flex justify-between items-center px-1">
+                        <span className="text-[10px] font-black text-text-muted uppercase tracking-widest leading-none">Linked Entities ({selectedIds.length})</span>
+                     </div>
+                     <div className="flex flex-wrap gap-4 p-5 bg-[#1A1A1C] rounded-[2rem] border border-outline-variant">
+                       {selectedProfiles.map(p => (
+                         <div key={p.id} className="relative group">
+                            <div className="w-12 h-12 rounded-[1rem] overflow-hidden border border-noir-accent/30 shadow-lg">
+                               <img src={getAvatarUrl(p)} className="w-full h-full object-cover" alt="" />
+                            </div>
+                            <button 
+                              onClick={() => toggleSelect(p.id)}
+                              className="absolute -top-1.5 -right-1.5 w-6 h-6 bg-white text-noir-bg rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100 shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
+                            >
+                              <X size={12} strokeWidth={4} />
+                            </button>
+                         </div>
+                       ))}
+                     </div>
+                   </motion.div>
+                 )}
+               </AnimatePresence>
+
+               {/* Search & Select */}
+               <div className="space-y-6">
+                  <div className="relative group">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-white transition-colors" />
+                    <input 
+                      type="text"
+                      placeholder="Protocol Discovery"
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      className="w-full bg-noir-bg border border-outline-variant rounded-[1.8rem] py-5 pl-14 pr-6 text-[14px] font-medium outline-none focus:ring-4 focus:ring-noir-accent/10 transition-all text-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-1 max-h-[280px] overflow-y-auto no-scrollbar pr-2">
+                    {filteredProfiles.map(profile => (
+                      <button
+                        key={profile.id}
+                        onClick={() => toggleSelect(profile.id)}
+                        className="flex items-center gap-5 p-4 rounded-[1.8rem] transition-all hover:bg-[#1A1A1C] border border-transparent hover:border-outline-variant group active:scale-[0.98]"
+                      >
+                        <div className="w-14 h-14 rounded-[1.4rem] overflow-hidden bg-noir-bg border border-outline-variant shrink-0">
+                          <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <h4 className="text-[14px] font-display font-black text-white uppercase tracking-tight group-hover:text-noir-accent transition-colors">{profile.name}</h4>
+                          <p className="text-[10px] text-text-muted font-black uppercase tracking-widest mt-0.5">@{profile.username || 'unknown'}</p>
+                        </div>
+                        <div className="w-10 h-10 rounded-[1.2rem] bg-noir-bg border border-outline-variant flex items-center justify-center text-text-muted group-hover:bg-noir-accent group-hover:text-white group-hover:border-noir-accent transition-all">
+                          <Plus size={20} strokeWidth={3} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+               </div>
             </div>
 
-            {/* Footer */}
-            <div className="p-8 border-t border-outline-variant bg-surface-low/30 flex gap-4">
+            {/* Bottom Actions */}
+            <div className="p-10 bg-[#131315] border-t border-outline-variant flex gap-4">
               <button 
                 onClick={() => setNewGroupModalOpen(false)}
-                className="flex-1 px-8 py-4 bg-surface-lowest border border-outline-variant rounded-2xl font-bold text-text-muted hover:text-text-main hover:bg-surface-low transition-all"
+                className="flex-1 px-8 py-5 bg-[#1A1A1C] border border-outline-variant rounded-[1.8rem] text-[11px] font-black uppercase tracking-widest text-text-muted hover:text-white hover:bg-[#202022] transition-all"
               >
-                Cancel
+                Abort
               </button>
               <button 
                 disabled={loading || !groupName}
                 onClick={handleCreateGroup}
-                className={`flex-1 px-8 py-4 rounded-2xl font-bold transition-all shadow-xl ${
+                className={`flex-1 px-8 py-5 rounded-[1.8rem] text-[11px] font-black uppercase tracking-widest transition-all shadow-[0_20px_50px_-15px_rgba(0,0,0,0.4)] flex items-center justify-center gap-3 ${
                   loading || !groupName
-                    ? 'bg-surface-low text-text-muted cursor-not-allowed border border-outline-variant'
-                    : 'bg-mint-500 text-white shadow-mint-500/20 hover:bg-mint-600 hover:scale-[1.02] active:scale-[0.98]'
+                    ? 'bg-[#1A1A1C] text-text-muted opacity-40 cursor-not-allowed border border-outline-variant'
+                    : 'bg-noir-accent text-white hover:scale-[1.03] active:scale-95 shadow-noir-accent/30'
                 }`}
               >
-                {loading ? 'Creating...' : 'Launch Group'}
+                {loading ? 'Initializing...' : (
+                  <>
+                    <span>Assemble Group</span>
+                    <ArrowRight size={14} strokeWidth={3} />
+                  </>
+                )}
               </button>
             </div>
           </motion.div>

@@ -1,15 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { 
   Search, 
   Plus, 
-  MoreVertical, 
-  Filter,
   Users,
   Hash,
   MessageSquare,
-  Sparkles,
   SignalHigh,
   UserPlus,
   Mic,
@@ -19,12 +16,12 @@ import {
 } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
-import { supabase } from '@/lib/supabase'
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion'
 import { getAvatarUrl } from '@/lib/utils'
 
 import { VoiceHUD } from './VoiceHUD'
 import { NewGroupModal } from './NewGroupModal'
+import { FriendRequestsList } from './FriendRequestsList'
 
 export function Sidebar() {
   const { user } = useAuthStore()
@@ -35,15 +32,24 @@ export function Sidebar() {
     onlineUsers,
     typingUsers,
     activeVoiceChannelId,
-    voiceParticipants,
-    joinVoiceChannel,
     leaveVoiceChannel,
     sidebarTab,
     setSidebarTab,
-    friendRequests
+    friendRequests,
+    fetchFriends,
+    fetchRequests,
+    setIsAddFriendModalOpen,
+    setNewGroupModalOpen
   } = useChatStore()
+  
   const [search, setSearch] = useState('')
-  const [isNewGroupOpen, setIsNewGroupOpen] = useState(false)
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchFriends(user.id)
+      fetchRequests(user.id)
+    }
+  }, [user?.id, fetchFriends, fetchRequests])
 
   const filteredChats = chats.filter((chat: any) => {
     // 1. Filter by Tab
@@ -69,38 +75,8 @@ export function Sidebar() {
     )
   })
 
-  // Pending Friend Requests (Incoming)
+  // Incoming Friend Requests (Incoming)
   const incomingRequests = friendRequests?.filter(req => req.receiver_id === user?.id && req.status === 'pending') || []
-
-  const handleRequestAction = async (requestId: string, action: 'accepted' | 'rejected', senderId: string, senderProfile: any) => {
-    try {
-      const { error } = await supabase
-        .from('friend_requests')
-        .update({ status: action })
-        .eq('id', requestId)
-      
-      if (error) throw error
-
-      if (action === 'accepted' && user) {
-        const { data: newChat, error: chatError } = await supabase
-          .from('chats')
-          .insert({ type: 'private' })
-          .select()
-          .single()
-
-        if (chatError) throw chatError
-
-        await supabase.from('chat_participants').insert([
-          { chat_id: newChat.id, user_id: user.id },
-          { chat_id: newChat.id, user_id: senderId }
-        ])
-        
-        setActiveChat({ ...newChat, chat_participants: [{ profiles: senderProfile }] } as any)
-      }
-    } catch(e: any) {
-      alert(e.message)
-    }
-  }
 
   return (
     <div className="w-full md:w-[320px] lg:w-[380px] h-screen bg-surface-lowest flex flex-col shrink-0 overflow-hidden relative border-r border-outline-variant transition-colors duration-500">
@@ -114,7 +90,7 @@ export function Sidebar() {
             <div className="flex items-center space-x-1">
               {sidebarTab === 'message' ? (
                 <button 
-                  onClick={() => useChatStore.getState().setIsAddFriendModalOpen(true)}
+                  onClick={() => setIsAddFriendModalOpen(true)}
                   className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all active:scale-95 shadow-sm flex items-center space-x-2"
                 >
                   <UserPlus className="w-4 h-4" />
@@ -122,7 +98,7 @@ export function Sidebar() {
                 </button>
               ) : (
                 <button 
-                  onClick={() => setIsNewGroupOpen(true)}
+                  onClick={() => setNewGroupModalOpen(true)}
                   className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all active:scale-95 shadow-sm"
                 >
                   <Plus className="w-5 h-5" />
@@ -191,42 +167,9 @@ export function Sidebar() {
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto px-4 space-y-6 pb-24 no-scrollbar">
         
-        {/* Incoming Friend Requests */}
+        {/* Friend Requests Section */}
         {sidebarTab === 'message' && incomingRequests.length > 0 && (
-          <div className="space-y-1">
-            <div className="px-2 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center justify-between">
-              <span>Friend Requests</span>
-              <span className="bg-primary text-white px-1.5 rounded-full text-[9px]">{incomingRequests.length}</span>
-            </div>
-            
-            {incomingRequests.map((req) => (
-              <div key={req.id} className="w-full flex items-center p-3 rounded-2xl bg-primary/5 border border-primary/10">
-                <div className="w-10 h-10 rounded-xl overflow-hidden mr-3 shrink-0">
-                  <img src={getAvatarUrl(req.sender_profile)} alt="" className="w-full h-full object-cover" />
-                </div>
-                <div className="flex-1 min-w-0 pr-2">
-                  <h3 className="font-display font-black text-sm truncate uppercase text-text-main">
-                    {req.sender_profile?.name || 'Unknown'}
-                  </h3>
-                  <p className="text-[10px] uppercase font-black text-primary/60 truncate">@{req.sender_profile?.username}</p>
-                </div>
-                <div className="flex items-center space-x-1 shrink-0">
-                  <button 
-                    onClick={() => handleRequestAction(req.id, 'accepted', req.sender_id, req.sender_profile)}
-                    className="p-2 bg-presence-online/10 text-presence-online hover:bg-presence-online hover:text-white rounded-lg transition-all"
-                  >
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button 
-                    onClick={() => handleRequestAction(req.id, 'rejected', req.sender_id, req.sender_profile)}
-                    className="p-2 bg-presence-dnd/10 text-presence-dnd hover:bg-presence-dnd hover:text-white rounded-lg transition-all"
-                  >
-                    <XIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <FriendRequestsList />
         )}
 
         {/* Chat List */}
@@ -234,7 +177,7 @@ export function Sidebar() {
           <div className="px-2 pb-2 mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted flex items-center justify-between">
             <span>Recent {sidebarTab === 'message' ? 'Chats' : 'Groups'}</span>
             <Plus 
-              onClick={() => setIsNewGroupOpen(true)}
+              onClick={() => setNewGroupModalOpen(true)}
               className="w-3 h-3 cursor-pointer hover:text-primary transition-colors" 
             />
           </div>
@@ -353,7 +296,7 @@ export function Sidebar() {
       </div>
 
       <VoiceHUD />
-      <NewGroupModal isOpen={isNewGroupOpen} onClose={() => setIsNewGroupOpen(false)} />
+      <NewGroupModal />
     </div>
   )
 }

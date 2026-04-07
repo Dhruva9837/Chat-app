@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Search, UserPlus, MessageSquare, Sparkles, Check, User } from 'lucide-react'
+import { X, Search, UserPlus, MessageSquare, Sparkles, Check, User, Signal } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
@@ -25,16 +25,17 @@ export function AddFriendModal() {
     setResult(null)
 
     try {
-      const { data, error: searchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', username.trim().toLowerCase())
-        .single()
+      const resp = await fetch('/api/friends/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim().toLowerCase() })
+      });
 
-      if (searchError) throw new Error('User not found')
-      if (data.id === user.id) throw new Error("You can't add yourself!")
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'User not found');
+      if (data.profile.id === user.id) throw new Error("You can't add yourself!");
       
-      setResult(data)
+      setResult(data.profile)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -52,188 +53,178 @@ export function AddFriendModal() {
 
   const handleAction = async () => {
     if (!result || !user) return
-
-    // 1. If already friends (has chat)
     if (existingChat) {
-      setActiveChat(existingChat)
-      setIsAddFriendModalOpen(false)
-      return
+      setActiveChat(existingChat);
+      setIsAddFriendModalOpen(false);
+      return;
     }
-
-    // 2. If request already sent
     if (pendingRequestSent) return;
-
-    // 3. If request received, ACCEPT it
     if (pendingRequestReceived) {
       try {
-        const { error } = await supabase
-          .from('friend_requests')
-          .update({ status: 'accepted' })
-          .eq('id', pendingRequestReceived.id)
-        
-        if (error) throw error
-
-        const { data: newChat, error: chatError } = await supabase
-          .from('chats')
-          .insert({ type: 'private' })
-          .select()
-          .single()
-
-        if (chatError) throw chatError
-
-        await supabase.from('chat_participants').insert([
-          { chat_id: newChat.id, user_id: user.id },
-          { chat_id: newChat.id, user_id: result.id }
-        ])
-
-        setActiveChat({ ...newChat, chat_participants: [{ profiles: result }] } as any)
-        setIsAddFriendModalOpen(false)
+        const resp = await fetch('/api/friends/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId: pendingRequestReceived.id, action: 'accept', userId: user.id })
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error);
+        setIsAddFriendModalOpen(false);
       } catch (err: any) {
-        alert(err.message)
+        alert(err.message);
       }
-      return
+      return;
     }
-
-    // 4. Otherwise, send new request
     try {
-      const { error } = await supabase
-        .from('friend_requests')
-        .insert({
-           sender_id: user.id,
-           receiver_id: result.id,
-           status: 'pending'
-        })
-      if (error) throw error
+      const resp = await fetch('/api/friends/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderId: user.id, receiverId: result.id })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error);
     } catch (err: any) {
-      alert(err.message)
+      alert(err.message);
     }
   }
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isAddFriendModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsAddFriendModalOpen(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            className="absolute inset-0 bg-black/80 backdrop-blur-2xl"
           />
           
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-lg bg-surface-lowest rounded-[2.5rem] shadow-2xl border border-outline-variant overflow-hidden"
+            exit={{ opacity: 0, scale: 0.95, y: 30 }}
+            className="relative w-full max-w-[500px] noir-card rounded-[2.5rem] overflow-hidden flex flex-col shadow-[0_35px_80px_-15px_rgba(0,0,0,0.8)]"
           >
-            {/* Header */}
-            <div className="p-8 bg-primary text-white relative">
-                <button 
-                  onClick={() => setIsAddFriendModalOpen(false)}
-                  className="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-                <div className="flex items-center space-x-4 mb-2">
-                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-                        <UserPlus className="w-6 h-6" />
-                    </div>
-                    <h2 className="text-2xl font-display font-black uppercase tracking-tight">Add Friend</h2>
-                </div>
-                <p className="text-white/70 text-sm font-sans tracking-tight">You can add friends with their Nexora username.</p>
+            {/* Header Content */}
+            <div className="px-10 pt-10 pb-2 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-noir-accent/20 rounded-[1.2rem] flex items-center justify-center text-noir-accent border border-noir-accent/20">
+                    <UserPlus size={20} strokeWidth={2.5} />
+                 </div>
+                 <h2 className="text-xl font-display font-black text-white tracking-tight uppercase">Discovery</h2>
+              </div>
+              <button 
+                onClick={() => setIsAddFriendModalOpen(false)}
+                className="p-1.5 text-text-muted hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
 
-            {/* Search Content */}
-            <div className="p-8 space-y-8">
-                <form onSubmit={handleSearch} className="relative group">
-                    <input 
-                        autoFocus
-                        type="text"
-                        placeholder="Enter Username (e.g. jdoe)"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="w-full bg-surface-low border border-outline-variant rounded-2xl py-4 pl-14 pr-36 text-lg font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all placeholder:text-text-muted/40 uppercase tracking-widest"
-                    />
-                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-text-muted group-focus-within:text-primary transition-colors" />
-                    <button 
-                        type="submit"
-                        disabled={searching || !username.trim()}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white px-6 py-2.5 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all font-sans"
-                    >
-                        {searching ? 'Searching...' : 'Search'}
-                    </button>
-                </form>
+            <div className="px-10 py-6">
+               <p className="text-[13px] text-text-muted font-bold leading-relaxed mb-8">
+                 Enter a unique username to initiate a secure connection. 
+                 Discovery is end-to-end encrypted and deterministic.
+               </p>
 
-                {/* Results Area */}
-                <div className="min-h-[200px] flex flex-col items-center justify-center border-2 border-dashed border-outline-variant rounded-[2rem] bg-surface-low/30 overflow-hidden relative">
-                    <AnimatePresence mode="wait">
-                        {error && (
-                            <motion.div 
-                                key="error"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="text-center p-6"
-                            >
-                                <div className="w-16 h-16 bg-presence-dnd/10 text-presence-dnd rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <X className="w-8 h-8" />
-                                </div>
-                                <p className="text-sm font-black uppercase text-text-muted tracking-widest">{error}</p>
-                            </motion.div>
-                        )}
+               {/* Search Form */}
+               <form onSubmit={handleSearch} className="relative mb-10 group">
+                  <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-white transition-colors" />
+                  <input 
+                    autoFocus
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                    className="w-full bg-[#1A1A1C] border border-outline-variant rounded-[1.8rem] py-5 pl-14 pr-32 text-[15px] font-bold outline-none ring-noir-accent/30 focus:ring-4 transition-all placeholder:text-text-muted uppercase tracking-widest text-white"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={searching || !username.trim()}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 bg-noir-accent text-white px-6 py-3 rounded-[1.4rem] font-black uppercase tracking-widest text-[10px] shadow-lg shadow-noir-accent/30 hover:scale-[1.03] active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all"
+                  >
+                    {searching ? 'LINKING...' : 'DISCOVER'}
+                  </button>
+               </form>
 
-                        {result && (
-                            <motion.div 
-                                key="result"
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="w-full p-8 flex flex-col items-center animate-in fade-in zoom-in duration-300"
-                            >
-                                <div className="relative mb-6">
-                                    <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-white shadow-xl rotate-3">
-                                        <img src={getAvatarUrl(result)} alt="" className="w-full h-full object-cover" />
-                                    </div>
-                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-presence-online rounded-full border-4 border-white shadow-sm" />
-                                </div>
-                                <h3 className="text-xl font-display font-black uppercase tracking-tight text-text-main mb-1">{result.name}</h3>
-                                <p className="text-sm font-black text-primary uppercase tracking-widest mb-8">@{result.username}</p>
-                                
-                                <button 
-                                    onClick={handleAction}
-                                    disabled={!!pendingRequestSent}
-                                    className={`flex items-center space-x-3 px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl ${
-                                      existingChat ? 'bg-text-main text-white hover:bg-primary hover:scale-105 active:scale-95' :
-                                      pendingRequestSent ? 'bg-surface-low text-text-muted border border-outline-variant cursor-not-allowed' :
-                                      pendingRequestReceived ? 'bg-presence-online text-white hover:scale-105 active:scale-95 shadow-presence-online/20' :
-                                      'bg-primary text-white hover:bg-primary/90 hover:scale-105 active:scale-95'
-                                    }`}
-                                >
-                                    <MessageSquare className="w-5 h-5" />
-                                    <span>
-                                      {existingChat ? 'Send Message' : 
-                                       pendingRequestSent ? 'Request Sent' :
-                                       pendingRequestReceived ? 'Accept Request' :
-                                       'Send Friend Request'}
-                                    </span>
-                                </button>
-                            </motion.div>
-                        )}
+               {/* Result Area */}
+               <div className="min-h-[220px] rounded-[2.2rem] bg-[#1A1A1C] border-2 border-dashed border-outline-variant flex flex-col items-center justify-center overflow-hidden relative p-8">
+                  <AnimatePresence mode="wait">
+                     {error && (
+                        <motion.div 
+                          key="error"
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="text-center"
+                        >
+                           <div className="w-16 h-16 bg-presence-dnd/10 text-presence-dnd rounded-full flex items-center justify-center mx-auto mb-4 border border-presence-dnd/20">
+                              <X size={24} strokeWidth={3} />
+                           </div>
+                           <p className="text-[11px] font-black uppercase text-text-muted tracking-widest">{error}</p>
+                        </motion.div>
+                     )}
 
-                        {!result && !error && !searching && (
-                            <div key="empty" className="text-center opacity-40">
-                                <Sparkles className="w-12 h-12 mx-auto mb-4" />
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em]">Ready for discovery</p>
-                            </div>
-                        )}
-                    </AnimatePresence>
-                </div>
+                     {result && (
+                        <motion.div 
+                          key="result"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="w-full flex flex-col items-center"
+                        >
+                           <div className="relative mb-6">
+                              <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-2 border-outline-variant shadow-2xl rotate-3 bg-[#111113]">
+                                 <img src={getAvatarUrl(result)} alt="" className="w-full h-full object-cover" />
+                              </div>
+                              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-presence-online rounded-full border-4 border-[#1A1A1C] shadow-lg" />
+                           </div>
+                           
+                           <h3 className="text-xl font-display font-black text-white tracking-tight uppercase mb-0.5">{result.name}</h3>
+                           <p className="text-[11px] font-black text-noir-accent uppercase tracking-[0.2em] mb-10">@{result.username}</p>
+                           
+                           <button 
+                             onClick={handleAction}
+                             className={`
+                               flex items-center gap-3 px-10 py-5 rounded-[1.6rem] font-black uppercase tracking-widest text-[11px] transition-all shadow-2xl
+                               ${existingChat ? 'bg-white text-noir-bg hover:scale-[1.03] active:scale-95' : 
+                                 pendingRequestSent ? 'bg-noir-surface text-text-muted border border-outline-variant opacity-60 cursor-not-allowed' :
+                                 pendingRequestReceived ? 'bg-noir-accent text-white hover:scale-[1.03] shadow-noir-accent/20' :
+                                 'bg-noir-accent text-white hover:scale-[1.03] active:scale-95 shadow-noir-accent/30'}
+                             `}
+                           >
+                             <Signal size={16} strokeWidth={3} />
+                             <span>
+                               {existingChat ? 'INITIATE CHAT' : 
+                                 pendingRequestSent ? 'LINK PENDING' :
+                                 pendingRequestReceived ? 'ESTABLISH LINK' :
+                                 'REQUEST LINK'}
+                             </span>
+                           </button>
+                        </motion.div>
+                     )}
+
+                     {!result && !error && !searching && (
+                        <motion.div 
+                          key="placeholder"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 0.3 }}
+                          className="text-center"
+                        >
+                           <Sparkles size={48} className="mx-auto mb-6 text-white" />
+                           <p className="text-[10px] font-black uppercase text-white tracking-[0.4em]">Ready for discovery</p>
+                        </motion.div>
+                     )}
+                  </AnimatePresence>
+               </div>
             </div>
 
-            <div className="p-6 bg-surface-low border-t border-outline-variant flex justify-center">
-                <span className="text-[10px] font-black uppercase text-text-muted tracking-widest flex items-center">
-                    <Check className="w-3 h-3 mr-2" /> End-to-end encrypted discovery
-                </span>
+            {/* Bottom Footer Section */}
+            <div className="px-10 py-8 bg-[#131315] border-t border-outline-variant flex items-center justify-center">
+               <div className="flex items-center gap-2 text-text-muted">
+                  <div className="w-2 h-2 rounded-full bg-presence-online animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Protocol active</span>
+               </div>
             </div>
+
           </motion.div>
         </div>
       )}
