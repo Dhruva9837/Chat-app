@@ -1,103 +1,124 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Mail, Loader2, ArrowRight, ShieldCheck, User, Lock, Eye, EyeOff } from 'lucide-react'
-import { useAuthStore } from '@/store/authStore'
-import { BrandLogo } from './BrandLogo'
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Mail,
+  Loader2,
+  ArrowRight,
+  ShieldCheck,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { BrandLogo } from "./BrandLogo";
 
 export function Auth() {
-  const { setUser } = useAuthStore()
-  const [email, setEmail] = useState('')
-  const [phone, setPhone] = useState('')
-  const [otp, setOtp] = useState('')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [isVerifyStep, setIsVerifyStep] = useState(false)
-  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email')
-  const [isSignUp, setIsSignUp] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const { setUser } = useAuthStore();
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isVerifyStep, setIsVerifyStep] = useState(false);
+  const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Load saved email on mount
   useEffect(() => {
-    const savedEmail = localStorage.getItem('nexora_remembered_email')
+    const savedEmail = localStorage.getItem("nexora_remembered_email");
     if (savedEmail) {
-      setEmail(savedEmail)
-      setRememberMe(true)
+      setEmail(savedEmail);
+      setRememberMe(true);
     }
-  }, [])
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
     try {
-      if (authMethod === 'phone') {
-        const { error } = await supabase.auth.signInWithOtp({ 
+      if (authMethod === "phone") {
+        const { error } = await supabase.auth.signInWithOtp({
           phone,
-          options: { channel: 'sms' }
-        })
-        if (error) throw error
-        setIsVerifyStep(true)
+          options: { channel: "sms" },
+        });
+        if (error) throw error;
+        setIsVerifyStep(true);
       } else {
         if (isSignUp) {
-          const { data, error } = await supabase.auth.signUp({ 
+          const { data, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-              data: { 
+              data: {
                 full_name: name,
-                username: username.replace('@', '').toLowerCase()
+                username: username.replace("@", "").toLowerCase(),
               },
-              emailRedirectTo: window.location.origin
-            }
-          })
-          if (error) throw error
-          if (data.session) setUser(data.user)
-          else setIsVerifyStep(true)
+              emailRedirectTo: window.location.origin,
+            },
+          });
+          if (error) throw error;
+          if (data.session) setUser(data.user);
+          else setIsVerifyStep(true);
         } else {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-          if (error) throw error
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (error) throw error;
           // Save or clear remembered email
           if (rememberMe) {
-            localStorage.setItem('nexora_remembered_email', email)
+            localStorage.setItem("nexora_remembered_email", email);
           } else {
-            localStorage.removeItem('nexora_remembered_email')
+            localStorage.removeItem("nexora_remembered_email");
           }
-          setUser(data.user)
+          setUser(data.user);
         }
       }
     } catch (error: any) {
-      console.error('Auth Request Error:', error)
-      alert(error.message)
+      console.error("Auth Request Error:", error);
+      alert(error.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
     try {
-      if (otp === '123456') {
-        setUser({ id: 'dev-user-001', email: email || 'user@nexora.com', user_metadata: { name: name || 'User' } })
-        return
+      if (otp === "123456") {
+        setUser({
+          id: "dev-user-001",
+          email: email || "user@nexora.com",
+          user_metadata: { name: name || "User" },
+        });
+        return;
       }
-      const verifyOptions = authMethod === 'phone' 
-        ? { phone, token: otp, type: 'sms' as const }
-        : { email, token: otp, type: (isSignUp ? 'signup' : 'magiclink') as any }
-      const { data, error } = await supabase.auth.verifyOtp(verifyOptions)
-      if (error) throw error
-      if (data.user) setUser(data.user)
+      const verifyOptions =
+        authMethod === "phone"
+          ? { phone, token: otp, type: "sms" as const }
+          : {
+              email,
+              token: otp,
+              type: (isSignUp ? "signup" : "magiclink") as any,
+            };
+      const { data, error } = await supabase.auth.verifyOtp(verifyOptions);
+      if (error) throw error;
+      if (data.user) setUser(data.user);
     } catch (error: any) {
-      alert(`Verification Error: ${error.message}`)
+      alert(`Verification Error: ${error.message}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="min-h-screen w-full bg-surface-lowest flex items-center justify-center p-6 font-sans overflow-hidden relative">
@@ -108,7 +129,7 @@ export function Auth() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 contrast-150 brightness-150" />
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -124,7 +145,7 @@ export function Auth() {
             <motion.div
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             >
               <BrandLogo />
             </motion.div>
@@ -132,26 +153,30 @@ export function Auth() {
 
           <AnimatePresence mode="wait">
             {isVerifyStep ? (
-              <motion.form 
-                key="verify" 
+              <motion.form
+                key="verify"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                onSubmit={handleVerifyOtp} 
+                onSubmit={handleVerifyOtp}
                 className="space-y-8"
               >
                 <div className="text-center space-y-2">
-                  <h2 className="text-2xl font-display font-black tracking-tight text-text-main">Final Step</h2>
+                  <h2 className="text-2xl font-display font-black tracking-tight text-text-main">
+                    Final Step
+                  </h2>
                   <p className="text-text-muted text-sm px-4">
-                    Confirm the 6-digit code sent to <br/>
-                    <span className="text-primary font-bold">{authMethod === 'email' ? email : phone}</span>
+                    Confirm the 6-digit code sent to <br />
+                    <span className="text-primary font-bold">
+                      {authMethod === "email" ? email : phone}
+                    </span>
                   </p>
                 </div>
 
                 <div className="space-y-6">
                   <div className="flex justify-center gap-2">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={otp}
                       onChange={(e) => setOtp(e.target.value)}
                       required
@@ -161,16 +186,20 @@ export function Auth() {
                     />
                   </div>
 
-                  <button 
+                  <button
                     type="submit"
                     disabled={loading}
                     className="w-full h-14 bg-gradient-to-r from-primary to-indigo-600 text-white font-bold rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-[0.98] transition-all flex items-center justify-center text-sm disabled:opacity-50"
                   >
-                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Verify Infinity Identity</span>}
+                    {loading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <span>Verify Account</span>
+                    )}
                   </button>
-                  
-                  <button 
-                    type="button" 
+
+                  <button
+                    type="button"
                     onClick={() => setIsVerifyStep(false)}
                     className="w-full text-xs text-text-muted hover:text-primary transition-colors font-bold uppercase tracking-widest"
                   >
@@ -179,43 +208,49 @@ export function Auth() {
                 </div>
               </motion.form>
             ) : (
-              <motion.form 
-                key="auth" 
+              <motion.form
+                key="auth"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                onSubmit={handleSubmit} 
+                onSubmit={handleSubmit}
                 className="space-y-6"
               >
                 <div className="text-center space-y-1 mb-8">
-                   <h2 className="text-3xl font-display font-black text-text-main tracking-tight">
-                      {isSignUp ? "Join Nexora" : "Nexus Entry"}
-                   </h2>
-                   <p className="text-text-muted text-[14px]">
-                      {isSignUp ? "Connect across the neural grid" : "Welcome back to the collective"}
-                   </p>
+                  <h2 className="text-3xl font-display font-black text-text-main tracking-tight">
+                    {isSignUp ? "Create an account" : "Welcome back!"}
+                  </h2>
+                  <p className="text-text-muted text-[14px]">
+                    {isSignUp
+                      ? "Jump in and start chatting"
+                      : "We're so excited to see you again!"}
+                  </p>
                 </div>
 
                 <div className="space-y-4">
                   {isSignUp && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">Identity</label>
+                        <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">
+                          Full Name
+                        </label>
                         <div className="relative">
-                           <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                           <input 
-                            type="text" 
+                          <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                          <input
+                            type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
-                            placeholder="Full Name"
+                            placeholder="John Doe"
                             className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3 pl-11 pr-4 text-text-main text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all placeholder:text-text-muted/40"
                           />
                         </div>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">Callsign</label>
-                        <input 
-                          type="text" 
+                        <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">
+                          Username
+                        </label>
+                        <input
+                          type="text"
                           value={username}
                           onChange={(e) => setUsername(e.target.value)}
                           required
@@ -229,50 +264,72 @@ export function Auth() {
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center ml-1">
                       <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em]">
-                        {authMethod === 'email' ? 'Electronic Mail' : 'Neural Link (Phone)'}
+                        {authMethod === "email" ? "Email" : "Phone Number"}
                       </label>
-                      <button 
-                        type="button" 
-                        onClick={() => setAuthMethod(authMethod === 'email' ? 'phone' : 'email')}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAuthMethod(
+                            authMethod === "email" ? "phone" : "email",
+                          )
+                        }
                         className="text-[10px] text-primary hover:text-indigo-400 font-black uppercase tracking-widest transition-colors"
                       >
-                        Use {authMethod === 'email' ? 'Link' : 'Mail'}
+                        Use {authMethod === "email" ? "Phone" : "Email"}
                       </button>
                     </div>
                     <div className="relative">
-                      {authMethod === 'email' ? <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" /> : <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />}
-                      <input 
-                        type={authMethod === 'email' ? 'email' : 'tel'}
-                        value={authMethod === 'email' ? email : phone}
-                        onChange={(e) => authMethod === 'email' ? setEmail(e.target.value) : setPhone(e.target.value)}
+                      {authMethod === "email" ? (
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                      ) : (
+                        <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                      )}
+                      <input
+                        type={authMethod === "email" ? "email" : "tel"}
+                        value={authMethod === "email" ? email : phone}
+                        onChange={(e) =>
+                          authMethod === "email"
+                            ? setEmail(e.target.value)
+                            : setPhone(e.target.value)
+                        }
                         required
-                        placeholder={authMethod === 'email' ? "user@nexora.cloud" : "+1 (555) 000-0000"}
+                        placeholder={
+                          authMethod === "email"
+                            ? "user@example.com"
+                            : "+1 (555) 000-0000"
+                        }
                         className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3.5 pl-12 pr-4 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">Neural Access Key</label>
+                    <label className="text-[10px] font-black uppercase text-text-muted tracking-[0.2em] ml-1">
+                      Password
+                    </label>
                     <div className="relative">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                      <input 
-                        type={showPassword ? 'text' : 'password'}
+                      <input
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         placeholder="••••••••••••"
                         className="w-full bg-surface-lowest/50 border border-outline-variant rounded-2xl py-3.5 pl-12 pr-12 text-text-main focus:ring-2 focus:ring-primary/20 focus:border-primary/40 outline-none transition-all"
                       />
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-main transition-colors"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
-                    
+
                     {!isSignUp && (
                       <div className="flex items-center justify-between mt-2 px-1">
                         <label className="flex items-center gap-2 cursor-pointer select-none group">
@@ -283,17 +340,22 @@ export function Auth() {
                             className="w-4 h-4 rounded-md bg-surface-lowest border-outline-variant text-primary focus:ring-primary focus:ring-offset-0 transition-all cursor-pointer"
                           />
                           <span className="text-[11px] text-text-muted group-hover:text-text-main transition-colors font-bold uppercase tracking-wider">
-                            Hold Link
+                            Remember me
                           </span>
                         </label>
-                        <button type="button" className="text-[11px] text-primary hover:underline font-black uppercase tracking-wider">Reset Key?</button>
+                        <button
+                          type="button"
+                          className="text-[11px] text-primary hover:underline font-black uppercase tracking-wider"
+                        >
+                          Forgot password?
+                        </button>
                       </div>
                     )}
                   </div>
                 </div>
 
                 <div className="pt-4">
-                  <button 
+                  <button
                     type="submit"
                     disabled={loading}
                     className="w-full h-14 bg-gradient-to-r from-primary to-indigo-600 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center text-xs disabled:opacity-50"
@@ -302,7 +364,7 @@ export function Auth() {
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <div className="flex items-center gap-2">
-                        <span>{isSignUp ? "Initialize Protocol" : "Authorize Nexus"}</span>
+                        <span>{isSignUp ? "Continue" : "Log In"}</span>
                         <ArrowRight className="w-4 h-4" />
                       </div>
                     )}
@@ -310,16 +372,18 @@ export function Auth() {
                 </div>
 
                 <div className="pt-2 text-center">
-                   <p className="text-[11px] text-text-muted font-bold uppercase tracking-widest">
-                      {isSignUp ? "Already indexed? " : "New entity? "}
-                      <button 
-                        type="button" 
-                        onClick={() => setIsSignUp(!isSignUp)}
-                        className="text-primary hover:text-indigo-400 transition-colors"
-                      >
-                         {isSignUp ? "Authorize" : "Register"}
-                      </button>
-                   </p>
+                  <p className="text-[11px] text-text-muted font-bold tracking-widest">
+                    {isSignUp
+                      ? "Already have an account? "
+                      : "Need an account? "}
+                    <button
+                      type="button"
+                      onClick={() => setIsSignUp(!isSignUp)}
+                      className="text-primary hover:text-indigo-400 transition-colors uppercase font-black"
+                    >
+                      {isSignUp ? "Log In" : "Register"}
+                    </button>
+                  </p>
                 </div>
               </motion.form>
             )}
@@ -328,13 +392,19 @@ export function Auth() {
 
         {/* --- FOOTER DECORATION --- */}
         <div className="mt-8 flex justify-center gap-8 items-center text-[10px] font-black text-text-muted/40 uppercase tracking-[0.3em]">
-           <span className="hover:text-primary transition-colors cursor-help">Secure Node</span>
-           <div className="w-1 h-1 bg-text-muted/20 rounded-full" />
-           <span className="hover:text-primary transition-colors cursor-help">End-to-End</span>
-           <div className="w-1 h-1 bg-text-muted/20 rounded-full" />
-           <span className="hover:text-primary transition-colors cursor-help">v2.0.4 Nexora</span>
+          <span className="hover:text-primary transition-colors cursor-help">
+            Secure Node
+          </span>
+          <div className="w-1 h-1 bg-text-muted/20 rounded-full" />
+          <span className="hover:text-primary transition-colors cursor-help">
+            End-to-End
+          </span>
+          <div className="w-1 h-1 bg-text-muted/20 rounded-full" />
+          <span className="hover:text-primary transition-colors cursor-help">
+            v2.0.4 Nexora
+          </span>
         </div>
       </motion.div>
     </div>
-  )
+  );
 }
