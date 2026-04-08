@@ -151,7 +151,6 @@ create policy "Authenticated users can upload media." on storage.objects
     auth.role() = 'authenticated'
   );
 
-  );
 
 -- Add avatar_decoration support
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS avatar_decoration TEXT;
