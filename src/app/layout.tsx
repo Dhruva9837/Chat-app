@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   description: 'A clean, secure, and modern messaging platform for everyone.',
 };
 
-import { ThemeHandler } from "@/components/ThemeHandler";
+
 
 export default function RootLayout({
   children,
@@ -33,7 +33,6 @@ export default function RootLayout({
         className={`${inter.variable} ${manrope.variable} font-sans antialiased text-text-main selection:bg-primary/10 transition-colors duration-500`}
       >
         <ThemeProvider>
-          <ThemeHandler />
           {children}
         </ThemeProvider>
       </body>

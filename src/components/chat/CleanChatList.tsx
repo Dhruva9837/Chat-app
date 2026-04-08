@@ -85,7 +85,7 @@ export const CleanChatList = () => {
             placeholder="Search Protocol..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-10 py-3 bg-[#242426] rounded-2xl text-[13px] border-none focus:ring-0 transition-all outline-none text-white placeholder:text-text-muted font-medium"
+            className="w-full pl-12 pr-10 py-3 bg-surface-high rounded-2xl text-[13px] border-none focus:ring-0 transition-all outline-none text-white placeholder:text-text-muted font-medium"
           />
           {isSearching && (
              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-noir-accent">
@@ -174,12 +174,12 @@ export const CleanChatList = () => {
                 animate={{ opacity: 1 }}
                 className={`
                   mx-2 px-4 py-4 flex items-center gap-4 cursor-pointer transition-all rounded-[1.8rem] group relative
-                  ${isActive ? 'bg-[#242426]' : 'hover:bg-[#1E1E20]'}
+                  ${isActive ? 'bg-surface-high' : 'hover:bg-[#1E1E20]'}
                 `}
               >
                 {/* Avatar with specialized radius */}
                 <div className="relative shrink-0">
-                  <div className="w-14 h-14 rounded-[1.6rem] overflow-hidden border-2 border-[#202022] group-hover:border-[#303032] transition-colors bg-[#202022]">
+                  <div className="w-14 h-14 rounded-[1.6rem] overflow-hidden border-2 border-[#202022] group-hover:border-[#303032] transition-colors bg-surface-bubble">
                     <img 
                       src={getAvatarUrl(isGroup ? chat : participantProfile)} 
                       alt={chatName} 
@@ -187,7 +187,7 @@ export const CleanChatList = () => {
                     />
                   </div>
                   {!isGroup && otherParticipant && onlineUsers[otherParticipant.user_id]?.status === 'online' && (
-                     <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-[#0F0F12] rounded-full"></div>
+                     <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface-lowest rounded-full"></div>
                   )}
                 </div>
                 

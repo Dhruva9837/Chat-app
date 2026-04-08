@@ -22,6 +22,7 @@ import { supabase } from '@/lib/supabase';
 import { getAvatarUrl } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
+import { BrandLogo } from '../BrandLogo';
 
 export const CleanChatWindow = () => {
   const { user } = useAuthStore();
@@ -206,15 +207,16 @@ export const CleanChatWindow = () => {
 
   if (!activeChat) {
     return (
-      <div className="flex-1 h-full bg-[#0F0F12] flex flex-col items-center justify-center text-text-muted select-none">
+      <div className="flex-1 h-full bg-surface-lowest flex flex-col items-center justify-center text-text-muted select-none">
         <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="w-32 h-32 bg-[#161618] rounded-[3.5rem] flex items-center justify-center mb-8 border border-outline-variant shadow-2xl"
+          className="mb-8"
         >
-          <Send size={48} className="text-noir-accent opacity-40 translate-x-1 -translate-y-1" />
+          <BrandLogo />
         </motion.div>
-        <h2 className="text-[12px] font-black uppercase tracking-[0.4em] opacity-40">Select a Secure Workspace</h2>
+        <h2 className="text-[12px] font-black uppercase tracking-[0.4em] opacity-40 mt-4">Select a Secure Workspace</h2>
+        <p className="text-[10px] font-bold text-text-muted/30 uppercase tracking-[0.2em] mt-2">End-to-End Encrypted Protocols</p>
       </div>
     );
   }
@@ -224,10 +226,10 @@ export const CleanChatWindow = () => {
   const chatName = isGroup ? (activeChat.name || 'Office chat') : (otherParticipant?.profiles?.name || 'User');
 
   return (
-    <div className="flex-1 h-full bg-[#0F0F12] flex flex-col relative select-none">
+    <div className="flex-1 h-full bg-surface-lowest flex flex-col relative select-none">
       
       {/* Header */}
-      <header className="px-10 py-8 flex justify-between items-center z-20 bg-[#0F0F12]/80 backdrop-blur-md sticky top-0">
+      <header className="px-10 py-8 flex justify-between items-center z-20 bg-surface-lowest/80 backdrop-blur-md sticky top-0">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => setActiveChat(null)}
@@ -279,7 +281,7 @@ export const CleanChatWindow = () => {
               >
                 {!isMe && (
                   <div className="shrink-0 mt-auto mb-1">
-                    <div className="w-10 h-10 rounded-[1.2rem] overflow-hidden bg-[#161618] border border-outline-variant">
+                    <div className="w-10 h-10 rounded-[1.2rem] overflow-hidden bg-surface-low border border-outline-variant">
                       <img src={getAvatarUrl(msg.profiles)} alt="" className="w-full h-full object-cover" />
                     </div>
                   </div>
@@ -321,7 +323,7 @@ export const CleanChatWindow = () => {
                 
                 {isMe && (
                    <div className="shrink-0 mt-auto mb-1">
-                      <div className="w-10 h-10 rounded-[1.2rem] overflow-hidden bg-[#161618] border border-outline-variant">
+                      <div className="w-10 h-10 rounded-[1.2rem] overflow-hidden bg-surface-low border border-outline-variant">
                         <img src={getAvatarUrl(user)} alt="" className="w-full h-full object-cover" />
                       </div>
                    </div>
@@ -361,7 +363,7 @@ export const CleanChatWindow = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="mb-4 p-4 bg-[#161618] rounded-[2.2rem] border border-outline-variant flex items-center justify-between shadow-2xl"
+              className="mb-4 p-4 bg-surface-low rounded-[2.2rem] border border-outline-variant flex items-center justify-between shadow-2xl"
             >
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-[1rem] overflow-hidden bg-black/50 border border-outline-variant">
@@ -389,7 +391,7 @@ export const CleanChatWindow = () => {
       <div className="px-10 pb-10">
         <form 
           onSubmit={handleSendMessage}
-          className="relative flex items-center bg-[#161618] rounded-[2.2rem] border border-outline-variant group transition-all focus-within:ring-2 focus-within:ring-noir-accent/20 shadow-lg"
+          className="relative flex items-center bg-surface-low rounded-[2.2rem] border border-outline-variant group transition-all focus-within:ring-2 focus-within:ring-noir-accent/20 shadow-lg"
         >
           <input 
             type="file" 

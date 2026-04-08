@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { motion } from 'framer-motion';
+import { BrandLogo } from '../BrandLogo';
 
 export const GlobalSidebar = () => {
   const { setActiveView, activeView, setSettingsModalOpen, chats } = useChatStore();
@@ -29,14 +30,12 @@ export const GlobalSidebar = () => {
   return (
     <div className="w-[80px] h-full noir-sidebar-left flex flex-col items-center py-8 z-30 shrink-0 select-none">
       {/* Brand Logo */}
-      <motion.div 
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="mb-10 text-white font-display font-black text-2xl tracking-tighter cursor-pointer"
+      <div 
+        className="mb-10 cursor-pointer"
         onClick={() => setActiveView('chat')}
       >
-        CH
-      </motion.div>
+        <BrandLogo collapsed />
+      </div>
 
       {/* Primary Navigation */}
       <nav className="flex-1 flex flex-col gap-8 w-full items-center">
@@ -56,7 +55,7 @@ export const GlobalSidebar = () => {
               
               {/* Active Indicator Dot (Optional or Badge) */}
               {item.id === 'chat' && totalUnread > 0 && (
-                <div className="absolute top-2 right-2 min-w-[16px] h-4 bg-noir-accent text-[9px] font-black flex items-center justify-center rounded-full text-white border-2 border-[#0F0F12] px-1">
+                <div className="absolute top-2 right-2 min-w-[16px] h-4 bg-noir-accent text-[9px] font-black flex items-center justify-center rounded-full text-white border-2 border-surface-lowest px-1">
                   {totalUnread > 99 ? '99+' : totalUnread}
                 </div>
               )}

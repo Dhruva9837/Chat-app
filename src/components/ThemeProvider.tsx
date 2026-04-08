@@ -4,7 +4,7 @@ import React, { useEffect } from 'react'
 import { useChatStore } from '@/store/chatStore'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const { theme } = useChatStore()
+  const { theme, fontSize } = useChatStore()
 
   useEffect(() => {
     const root = document.documentElement
@@ -20,7 +20,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     
     // Update color-scheme meta for browser scrollbars etc
     root.style.colorScheme = theme === 'light' ? 'light' : 'dark'
-  }, [theme])
+    
+    // Apply Accessibility Font Scaling globally to root (updates all 'rem' values instantly)
+    if (fontSize) {
+      root.style.fontSize = `${fontSize}px`
+    }
+  }, [theme, fontSize])
 
   return <>{children}</>
 }

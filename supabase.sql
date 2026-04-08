@@ -10,6 +10,8 @@ create table if not exists public.profiles (
   username text unique, -- Added for friend searches
   email text unique not null,
   avatar_url text,
+  bio text,
+  gender text,
   status text check (status in ('online', 'offline', 'typing', 'idle', 'dnd')) default 'offline',
   last_seen timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())
@@ -20,6 +22,8 @@ create table if not exists public.chats (
   id uuid primary key default uuid_generate_v4(),
   type text check (type in ('private', 'group')) default 'private',
   name text, -- only used for group chats
+  group_icon text,
+  created_by uuid references auth.users(id),
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
@@ -28,6 +32,7 @@ create table if not exists public.chat_participants (
   id uuid primary key default uuid_generate_v4(),
   chat_id uuid references public.chats(id) on delete cascade,
   user_id uuid references auth.users(id) on delete cascade,
+  role text check (role in ('owner', 'admin', 'member')) default 'member',
   joined_at timestamp with time zone default timezone('utc'::text, now()),
   unique(chat_id, user_id)
 );
@@ -76,6 +81,12 @@ create policy "Users can view participants in their chats." on public.chat_parti
       where chat_id = public.chat_participants.chat_id and user_id = auth.uid()
     )
   );
+
+create policy "Users can create chats." on public.chats
+  for insert with check (auth.uid() is not null);
+
+create policy "Users can add participants." on public.chat_participants
+  for insert with check (auth.uid() is not null);
 
 -- Messages: users can see messages in chats they belong to
 create policy "Users can view messages in their chats." on public.messages
@@ -212,3 +223,24 @@ create policy "Users can unblock" on public.blocks
 -- ENABLE REALTIME for new tables
 alter publication supabase_realtime add table public.friends;
 alter publication supabase_realtime add table public.blocks;
+
+-- Calendar Events table
+create table if not exists public.calendar_events (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  title text not null,
+  time text,
+  type text check (type in ('video', 'meeting', 'holiday')) default 'meeting',
+  members integer default 1,
+  event_date date not null,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- RLS for Calendar Events
+alter table public.calendar_events enable row level security;
+
+create policy "Users can manage their own calendar events" on public.calendar_events
+  for all using (auth.uid() = user_id);
+
+-- ENABLE REALTIME for calendar_events
+alter publication supabase_realtime add table public.calendar_events;

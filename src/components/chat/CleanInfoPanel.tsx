@@ -72,7 +72,7 @@ export const CleanInfoPanel = () => {
         ].map((action, idx) => (
           <button 
             key={idx}
-            className="w-[58px] h-[58px] bg-[#242426] rounded-[1.2rem] flex items-center justify-center text-text-muted hover:text-white transition-all hover:bg-[#2A2A2C] border border-outline-variant shadow-sm"
+            className="w-[58px] h-[58px] bg-surface-high rounded-[1.2rem] flex items-center justify-center text-text-muted hover:text-white transition-all hover:bg-[#2A2A2C] border border-outline-variant shadow-sm"
           >
             <action.icon size={22} strokeWidth={2} />
           </button>
@@ -110,7 +110,7 @@ export const CleanInfoPanel = () => {
           <div className="space-y-4">
              {sharedFiles.map(file => (
                <div key={file.id} className="flex items-center gap-4 group cursor-pointer">
-                  <div className="w-[46px] h-[46px] bg-[#242426] rounded-[1rem] flex items-center justify-center text-text-muted group-hover:bg-[#2A2A2C] transition-colors border border-outline-variant">
+                  <div className="w-[46px] h-[46px] bg-surface-high rounded-[1rem] flex items-center justify-center text-text-muted group-hover:bg-[#2A2A2C] transition-colors border border-outline-variant">
                      <FileText size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -137,7 +137,7 @@ export const CleanInfoPanel = () => {
           <div className="space-y-4">
              {sharedLinks.map((link, idx) => (
                <div key={idx} className="flex items-center gap-4 group cursor-pointer">
-                  <div className="w-[46px] h-[46px] bg-[#242426] rounded-[1rem] overflow-hidden flex items-center justify-center border border-outline-variant shrink-0 group-hover:scale-105 transition-transform duration-300">
+                  <div className="w-[46px] h-[46px] bg-surface-high rounded-[1rem] overflow-hidden flex items-center justify-center border border-outline-variant shrink-0 group-hover:scale-105 transition-transform duration-300">
                      <img src={link.icon} alt="" className="w-full h-full object-cover opacity-80" />
                   </div>
                   <div className="flex-1 min-w-0">

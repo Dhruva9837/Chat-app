@@ -26,13 +26,12 @@ import { supabase } from '@/lib/supabase'
 import { motion } from 'framer-motion'
 
 export function SettingsView() {
-  const { fontSize, setFontSize } = useChatStore()
+  const { fontSize, setFontSize, theme, setTheme } = useChatStore()
   const { user, profile } = useAuthStore()
   const [notif, setNotif] = useState(true)
   const [sound, setSound] = useState(true)
   const [readReceipts, setReadReceipts] = useState(true)
   const [onlineStatus, setOnlineStatus] = useState(true)
-  const [darkMode, setDarkMode] = useState(true)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -43,7 +42,7 @@ export function SettingsView() {
     <button 
       onClick={onChange}
       className={`w-11 h-6 rounded-full relative transition-all duration-300 ${
-        value ? 'bg-noir-accent shadow-md shadow-noir-accent/30' : 'bg-[#333336]'
+        value ? 'bg-noir-accent shadow-md shadow-noir-accent/30' : 'bg-surface-highest'
       }`}
     >
       <motion.div 
@@ -84,7 +83,7 @@ export function SettingsView() {
       <div className={`w-10 h-10 rounded-[1rem] flex items-center justify-center shrink-0 ${
         danger 
           ? 'bg-red-500/10 text-red-400' 
-          : 'bg-[#242426] text-text-muted group-hover:text-noir-accent group-hover:bg-noir-accent/10'
+          : 'bg-surface-high text-text-muted group-hover:text-noir-accent group-hover:bg-noir-accent/10'
       } transition-colors`}>
         <Icon size={18} />
       </div>
@@ -103,9 +102,9 @@ export function SettingsView() {
   )
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#0F0F12] flex flex-col h-[100dvh] font-sans no-scrollbar">
+    <div className="flex-1 overflow-y-auto bg-surface-lowest flex flex-col h-[100dvh] font-sans no-scrollbar">
       {/* Header */}
-      <div className="px-10 py-12 border-b border-outline-variant bg-[#0F0F12]/80 backdrop-blur-md z-10 sticky top-0 shrink-0">
+      <div className="px-10 py-12 border-b border-outline-variant bg-surface-lowest/80 backdrop-blur-md z-10 sticky top-0 shrink-0">
         <h1 className="text-4xl font-black font-display tracking-tight text-white mb-2">Settings</h1>
         <p className="text-text-muted font-bold text-sm tracking-wide">Manage your account, privacy, and preferences</p>
       </div>
@@ -113,8 +112,8 @@ export function SettingsView() {
       <div className="flex-1 px-10 py-8 max-w-2xl w-full space-y-6">
         
         {/* Profile Card */}
-        <div className="bg-[#161618] rounded-[2rem] p-6 border border-outline-variant flex items-center gap-5">
-          <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden border-2 border-outline-variant shrink-0 bg-[#242426]">
+        <div className="bg-surface-low rounded-[2rem] p-6 border border-outline-variant flex items-center gap-5">
+          <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden border-2 border-outline-variant shrink-0 bg-surface-high">
             <img 
               src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`} 
               alt="Profile" 
@@ -127,34 +126,34 @@ export function SettingsView() {
           </div>
           <button 
             onClick={() => useChatStore.getState().setActiveView('profile')}
-            className="px-5 py-2.5 bg-[#242426] border border-outline-variant text-white text-xs font-bold rounded-xl hover:border-noir-accent hover:text-noir-accent transition-all"
+            className="px-5 py-2.5 bg-surface-high border border-outline-variant text-white text-xs font-bold rounded-xl hover:border-noir-accent hover:text-noir-accent transition-all"
           >
             Edit Profile
           </button>
         </div>
 
         {/* Appearance Section */}
-        <div className="bg-[#161618] rounded-[2rem] border border-outline-variant overflow-hidden">
+        <div className="bg-surface-low rounded-[2rem] border border-outline-variant overflow-hidden">
           <div className="flex items-center gap-3 px-6 pt-6 pb-2">
             <Palette size={16} className="text-noir-accent" />
             <h2 className="text-xs font-black uppercase text-text-muted tracking-widest">Appearance</h2>
           </div>
           <div className="p-2">
             <SettingRow 
-              icon={darkMode ? Moon : Sun} 
+              icon={theme !== 'light' ? Moon : Sun} 
               label="Dark Mode" 
               description="Use the dark theme across the app"
               toggle 
-              value={darkMode} 
-              onChange={() => setDarkMode(!darkMode)} 
+              value={theme !== 'light'} 
+              onChange={() => setTheme(theme === 'light' ? 'dark' : 'light')} 
             />
             
             {/* Font Size Slider */}
             <div className="px-4 py-3">
-              <div className="p-4 bg-[#0F0F12] rounded-2xl border border-outline-variant">
+              <div className="p-4 bg-surface-lowest rounded-2xl border border-outline-variant">
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-[1rem] bg-[#242426] flex items-center justify-center text-text-muted">
+                    <div className="w-10 h-10 rounded-[1rem] bg-surface-high flex items-center justify-center text-text-muted">
                       <Monitor size={18} />
                     </div>
                     <span className="text-sm font-bold text-white">Chat Font Size</span>
@@ -167,7 +166,7 @@ export function SettingsView() {
                   max="24" 
                   value={fontSize} 
                   onChange={(e) => setFontSize(Number(e.target.value))}
-                  className="w-full accent-[#4F8CFF] h-1 appearance-none bg-[#333336] rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-noir-accent [&::-webkit-slider-thumb]:shadow-lg" 
+                  className="w-full accent-[#4F8CFF] h-1 appearance-none bg-surface-highest rounded-full cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-noir-accent [&::-webkit-slider-thumb]:shadow-lg" 
                 />
                 <div className="flex justify-between mt-2">
                   <span className="text-[10px] text-text-muted font-bold">Small</span>
@@ -179,7 +178,7 @@ export function SettingsView() {
         </div>
 
         {/* Notifications Section */}
-        <div className="bg-[#161618] rounded-[2rem] border border-outline-variant overflow-hidden">
+        <div className="bg-surface-low rounded-[2rem] border border-outline-variant overflow-hidden">
           <div className="flex items-center gap-3 px-6 pt-6 pb-2">
             <Bell size={16} className="text-noir-accent" />
             <h2 className="text-xs font-black uppercase text-text-muted tracking-widest">Notifications</h2>
@@ -205,7 +204,7 @@ export function SettingsView() {
         </div>
 
         {/* Privacy Section */}
-        <div className="bg-[#161618] rounded-[2rem] border border-outline-variant overflow-hidden">
+        <div className="bg-surface-low rounded-[2rem] border border-outline-variant overflow-hidden">
           <div className="flex items-center gap-3 px-6 pt-6 pb-2">
             <Shield size={16} className="text-noir-accent" />
             <h2 className="text-xs font-black uppercase text-text-muted tracking-widest">Privacy & Security</h2>
@@ -236,7 +235,7 @@ export function SettingsView() {
         </div>
 
         {/* Help & About */}
-        <div className="bg-[#161618] rounded-[2rem] border border-outline-variant overflow-hidden">
+        <div className="bg-surface-low rounded-[2rem] border border-outline-variant overflow-hidden">
           <div className="flex items-center gap-3 px-6 pt-6 pb-2">
             <Info size={16} className="text-noir-accent" />
             <h2 className="text-xs font-black uppercase text-text-muted tracking-widest">Support</h2>
@@ -256,7 +255,7 @@ export function SettingsView() {
         </div>
 
         {/* Danger Zone */}
-        <div className="bg-[#161618] rounded-[2rem] border border-red-500/20 overflow-hidden">
+        <div className="bg-surface-low rounded-[2rem] border border-red-500/20 overflow-hidden">
           <div className="p-2">
             <SettingRow 
               icon={LogOut} 

@@ -268,7 +268,7 @@ export function NewGroupModal() {
             <div className="p-10 bg-[#131315] border-t border-outline-variant flex gap-4">
               <button 
                 onClick={() => setNewGroupModalOpen(false)}
-                className="flex-1 px-8 py-5 bg-[#1A1A1C] border border-outline-variant rounded-[1.8rem] text-[11px] font-black uppercase tracking-widest text-text-muted hover:text-white hover:bg-[#202022] transition-all"
+                className="flex-1 px-8 py-5 bg-[#1A1A1C] border border-outline-variant rounded-[1.8rem] text-[11px] font-black uppercase tracking-widest text-text-muted hover:text-white hover:bg-surface-bubble transition-all"
               >
                 Abort
               </button>

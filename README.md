@@ -1,6 +1,6 @@
-# Yapster - High-Fidelity Chat Application
+# Nexora - High-Fidelity Chat Application
 
-**Yapster** is a real-time, high-fidelity chat application built with modern web technologies, focusing on a "scroll-free, premium glassmorphic" design and seamless user interactions.
+**Nexora** is a real-time, high-fidelity chat application built with modern web technologies, focusing on a "scroll-free, premium glassmorphic" design and seamless user interactions.
 
 ## 🚀 Tech Stack
 
@@ -19,7 +19,7 @@ chat-app/
 ├── src/
 │   ├── app/                # Next.js App Router (page.tsx, layout.tsx, globals.css)
 │   ├── components/         # React UI Components
-│   │   ├── Auth.tsx        # Authentication Flow (Email/Mobile OTP with Glassmorphism)
+│   │   ├── Auth.tsx        # Authentication (Email/Password + 8-digit OTP Signup)
 │   │   ├── ChatLayout.tsx  # Main Application Shell handling multi-view routing
 │   │   ├── ChatWindow.tsx  # Real-time Messaging Interface (Supabase Channels)
 │   │   ├── Sidebar.tsx     # Active Chat List

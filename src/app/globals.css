@@ -4,25 +4,72 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui;
   --font-display: var(--font-manrope), ui-sans-serif, system-ui;
   
-  /* Map Tailwind names to variable values */
+  /* Core Semantic Colors (use CSS variables so themes can override) */
   --color-primary: var(--primary);
   --color-primary-container: var(--primary-container);
   --color-on-primary: var(--on-primary);
   
-  --color-noir-bg: #0F0F12;
-  --color-noir-surface: #161618;
+  /* Surface semantic tokens — these respond to theme changes */
+  --color-surface-lowest: var(--surface-lowest);
+  --color-surface-low: var(--surface-low);
+  --color-surface-main: var(--surface-main);
+  --color-surface-high: var(--surface-high);
+  --color-surface-bubble: var(--surface-bubble);
+  
+  /* Text semantic tokens */
+  --color-text-main: var(--text-main);
+  --color-text-muted: var(--text-muted);
+  
+  /* Outline */
+  --color-outline-variant: var(--outline-variant);
+  
+  /* Noir accent (static, same across all themes) */
   --color-noir-accent: #3B3BFD;
-  --color-noir-bubble-received: #202022;
+  
+  /* Presence */
+  --color-presence-online: var(--presence-online);
+  --color-presence-idle: var(--presence-idle);
+  --color-presence-dnd: var(--presence-dnd);
+  --color-presence-offline: var(--presence-offline);
   
   --radius-super: 2.2rem;
   --radius-bubble: 1.2rem;
-  
-  --color-text-main: #FFFFFF;
-  --color-text-muted: #8E8E93;
-  --color-outline-variant: rgba(255, 255, 255, 0.04);
 }
 
-/* --- LIGHT THEME OVERRIDES --- */
+/* ====================== */
+/* BASE / DARK (DEFAULT) */
+/* ====================== */
+@layer base {
+  :root {
+    --primary: #3B3BFD;
+    --surface-lowest: #0F0F12;
+    --surface-low: #161618;
+    --surface-main: #1C1C1E;
+    --surface-high: #242426;
+    --surface-highest: #333336;
+    --surface-bubble: #202022;
+    
+    --text-main: #FFFFFF;
+    --text-muted: #8E8E93;
+    
+    --outline-variant: rgba(255, 255, 255, 0.06);
+
+    --presence-online: #34C759;
+    --presence-idle: #FFCC00;
+    --presence-dnd: #FF3B30;
+    --presence-offline: #8E8E93;
+  }
+
+  body {
+    background-color: var(--surface-lowest);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+  }
+}
+
+/* ====================== */
+/* LIGHT THEME           */
+/* ====================== */
 .theme-light {
   --primary: #6366F1;
   --surface-lowest: #F8FAFC;
@@ -30,18 +77,17 @@
   --surface-main: #E2E8F0;
   --surface-high: #CBD5E1;
   --surface-highest: #94A3B8;
+  --surface-bubble: #FFFFFF;
   
   --text-main: #0F172A;
   --text-muted: #475569;
-  --text-disabled: #94A3B8;
   
-  --outline-variant: rgba(0, 0, 0, 0.05);
-  
-  background-color: var(--surface-lowest);
-  color: var(--text-main);
+  --outline-variant: rgba(0, 0, 0, 0.08);
 }
 
-/* --- MIDNIGHT THEME OVERRIDES --- */
+/* ====================== */
+/* MIDNIGHT THEME        */
+/* ====================== */
 .theme-midnight {
   --primary: #818CF8;
   --surface-lowest: #020617;
@@ -49,30 +95,12 @@
   --surface-main: #1E293B;
   --surface-high: #334155;
   --surface-highest: #475569;
+  --surface-bubble: #1E293B;
   
-  --outline-variant: rgba(255, 255, 255, 0.03);
+  --text-main: #E2E8F0;
+  --text-muted: #94A3B8;
   
-  background-color: var(--surface-lowest);
-}
-
-/* --- CLEAN LIGHT THEME (FROM REFERENCE) --- */
-.theme-clean-light {
-  --primary: #61D0BF; /* Mint/Teal from Send Button */
-  --primary-accent: #FF9F8E; /* Soft Orange icon */
-  --primary-bg: #F7F9FB; /* Main background */
-  
-  --surface-lowest: #FFFFFF; /* Sidebar & Chat Bubbles */
-  --surface-low: #F1F5F9; /* Message bubbles (received) */
-  --surface-main: #E2E8F0;
-  
-  --text-main: #2D3748;
-  --text-muted: #718096;
-  
-  --outline-variant: rgba(0, 0, 0, 0.05);
-  
-  background-color: var(--primary-bg);
-  color: var(--text-main);
-  font-family: var(--font-sans);
+  --outline-variant: rgba(255, 255, 255, 0.05);
 }
 
 /* --- NEXORA PREMIUM ANIMATIONS --- */
@@ -95,111 +123,7 @@
   animation: speak-pulse 2s infinite;
 }
 
-@layer base {
-  :root {
-    --primary: #3B3BFD;
-    --bg-noir: #0F0F12;
-    --surface-noir: #161618;
-    --surface-bubble: #202022;
-    
-    --text-main: #FFFFFF;
-    --text-muted: #8E8E93;
-    
-    --outline-variant: rgba(255, 255, 255, 0.06);
-
-    --presence-online: #34C759;
-    --presence-idle: #FFCC00;
-    --presence-dnd: #FF3B30;
-    --presence-offline: #8E8E93;
-  }
-
-  body {
-    background-color: var(--bg-noir);
-    color: var(--text-main);
-    font-family: var(--font-sans);
-  }
-}
-
 @layer utilities {
-  .bg-vibrant-gradient {
-    /* Precise Indigo (Top) to Light Violet (Bottom) as seen in reference */
-    background: linear-gradient(180deg, #3020c0 0%, #4f46e5 45%, #a5a5ff 100%);
-  }
-  .glass-card {
-    /* Lavender-Blue tinted glass */
-    background: rgba(220, 230, 255, 0.4);
-    backdrop-filter: blur(40px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-  }
-  .glass-input-lavender {
-    /* Specific light lavender input container with subtle transparency */
-    background: rgba(224, 231, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  .glass-header {
-    background: rgba(248, 249, 255, 0.7);
-    backdrop-filter: blur(20px);
-  }
-  
-  .glass-premium {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(24px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-  }
-  .glass-v2 {
-    background: rgba(255, 255, 255, 0.4);
-    backdrop-filter: blur(50px) saturate(200%);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: inset 0 0 80px rgba(255, 255, 255, 0.1);
-  }
-  .glass-accent {
-    background: rgba(53, 37, 205, 0.05);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(53, 37, 205, 0.1);
-  }
-  
-  .clean-shadow {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  }
-  
-  .clean-sidebar-shadow {
-    box-shadow: 10px 0 30px -10px rgba(0, 0, 0, 0.03);
-  }
-  
-  .clean-bubble-sent {
-    background: var(--primary);
-    color: white;
-    border-radius: 18px 18px 4px 18px;
-  }
-  
-  .clean-bubble-received {
-    background: #FFFFFF;
-    color: var(--text-main);
-    border-radius: 4px 18px 18px 18px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-  }
-  
-  .clean-input {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 12px;
-  }
-  .ambient-shadow {
-    box-shadow: 0 10px 30px -5px rgba(11, 28, 48, 0.08);
-  }
-  .ambient-shadow-lg {
-    box-shadow: 0 20px 50px -10px rgba(53, 37, 205, 0.12);
-  }
-  .ambient-shadow-xl {
-    box-shadow: 0 35px 80px -15px rgba(53, 37, 205, 0.2);
-  }
-  
-  /* Ghost Border Utility */
-  .ghost-border {
-    border: 1px solid var(--color-outline-variant);
-  }
-
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -208,13 +132,8 @@
     scrollbar-width: none;
   }
 
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
   .noir-card {
-    background: var(--surface-noir);
+    background: var(--surface-low);
     border: 1px solid var(--outline-variant);
     box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.4);
   }
@@ -227,23 +146,27 @@
   
   .noir-bubble-received {
     background: var(--surface-bubble);
-    color: white;
+    color: var(--text-main);
     border-radius: 0.3rem 1.2rem 1.2rem 1.2rem;
   }
 
   .noir-sidebar-left {
-    background: #0F0F12;
+    background: var(--surface-lowest);
     border-right: 1px solid var(--outline-variant);
   }
   
   .noir-sidebar-mid {
-    background: #161618;
+    background: var(--surface-low);
     border-right: 1px solid var(--outline-variant);
   }
 
   .noir-sidebar-right {
-    background: #121214;
+    background: var(--surface-lowest);
     border-left: 1px solid var(--outline-variant);
+  }
+
+  .ghost-border {
+    border: 1px solid var(--outline-variant);
   }
 }
 

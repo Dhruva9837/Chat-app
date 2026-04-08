@@ -127,12 +127,12 @@ export function SettingsModal() {
       initial={{ opacity: 0, scale: 1.05 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
-      className="fixed inset-0 z-[200] bg-[#0F0F12] flex flex-col md:flex-row overflow-hidden font-sans"
+      className="fixed inset-0 z-[200] bg-surface-lowest flex flex-col md:flex-row overflow-hidden font-sans"
     >
       {/* Left Sidebar - Full width on mobile, fixed on desktop */}
       <div className={`${
         mobileShowContent ? 'hidden md:flex' : 'flex'
-      } w-full md:w-[280px] lg:w-[320px] bg-[#161618] border-b md:border-b-0 md:border-r border-outline-variant flex-col pt-16 md:pt-24 pb-12 px-8 overflow-y-auto no-scrollbar shrink-0`}>
+      } w-full md:w-[280px] lg:w-[320px] bg-surface-low border-b md:border-b-0 md:border-r border-outline-variant flex-col pt-16 md:pt-24 pb-12 px-8 overflow-y-auto no-scrollbar shrink-0`}>
         {/* Mobile Header */}
         <div className="flex items-center justify-between md:hidden mb-6">
           <h2 className="text-base font-black uppercase tracking-widest text-text-main">Settings</h2>
@@ -180,7 +180,7 @@ export function SettingsModal() {
       {/* Main Content Area - hidden on mobile until tab selected */}
       <div className={`${
         mobileShowContent ? 'flex' : 'hidden md:flex'
-      } flex-1 bg-[#0F0F12] relative flex-col overflow-hidden`}>
+      } flex-1 bg-surface-lowest relative flex-col overflow-hidden`}>
         {/* Mobile Back Button */}
         <button 
           onClick={() => setMobileShowContent(false)}
@@ -203,11 +203,11 @@ export function SettingsModal() {
               <h1 className="text-3xl font-display font-black uppercase tracking-tight text-text-main">My Account</h1>
               
               {/* Profile Card */}
-              <div className="bg-[#161618] rounded-[2.5rem] p-8 border border-outline-variant overflow-hidden relative group shadow-sm transition-all duration-500">
+              <div className="bg-surface-low rounded-[2.5rem] p-8 border border-outline-variant overflow-hidden relative group shadow-sm transition-all duration-500">
                 <div className="absolute top-0 left-0 w-full h-24 bg-noir-accent/20" />
                 <div className="relative z-10 flex flex-col md:flex-row items-center md:items-end justify-between px-2">
                    <div className="flex flex-col md:flex-row items-center md:items-end space-y-4 md:space-y-0 md:space-x-6">
-                      <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-8 border-[#161618] relative group/avatar shadow-2xl bg-[#0F0F12] cursor-pointer">
+                      <div className="w-24 h-24 rounded-[2rem] overflow-hidden border-8 border-surface-low relative group/avatar shadow-2xl bg-surface-lowest cursor-pointer">
                         <img src={getAvatarUrl(profile)} alt="" className="w-full h-full object-cover" />
                         <label className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center transition-all opacity-0 group-hover/avatar:opacity-100 cursor-pointer">
                            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
@@ -240,7 +240,7 @@ export function SettingsModal() {
                 </div>
 
                 {/* Account Details Box */}
-                <div className="mt-8 bg-[#161618]/80 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 border border-outline-variant space-y-10">
+                <div className="mt-8 bg-surface-low/80 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 border border-outline-variant space-y-10">
                     <DetailRow label="Display Name" 
                      value={isEditing ? (
                        <input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Enter display name" className="bg-surface-low border border-outline-variant rounded-xl px-4 py-2 outline-none text-text-main w-full focus:ring-2 ring-primary/20 transition-all font-bold" />
@@ -338,10 +338,10 @@ export function SettingsModal() {
                    />
                    
                    {/* Real-time Preview Box */}
-                   <div className="mt-6 p-6 bg-[#0F0F12] rounded-[1.5rem] border border-outline-variant relative overflow-hidden group">
+                   <div className="mt-6 p-6 bg-surface-lowest rounded-[1.5rem] border border-outline-variant relative overflow-hidden group">
                       <div className="absolute top-0 left-0 w-1 h-full bg-noir-accent/50" />
                       <p className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-3">Live Preview</p>
-                      <div className={`p-4 rounded-2xl bg-[#161618] border border-outline-variant/30 text-text-main font-bold transition-all duration-200 shadow-sm`} style={{ fontSize: `${fontSize}px` }}>
+                      <div className={`p-4 rounded-2xl bg-surface-low border border-outline-variant/30 text-text-main font-bold transition-all duration-200 shadow-sm`} style={{ fontSize: `${fontSize}px` }}>
                          This is how your messages will look on Nexora.
                       </div>
                    </div>
@@ -394,7 +394,7 @@ function TabItem({ tab, activeTab, setActiveTab }: any) {
       className={`flex items-center space-x-4 px-5 py-3.5 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all group ${
         isActive 
           ? 'bg-noir-accent text-white shadow-xl shadow-noir-accent/30 scale-[1.02]' 
-          : 'text-text-muted hover:bg-[#242426] hover:text-white'
+          : 'text-text-muted hover:bg-surface-high hover:text-white'
       }`}
     >
       <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-text-muted group-hover:text-noir-accent transition-colors'}`} />

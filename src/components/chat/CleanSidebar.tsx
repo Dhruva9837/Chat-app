@@ -18,6 +18,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { getAvatarUrl } from '@/lib/utils';
 import { StatusPicker } from '../StatusPicker';
+import { BrandLogo } from '../BrandLogo';
 
 export const CleanSidebar = () => {
   const { 
@@ -45,22 +46,14 @@ export const CleanSidebar = () => {
 
   return (
     <div className="w-20 h-full bg-surface-lowest flex flex-col items-center py-8 border-r border-outline-variant clean-sidebar-shadow z-20 shrink-0 transition-all duration-300">
-      {/* Logo */}
       <div 
         onClick={() => {
           setActiveView('chat');
           setActiveChat(null);
         }}
-        className="mb-12 relative w-10 h-10 group cursor-pointer"
+        className="mb-12 cursor-pointer transition-transform hover:scale-110 active:scale-95"
       >
-        <div className="absolute inset-0 bg-mint-500/10 rounded-xl group-hover:bg-mint-500/20 transition-all"></div>
-        <Image 
-          src="/logo.png" 
-          alt="Nexora Logo" 
-          width={40} 
-          height={40}
-          className="rounded-xl"
-        />
+        <BrandLogo collapsed />
       </div>
 
       {/* Navigation */}

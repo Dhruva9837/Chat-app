@@ -32,6 +32,7 @@ import {
   SquarePen,
   Circle
 } from 'lucide-react'
+import { BrandLogo } from './BrandLogo'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
@@ -85,17 +86,7 @@ export function ChatWindow() {
           transition={{ duration: 0.8, ease: "easeOut" }}
           className="relative mb-12"
         >
-          {/* Central Icon Container */}
-          <div className="w-48 h-48 bg-white/80 backdrop-blur-xl rounded-[3rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-white flex items-center justify-center relative">
-            <div className="w-24 h-24 bg-primary rounded-[2rem] flex items-center justify-center shadow-[0_15px_30px_rgba(35,116,225,0.3)] relative">
-               <MessageSquare className="w-12 h-12 text-white fill-white/10" />
-               
-               {/* Plus Overlay */}
-               <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-2xl shadow-lg border-4 border-[#f8f9fc] flex items-center justify-center">
-                  <Plus className="w-5 h-5 text-primary stroke-[3]" />
-               </div>
-            </div>
-          </div>
+          <BrandLogo />
         </motion.div>
 
         <motion.div

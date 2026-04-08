@@ -112,9 +112,9 @@ export const GroupsView = () => {
   };
 
   return (
-    <div className="flex-1 h-full bg-[#0F0F12] flex flex-col transition-colors duration-300 overflow-hidden text-white relative">
+    <div className="flex-1 h-full bg-surface-lowest flex flex-col transition-colors duration-300 overflow-hidden text-white relative">
       {/* Header */}
-      <div className="px-10 py-12 flex flex-col gap-6 border-b border-outline-variant bg-[#0F0F12]/80 backdrop-blur-md z-10">
+      <div className="px-10 py-12 flex flex-col gap-6 border-b border-outline-variant bg-surface-lowest/80 backdrop-blur-md z-10">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-black font-display tracking-tight text-white mb-2">Groups</h1>
@@ -123,7 +123,7 @@ export const GroupsView = () => {
           <div className="flex gap-3">
             <button 
               onClick={() => setShowJoinModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-[#242426] text-white rounded-2xl font-bold border border-outline-variant hover:border-noir-accent hover:text-noir-accent hover:scale-105 transition-all"
+              className="flex items-center gap-2 px-6 py-3 bg-surface-high text-white rounded-2xl font-bold border border-outline-variant hover:border-noir-accent hover:text-noir-accent hover:scale-105 transition-all"
             >
               <LogIn size={18} />
               Join Group
@@ -147,10 +147,10 @@ export const GroupsView = () => {
               placeholder="Search groups by name..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-14 pr-6 py-4 bg-[#161618] border border-outline-variant rounded-2xl text-white placeholder:text-text-muted shadow-sm focus:ring-2 focus:ring-noir-accent/20 transition-all outline-none font-medium"
+              className="w-full pl-14 pr-6 py-4 bg-surface-low border border-outline-variant rounded-2xl text-white placeholder:text-text-muted shadow-sm focus:ring-2 focus:ring-noir-accent/20 transition-all outline-none font-medium"
             />
           </div>
-          <div className="flex bg-[#161618] p-1.5 rounded-2xl border border-outline-variant shadow-sm">
+          <div className="flex bg-surface-low p-1.5 rounded-2xl border border-outline-variant shadow-sm">
             {(['all', 'public', 'private'] as const).map(filter => (
               <button
                 key={filter}
@@ -199,14 +199,14 @@ export const GroupsView = () => {
                 setActiveChat(group);
                 setActiveView('chat');
               }}
-              className="bg-[#161618] border border-outline-variant rounded-[2.5rem] p-8 hover:border-noir-accent/30 transition-all group cursor-pointer flex flex-col gap-6"
+              className="bg-surface-low border border-outline-variant rounded-[2.5rem] p-8 hover:border-noir-accent/30 transition-all group cursor-pointer flex flex-col gap-6"
             >
               <div className="flex justify-between items-start">
                 <div className="w-16 h-16 rounded-2xl overflow-hidden shadow-lg border border-outline-variant">
                   <img src={getAvatarUrl(group)} alt={group.name} className="w-full h-full object-cover" />
                 </div>
                 <div className="flex gap-2">
-                   <div className="px-3 py-1 bg-[#242426] rounded-lg text-[10px] font-bold text-text-muted flex items-center gap-1 border border-outline-variant">
+                   <div className="px-3 py-1 bg-surface-high rounded-lg text-[10px] font-bold text-text-muted flex items-center gap-1 border border-outline-variant">
                      {group.is_private ? <Lock size={10} /> : <Globe size={10} />}
                      {group.is_private ? 'Private' : 'Public'}
                    </div>
@@ -226,7 +226,7 @@ export const GroupsView = () => {
                 <div className="flex items-center gap-2">
                   <div className="flex -space-x-2">
                     {(group.chat_participants || []).slice(0, 3).map((p: any, i: number) => (
-                      <div key={i} className="w-8 h-8 rounded-full border-2 border-[#161618] overflow-hidden">
+                      <div key={i} className="w-8 h-8 rounded-full border-2 border-surface-low overflow-hidden">
                         <img src={getAvatarUrl(p.profiles)} alt="" className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -244,14 +244,14 @@ export const GroupsView = () => {
 
           {/* Empty State */}
           {groups.length === 0 && (
-            <div className="col-span-1 lg:col-span-2 h-full flex flex-col items-center justify-center py-20 bg-[#161618]/30 rounded-[2.5rem] border border-dashed border-outline-variant">
+            <div className="col-span-1 lg:col-span-2 h-full flex flex-col items-center justify-center py-20 bg-surface-low/30 rounded-[2.5rem] border border-dashed border-outline-variant">
               <Users size={64} className="text-text-muted mb-6 opacity-20" />
               <h3 className="text-xl font-bold text-white mb-2">No groups yet</h3>
               <p className="text-text-muted text-sm max-w-[300px] text-center mb-8">You haven't joined any groups yet. Create one or use an invite code to join.</p>
               <div className="flex gap-3">
                 <button 
                   onClick={() => setShowJoinModal(true)}
-                  className="px-6 py-3 bg-[#242426] border border-outline-variant rounded-2xl text-white font-bold hover:border-noir-accent transition-all"
+                  className="px-6 py-3 bg-surface-high border border-outline-variant rounded-2xl text-white font-bold hover:border-noir-accent transition-all"
                 >
                   Join with Code
                 </button>
@@ -283,7 +283,7 @@ export const GroupsView = () => {
               exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-[460px] bg-[#161618] rounded-[2.5rem] p-10 border border-outline-variant shadow-2xl"
+              className="w-[460px] bg-surface-low rounded-[2.5rem] p-10 border border-outline-variant shadow-2xl"
             >
               {/* Close */}
               <div className="flex justify-between items-center mb-8">
@@ -298,7 +298,7 @@ export const GroupsView = () => {
                 </div>
                 <button 
                   onClick={() => setShowJoinModal(false)}
-                  className="p-2 text-text-muted hover:text-white rounded-xl hover:bg-[#242426] transition-all"
+                  className="p-2 text-text-muted hover:text-white rounded-xl hover:bg-surface-high transition-all"
                 >
                   <X size={20} />
                 </button>
@@ -313,7 +313,7 @@ export const GroupsView = () => {
                   onChange={(e) => setInviteCode(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleJoinGroup()}
                   placeholder="Group name or invite code..."
-                  className="w-full pl-12 pr-6 py-4 bg-[#0F0F12] border border-outline-variant rounded-2xl text-white placeholder:text-text-muted focus:ring-2 focus:ring-noir-accent/30 outline-none font-medium transition-all"
+                  className="w-full pl-12 pr-6 py-4 bg-surface-lowest border border-outline-variant rounded-2xl text-white placeholder:text-text-muted focus:ring-2 focus:ring-noir-accent/30 outline-none font-medium transition-all"
                   autoFocus
                 />
               </div>
