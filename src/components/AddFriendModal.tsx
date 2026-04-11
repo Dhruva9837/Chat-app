@@ -2,65 +2,56 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Search, UserPlus, MessageSquare, Sparkles, Check, User, Signal, Zap, Globe, Shield, Loader2, RefreshCcw, Command } from 'lucide-react'
+import { X, Search, MessageSquare, Sparkles, Check, Signal, Zap, Globe, Shield, Loader2 } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
-import { supabase } from '@/lib/supabase'
 import { getAvatarUrl } from '@/lib/utils'
 
 export function AddFriendModal() {
-  const { isAddFriendModalOpen, setIsAddFriendModalOpen, setActiveChat, chats, friendRequests } = useChatStore()
+  const { isAddFriendModalOpen, setIsAddFriendModalOpen, setActiveChat, chats, friendRequests, fetchRequests, fetchFriends } = useChatStore()
   const { user } = useAuthStore()
   const [username, setUsername] = useState('')
   const [searching, setSearching] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
-  const [suggestions, setSuggestions] = useState<any[]>([])
-  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [actionDone, setActionDone] = useState(false)
 
-  const fetchSuggestions = useCallback(async () => {
-    if (!user) return
-    setLoadingSuggestions(true)
-    try {
-      const resp = await fetch(`/api/friends/suggestions?userId=${user.id}`)
-      const data = await resp.json()
-      if (resp.ok) setSuggestions(data.suggestions || [])
-    } catch (err) {
-      console.error('Failed to fetch suggestions:', err)
-    } finally {
-      setLoadingSuggestions(false)
-    }
-  }, [user])
-
+  // Reset state when modal closes
   useEffect(() => {
-    if (isAddFriendModalOpen && user) {
-      fetchSuggestions()
+    if (!isAddFriendModalOpen) {
+      setUsername('')
+      setResult(null)
+      setError('')
+      setActionDone(false)
     }
-  }, [isAddFriendModalOpen, user, fetchSuggestions])
+  }, [isAddFriendModalOpen])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!username.trim() || !user) return
+    const trimmed = username.trim().toLowerCase().replace(/^@/, '')
+    if (!trimmed || !user) return
 
     setSearching(true)
     setError('')
     setResult(null)
+    setActionDone(false)
 
     try {
-      // Simulate network delay for the scanning effect immersion
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Simulate scanning effect
+      await new Promise(resolve => setTimeout(resolve, 1200))
 
       const resp = await fetch('/api/friends/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim().toLowerCase() })
-      });
+        body: JSON.stringify({ username: trimmed })
+      })
 
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error || 'Identity not found in global node map');
-      if (data.profile.id === user.id) throw new Error("Self-discovery loop detected!");
-      
+      const data = await resp.json()
+
+      if (!resp.ok) throw new Error(data.error || 'User not found in network')
+      if (data.profile.id === user.id) throw new Error('You cannot add yourself!')
+
       setResult(data.profile)
     } catch (err: any) {
       setError(err.message)
@@ -69,290 +60,294 @@ export function AddFriendModal() {
     }
   }
 
-  const existingChat = result ? chats.find(c => 
-    c.type === 'private' && 
-    (c as any).chat_participants?.some((p: any) => p.user_id === result.id)
-  ) : null
+  const existingChat = result
+    ? chats.find(c => c.type === 'private' && (c as any).chat_participants?.some((p: any) => p.user_id === result.id))
+    : null
 
-  const pendingRequestSent = result ? friendRequests.find(r => r.sender_id === user?.id && r.receiver_id === result.id && r.status === 'pending') : null
-  const pendingRequestReceived = result ? friendRequests.find(r => r.receiver_id === user?.id && r.sender_id === result.id && r.status === 'pending') : null
+  const pendingRequestSent = result
+    ? friendRequests.find(r => r.sender_id === user?.id && r.receiver_id === result.id && r.status === 'pending')
+    : null
+
+  const pendingRequestReceived = result
+    ? friendRequests.find(r => r.receiver_id === user?.id && r.sender_id === result.id && r.status === 'pending')
+    : null
+
+  const alreadyFriend = result
+    ? friendRequests.find(r => (r.sender_id === user?.id && r.receiver_id === result.id && r.status === 'accepted') || (r.receiver_id === user?.id && r.sender_id === result.id && r.status === 'accepted'))
+    : null
 
   const handleAction = async () => {
-    if (!result || !user) return
+    if (!result || !user || actionLoading) return
+
     if (existingChat) {
-      setActiveChat(existingChat);
-      setIsAddFriendModalOpen(false);
-      return;
+      setActiveChat(existingChat)
+      setIsAddFriendModalOpen(false)
+      return
     }
-    if (pendingRequestSent) return;
-    if (pendingRequestReceived) {
-      try {
+
+    if (pendingRequestSent || alreadyFriend) return
+
+    setActionLoading(true)
+    try {
+      if (pendingRequestReceived) {
+        // Accept incoming request
         const resp = await fetch('/api/friends/requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ requestId: pendingRequestReceived.id, action: 'accept', userId: user.id })
-        });
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error);
-        setIsAddFriendModalOpen(false);
-      } catch (err: any) {
-        alert(err.message);
+        })
+        const data = await resp.json()
+        if (!resp.ok) throw new Error(data.error)
+      } else {
+        // Send new request
+        const resp = await fetch('/api/friends/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ senderId: user.id, receiverId: result.id })
+        })
+        const data = await resp.json()
+        if (!resp.ok) throw new Error(data.error)
       }
-      return;
-    }
-    try {
-      const resp = await fetch('/api/friends/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ senderId: user.id, receiverId: result.id })
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error);
+      setActionDone(true)
+      if (user) {
+        fetchRequests(user.id)
+        fetchFriends(user.id)
+      }
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message || 'Something went wrong')
+    } finally {
+      setActionLoading(false)
     }
   }
 
-  const handleSuggestionAction = async (targetId: string) => {
-    if (!user) return
-    setActionLoading(targetId)
-    try {
-      const resp = await fetch('/api/friends/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ senderId: user.id, receiverId: targetId })
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data.error);
-      
-      // Remove from suggestions after sending
-      setSuggestions(prev => prev.filter(s => s.id !== targetId))
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setActionLoading(null)
-    }
+  const getActionLabel = () => {
+    if (actionDone) return 'Request Sent!'
+    if (existingChat) return 'Open Chat'
+    if (alreadyFriend) return 'Already Friends'
+    if (pendingRequestSent) return 'Request Pending...'
+    if (pendingRequestReceived) return 'Accept Request'
+    return 'Send Friend Request'
+  }
+
+  const getActionIcon = () => {
+    if (actionDone) return <Check size={16} />
+    if (existingChat) return <MessageSquare size={16} fill="currentColor" />
+    return <Zap size={16} fill="currentColor" />
   }
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence>
       {isAddFriendModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4">
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsAddFriendModalOpen(false)}
-            className="absolute inset-0 bg-black/90 backdrop-blur-3xl"
+            className="absolute inset-0 bg-black/80 backdrop-blur-2xl"
           />
-          
+
+          {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 40 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="relative w-full max-w-[540px] bg-[#0A0A0B] border border-white/10 rounded-[3rem] overflow-hidden flex flex-col shadow-[0_0_100px_rgba(59,59,253,0.15)]"
+            initial={{ opacity: 0, y: 60, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 60, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+            className="relative w-full sm:max-w-[520px] bg-[#0A0A0B] border border-white/10 rounded-t-[2.5rem] sm:rounded-[2.5rem] overflow-hidden flex flex-col shadow-[0_0_80px_rgba(59,59,253,0.2)] max-h-[92vh] overflow-y-auto"
           >
-            {/* Animated Background Mesh */}
-            <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,_#3B3BFD_0%,_transparent_50%)]" />
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-40 brightness-150 contrast-150" />
+            {/* Gradient BG */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+              <div className="absolute top-0 left-0 w-full h-48 bg-[radial-gradient(circle_at_50%_0%,_#3B3BFD22_0%,_transparent_70%)]" />
             </div>
 
-            {/* Header Content */}
-            <div className="relative z-10 px-12 pt-12 pb-4 flex items-center justify-between">
-              <div className="flex items-center gap-5">
-                 <motion.div 
-                    whileHover={{ rotate: 90 }}
-                    className="w-14 h-14 bg-noir-accent/10 rounded-[1.4rem] flex items-center justify-center text-noir-accent border border-noir-accent/20 shadow-[0_0_20px_rgba(59,59,253,0.2)]"
-                 >
-                    <Globe size={26} strokeWidth={2.5} />
-                 </motion.div>
-                 <div>
-                    <h2 className="text-3xl font-display font-black text-white tracking-tight uppercase leading-none mb-1">Discovery</h2>
-                    <div className="flex items-center gap-2">
-                       <Shield size={12} className="text-noir-accent" />
-                       <span className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Hash-Deterministic Linkage</span>
-                    </div>
-                 </div>
+            {/* Header */}
+            <div className="relative z-10 px-6 sm:px-10 pt-8 pb-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
+                <motion.div
+                  whileHover={{ rotate: 90 }}
+                  transition={{ type: 'spring', stiffness: 400 }}
+                  className="w-12 h-12 bg-noir-accent/10 rounded-2xl flex items-center justify-center text-noir-accent border border-noir-accent/20"
+                >
+                  <Globe size={22} strokeWidth={2.5} />
+                </motion.div>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-display font-black text-white tracking-tight uppercase leading-none">Discovery</h2>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Shield size={10} className="text-noir-accent" />
+                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Secure Peer Network</span>
+                  </div>
+                </div>
               </div>
-              <button 
+              <button
                 onClick={() => setIsAddFriendModalOpen(false)}
-                className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl text-text-muted hover:text-white transition-all"
+                className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-text-muted hover:text-white transition-all"
               >
-                <X size={22} />
+                <X size={20} />
               </button>
             </div>
 
-            <div className="relative z-10 px-12 py-6">
-               <p className="text-[14px] text-text-muted font-medium leading-relaxed mb-10 opacity-80">
-                 Map the global neural network to establish secure peer-to-peer connections. 
-                 Identification is verified across distributed nodes.
-               </p>
+            <div className="relative z-10 px-6 sm:px-10 pb-8 flex flex-col gap-6">
+              <p className="text-[13px] text-text-muted leading-relaxed">
+                Search by <span className="text-white font-bold">@username</span> to connect with people on Nexora.
+              </p>
 
-               {/* Search Interface */}
-               <form onSubmit={handleSearch} className="relative mb-12 group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-noir-accent/50 to-transparent rounded-[2.2rem] opacity-0 group-focus-within:opacity-100 blur-md transition-opacity duration-500" />
-                  <div className="relative flex items-center bg-[#141416] border border-white/10 rounded-[2rem] p-2 focus-within:border-noir-accent/40 shadow-2xl transition-all">
-                      <Search className="ml-5 w-6 h-6 text-text-muted group-focus-within:text-noir-accent transition-colors" />
-                      <input 
-                        autoFocus
-                        type="text"
-                        placeholder="IDENTIFIER (@username)"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                        className="flex-1 bg-transparent py-5 px-6 text-[15px] font-bold outline-none text-white placeholder:text-text-muted/40 uppercase tracking-[0.1em]"
-                      />
-                      <button 
-                        type="submit"
-                        disabled={searching || !username.trim()}
-                        className="mr-2 bg-noir-accent text-white px-8 py-4 rounded-[1.6rem] font-black uppercase tracking-widest text-[11px] shadow-[0_10px_30px_rgba(59,59,253,0.3)] hover:scale-[1.05] active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all flex items-center gap-2"
+              {/* Search Bar */}
+              <form onSubmit={handleSearch} className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-noir-accent/40 to-transparent rounded-[1.8rem] opacity-0 group-focus-within:opacity-100 blur-sm transition-opacity duration-300" />
+                <div className="relative flex items-center bg-[#141416] border border-white/10 rounded-[1.5rem] p-1.5 focus-within:border-noir-accent/50 transition-all">
+                  <Search className="ml-4 w-5 h-5 text-text-muted group-focus-within:text-noir-accent transition-colors shrink-0" />
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="@username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="flex-1 bg-transparent py-3.5 px-4 text-[14px] font-medium outline-none text-white placeholder:text-text-muted/50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={searching || !username.trim()}
+                    className="shrink-0 bg-noir-accent text-white px-5 py-3 rounded-[1.2rem] font-black uppercase tracking-widest text-[11px] shadow-lg shadow-noir-accent/20 hover:scale-[1.03] active:scale-95 disabled:opacity-30 disabled:scale-100 transition-all flex items-center gap-2"
+                  >
+                    {searching ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} fill="white" />}
+                    <span className="hidden sm:inline">Search</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Result Area */}
+              <div className="min-h-[200px] rounded-[2rem] bg-[#111113] border border-white/8 flex flex-col items-center justify-center relative overflow-hidden p-6">
+                {/* Grid pattern */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff04_1px,transparent_1px),linear-gradient(to_bottom,#ffffff04_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none" />
+
+                <AnimatePresence mode="wait">
+                  {/* Scanning state */}
+                  {searching && (
+                    <motion.div
+                      key="scanning"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="flex flex-col items-center gap-5 relative z-10"
+                    >
+                      <div className="relative w-20 h-20">
+                        <div className="absolute inset-0 rounded-full border-4 border-noir-accent/20 border-t-noir-accent animate-spin" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Signal size={22} className="text-noir-accent animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[11px] font-black text-white uppercase tracking-[0.3em]">Scanning Network...</p>
+                        <p className="text-[10px] text-text-muted mt-1">Locating identity in global registry</p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Error state */}
+                  {error && !searching && (
+                    <motion.div
+                      key="error"
+                      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                      className="text-center relative z-10 px-4"
+                    >
+                      <div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+                        <Shield size={28} strokeWidth={2} />
+                      </div>
+                      <h4 className="text-base font-black text-white mb-1">Not Found</h4>
+                      <p className="text-[12px] text-text-muted leading-relaxed">{error}</p>
+                      <button
+                        onClick={() => { setError(''); setUsername(''); }}
+                        className="mt-4 text-[11px] font-bold text-noir-accent hover:underline"
                       >
-                        {searching ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} fill="white" />}
-                        <span>Discover</span>
+                        Try again
                       </button>
-                  </div>
-               </form>
+                    </motion.div>
+                  )}
 
-               {/* Results / Status Area */}
-               <div className="min-h-[280px] rounded-[3rem] bg-gradient-to-b from-[#141416]/80 to-[#0A0A0B]/80 backdrop-blur-xl border border-white/10 flex flex-col items-center justify-center overflow-hidden relative p-10 shadow-2xl group">
-                  <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none" />
-                  
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-noir-accent/10 blur-[60px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+                  {/* Result found */}
+                  {result && !searching && (
+                    <motion.div
+                      key="result"
+                      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                      className="w-full flex flex-col items-center gap-5 relative z-10"
+                    >
+                      {/* Avatar */}
+                      <div className="relative">
+                        <div className="absolute -inset-3 bg-noir-accent/10 rounded-full blur-xl animate-pulse" />
+                        <div className="relative w-24 h-24 p-1 bg-gradient-to-br from-noir-accent/40 to-transparent rounded-[2rem] shadow-xl">
+                          <img
+                            src={getAvatarUrl(result)}
+                            alt={result.name}
+                            className="w-full h-full rounded-[1.75rem] object-cover bg-[#1A1A1C]"
+                          />
+                          <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-green-500 rounded-xl border-[3px] border-[#111113] flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          </div>
+                        </div>
+                      </div>
 
-                  <AnimatePresence mode="wait">
-                     {searching && (
-                        <motion.div 
-                          key="searching"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="flex flex-col items-center gap-6 relative z-10"
-                        >
-                           <div className="relative">
-                              <div className="w-24 h-24 rounded-full border-4 border-noir-accent/20 border-t-noir-accent animate-spin" />
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                 <Signal size={24} className="text-noir-accent animate-pulse" />
-                              </div>
-                           </div>
-                           <div className="text-center space-y-2">
-                              <p className="text-[12px] font-black text-white uppercase tracking-[0.3em]">Mapping Nodes...</p>
-                              <p className="text-[10px] text-text-muted font-bold uppercase tracking-[0.2em] animate-pulse">Scanning Global Registry</p>
-                           </div>
-                        </motion.div>
-                     )}
+                      {/* Info */}
+                      <div className="text-center">
+                        <h3 className="text-xl font-display font-black text-white tracking-tight">{result.name}</h3>
+                        <span className="text-[12px] font-bold text-noir-accent bg-noir-accent/10 px-3 py-1 rounded-full mt-1 inline-block">
+                          @{result.username}
+                        </span>
+                      </div>
 
-                     {error && !searching && (
-                        <motion.div 
-                          key="error"
-                          initial={{ opacity: 0, scale: 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="text-center px-6 relative z-10"
-                        >
-                           <div className="w-20 h-20 bg-presence-dnd/10 text-presence-dnd rounded-3xl flex items-center justify-center mx-auto mb-6 border border-presence-dnd/20 rotate-12">
-                              <Shield size={32} strokeWidth={2.5} />
-                           </div>
-                           <h4 className="text-lg font-display font-black text-white uppercase tracking-tight mb-2">Protocol Error</h4>
-                           <p className="text-[12px] font-bold text-text-muted tracking-tight leading-relaxed">{error}</p>
-                        </motion.div>
-                     )}
+                      {/* Action Button */}
+                      <button
+                        onClick={handleAction}
+                        disabled={actionLoading || !!pendingRequestSent || !!alreadyFriend || actionDone}
+                        className={`
+                          w-full max-w-[260px] flex items-center justify-center gap-3 py-4 rounded-[1.5rem]
+                          font-black uppercase tracking-wider text-[12px] transition-all
+                          ${actionDone
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
+                            : existingChat
+                              ? 'bg-white text-[#0A0A0B] hover:scale-[1.03] active:scale-95 shadow-xl'
+                              : pendingRequestSent || alreadyFriend
+                                ? 'bg-white/5 text-text-muted border border-white/10 cursor-not-allowed'
+                                : 'bg-noir-accent text-white hover:scale-[1.03] active:scale-95 shadow-lg shadow-noir-accent/30'
+                          }
+                        `}
+                      >
+                        {actionLoading ? <Loader2 size={16} className="animate-spin" /> : getActionIcon()}
+                        <span>{getActionLabel()}</span>
+                      </button>
+                    </motion.div>
+                  )}
 
-                     {result && !searching && (
-                        <motion.div 
-                          key="result"
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="w-full flex flex-col items-center relative z-10"
-                        >
-                           <div className="relative mb-8">
-                              <div className="absolute -inset-4 bg-noir-accent/10 rounded-full blur-xl scale-125 animate-pulse" />
-                              <div className="relative w-32 h-32 p-1.5 bg-gradient-to-br from-noir-accent/40 to-transparent rounded-[2.5rem] shadow-2xl">
-                                 <img src={getAvatarUrl(result)} alt="" className="w-full h-full rounded-[2.25rem] object-cover bg-[#141416]" />
-                                 <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-presence-online rounded-2xl border-4 border-[#0E0E10] shadow-xl flex items-center justify-center">
-                                    <div className="w-3 h-3 bg-white rounded-full animate-ping" />
-                                 </div>
-                              </div>
-                           </div>
-                           
-                           <div className="text-center mb-10">
-                              <h3 className="text-3xl font-display font-black text-white tracking-tight uppercase mb-1">{result.name}</h3>
-                              <div className="flex items-center justify-center gap-3">
-                                 <span className="text-[11px] font-black bg-white/5 text-noir-accent px-3 py-1 rounded-full border border-white/5 uppercase tracking-[0.15em]">@{result.username}</span>
-                                 <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
-                                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{result.email.split('@')[0].slice(0, 3)}... AUTH</span>
-                              </div>
-                           </div>
-                           
-                           <button 
-                             onClick={handleAction}
-                             className={`
-                               group flex items-center gap-4 px-12 py-5 rounded-[2rem] font-black uppercase tracking-widest text-[12px] transition-all shadow-2xl
-                               ${existingChat ? 'bg-white text-noir-bg hover:scale-[1.05] active:scale-95' : 
-                                 pendingRequestSent ? 'bg-white/5 text-text-muted border border-white/5 cursor-not-allowed' :
-                                 pendingRequestReceived ? 'bg-noir-accent text-white hover:scale-[1.05]' :
-                                 'bg-noir-accent text-white hover:scale-[1.05] active:scale-95 shadow-[0_20px_40px_rgba(59,59,253,0.3)]'}
-                             `}
-                           >
-                              {existingChat ? <MessageSquare size={18} fill="currentColor" /> : <Zap size={18} fill="currentColor" />}
-                              <span>
-                                {existingChat ? 'Initiate Private Link' : 
-                                  pendingRequestSent ? 'Node Link Pending' :
-                                  pendingRequestReceived ? 'Confirm Neural Handshake' :
-                                  'Dispatch Link Request'}
-                              </span>
-                           </button>
-                        </motion.div>
-                     )}
-
-                     {!result && !error && !searching && (
-                        <motion.div 
-                          key="placeholder"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex flex-col items-center relative z-10"
-                        >
-                           <div className="w-32 h-32 relative mb-8 flex items-center justify-center">
-                                <motion.div 
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                                    className="absolute inset-0 border border-white/10 rounded-full bg-white/5 backdrop-blur-sm shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]"
-                                />
-                                <motion.div 
-                                    animate={{ rotate: -360 }}
-                                    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                                    className="absolute inset-4 border border-noir-accent/30 rounded-full shadow-[0_0_15px_rgba(59,59,253,0.1)]"
-                                />
-                                <div className="absolute inset-0 flex items-center justify-center scale-150 mix-blend-screen opacity-50">
-                                   <div className="w-16 h-16 bg-noir-accent rounded-full blur-3xl animate-pulse" />
-                                </div>
-                                <Sparkles size={36} className="text-white relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
-                           </div>
-                           <div className="text-center space-y-2">
-                              <p className="text-[12px] font-black uppercase text-white tracking-[0.4em] drop-shadow-md">Ready For Discovery</p>
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-[0.2em] opacity-80">Global peer network online</p>
-                           </div>
-                        </motion.div>
-                     )}
-                  </AnimatePresence>
-               </div>
+                  {/* Default idle state */}
+                  {!result && !error && !searching && (
+                    <motion.div
+                      key="idle"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      className="flex flex-col items-center gap-4 relative z-10 text-center"
+                    >
+                      <div className="w-20 h-20 relative flex items-center justify-center">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+                          className="absolute inset-0 border border-white/10 rounded-full"
+                        />
+                        <motion.div
+                          animate={{ rotate: -360 }}
+                          transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+                          className="absolute inset-3 border border-noir-accent/25 rounded-full"
+                        />
+                        <Sparkles size={28} className="text-white/70 relative z-10" />
+                      </div>
+                      <div>
+                        <p className="text-[12px] font-black text-white uppercase tracking-[0.3em]">Ready to Discover</p>
+                        <p className="text-[10px] text-text-muted mt-1">Enter a username above to search</p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
-
-            {/* Bottom Footer Section */}
-            <div className="relative z-10 px-12 py-10 bg-black/40 border-t border-white/5 flex items-center justify-between">
-               <div className="flex items-center gap-3 text-text-muted">
-                  <div className="w-2.5 h-2.5 rounded-full bg-presence-online shadow-[0_0_10px_#34C759]" />
-                  <span className="text-[11px] font-black uppercase tracking-[0.25em] opacity-70">Core Protocol Active</span>
-               </div>
-               <div className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">
-                  v4.1.2-stable
-               </div>
-            </div>
-
           </motion.div>
         </div>
       )}
     </AnimatePresence>
   )
 }
-

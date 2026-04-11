@@ -329,7 +329,7 @@ export const CleanChatList = () => {
               )}
 
               {/* Friends List */}
-              <div>
+              <div className="flex-1 min-h-0">
                  <h4 className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">My Friends ({friends.length})</h4>
                  {friends.length === 0 ? (
                    <div className="text-center py-10 opacity-60">
@@ -340,27 +340,27 @@ export const CleanChatList = () => {
                  ) : (
                    <div className="space-y-2">
                      {friends.map((f: any) => {
-                       const profile = f.user_id === user?.id ? f.friend_profile : f.user_profile;
+                       const profile = f.friend_profile;
                        if (!profile) return null;
                        const existingChat = chats.find(c => c.type === 'private' && c.chat_participants?.some((p:any) => p.user_id === profile.id));
                        return (
-                         <div key={f.id} onClick={() => existingChat ? setActiveChat(existingChat) : setIsAddFriendModalOpen(true)} className="flex items-center gap-4 p-3 hover:bg-[#1E1E20] rounded-[1.4rem] transition-colors group cursor-pointer border border-transparent hover:border-outline-variant">
+                         <div key={f.id} onClick={() => existingChat ? setActiveChat(existingChat) : setIsAddFriendModalOpen(true)} className="flex items-center gap-3 sm:gap-4 p-3 hover:bg-[#1E1E20] rounded-[1.4rem] transition-colors group cursor-pointer border border-transparent hover:border-outline-variant">
                            <div className="relative shrink-0">
-                              <img src={getAvatarUrl(profile)} alt="" className="w-12 h-12 rounded-[1.2rem] bg-surface-high" />
+                              <img src={getAvatarUrl(profile)} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-[1.2rem] bg-surface-high object-cover" />
                               {onlineUsers[profile.id]?.status === 'online' && (
-                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-surface-lowest rounded-full"></div>
+                                 <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-surface-lowest rounded-full"></div>
                               )}
                            </div>
                            <div className="flex-1 min-w-0">
-                             <h5 className="text-[14px] font-display font-black text-white truncate mb-0.5">{profile.name}</h5>
-                             <p className="text-[11px] font-bold text-text-muted truncate uppercase tracking-widest">Connected Node</p>
+                             <h5 className="text-[13px] sm:text-[14px] font-display font-black text-white truncate mb-0.5">{profile.name}</h5>
+                             <p className="text-[10px] sm:text-[11px] font-bold text-text-muted truncate uppercase tracking-widest">Connected Node</p>
                            </div>
                            <button 
-                             onClick={(e) => { e.stopPropagation(); handleRemoveFriend(f.friend_id === user?.id ? f.user_id : f.friend_id); }} 
-                             className="w-10 h-10 rounded-[1rem] bg-surface-high flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-outline-variant/50"
+                             onClick={(e) => { e.stopPropagation(); handleRemoveFriend(profile.id); }} 
+                             className="w-8 h-8 sm:w-10 sm:h-10 rounded-[0.8rem] sm:rounded-[1rem] bg-surface-high flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-outline-variant/50"
                              title="Remove Connection"
                            >
-                             <UserMinus size={16}/>
+                             <UserMinus size={14}/>
                            </button>
                          </div>
                        )
