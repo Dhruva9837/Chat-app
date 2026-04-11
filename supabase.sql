@@ -205,8 +205,11 @@ alter table public.friends enable row level security;
 create policy "Users can view their friends" on public.friends
   for select using (auth.uid() = user_id or auth.uid() = friend_id);
 
+create policy "Users can insert friendships" on public.friends
+  for insert with check (auth.uid() = user_id or auth.uid() = friend_id);
+
 create policy "Users can manage their friendships" on public.friends
-  for delete using (auth.uid() = user_id);
+  for delete using (auth.uid() = user_id or auth.uid() = friend_id);
 
 -- Blocks Table
 create table if not exists public.blocks (
