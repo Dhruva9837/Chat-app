@@ -6,6 +6,7 @@ import { X, Search, MessageSquare, Sparkles, Check, Signal, Zap, Globe, Shield, 
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
 import { getAvatarUrl } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
 
 export function AddFriendModal() {
   const { isAddFriendModalOpen, setIsAddFriendModalOpen, setActiveChat, chats, friendRequests, fetchRequests, fetchFriends } = useChatStore()
