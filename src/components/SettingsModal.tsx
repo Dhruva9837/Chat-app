@@ -21,6 +21,7 @@ export function SettingsModal() {
   const [activeTab, setActiveTab] = useState('My Account')
   
   // Edit State
+  const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(profile?.name || '')
   const [editBio, setEditBio] = useState(profile?.bio || '')
   const [editUsername, setEditUsername] = useState(profile?.username || '')
