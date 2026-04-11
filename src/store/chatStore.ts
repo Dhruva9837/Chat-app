@@ -30,6 +30,7 @@ interface ChatState {
   onlineUsers: Record<string, any>
   typingUsers: Record<string, boolean>
   sidebarTab: 'message' | 'group'
+  chatListTab: 'chats' | 'friends'
   fontSize: number
   friendRequests: FriendRequest[]
   friends: any[]
@@ -59,6 +60,7 @@ interface ChatState {
   addChat: (chat: Chat) => void
   updateChat: (chatId: string, updates: Partial<Chat>) => void
   setSidebarTab: (tab: 'message' | 'group') => void
+  setChatListTab: (tab: 'chats' | 'friends') => void
   setFontSize: (size: number) => void
   setFriendRequests: (requests: FriendRequest[]) => void
   addFriendRequest: (request: FriendRequest) => void
@@ -84,6 +86,7 @@ export const useChatStore = create<ChatState>((set) => ({
   onlineUsers: {},
   typingUsers: {},
   sidebarTab: 'message',
+  chatListTab: 'chats',
   fontSize: 16,
   friendRequests: [],
   friends: [],
@@ -227,6 +230,7 @@ export const useChatStore = create<ChatState>((set) => ({
     chats: state.chats.map(c => c.id === chatId ? { ...c, ...updates } : c)
   })),
   setSidebarTab: (tab) => set({ sidebarTab: tab }),
+  setChatListTab: (tab) => set({ chatListTab: tab }),
   setFontSize: (size: number) => set({ fontSize: size }),
   setFriendRequests: (reqs) => set({ friendRequests: reqs }),
   addFriendRequest: (req) => set((state) => {

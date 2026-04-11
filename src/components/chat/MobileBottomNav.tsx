@@ -6,13 +6,13 @@ import {
   Briefcase, 
   Calendar, 
   Bookmark,
-  User
+  Settings
 } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { motion } from 'framer-motion'
 
 export const MobileBottomNav = () => {
-  const { setActiveView, activeView, chats, activeChat } = useChatStore()
+  const { setActiveView, activeView, chats, activeChat, setSettingsModalOpen } = useChatStore()
   
   const totalUnread = chats.reduce((acc, chat) => acc + (chat.unread_count || 0), 0)
 
@@ -23,18 +23,17 @@ export const MobileBottomNav = () => {
     { icon: MessageSquare, label: 'Chats', id: 'chat' },
     { icon: Briefcase, label: 'Work', id: 'groups' },
     { icon: Calendar, label: 'Calendar', id: 'calendar' },
-    { icon: Bookmark, label: 'Saved', id: 'favorites' },
-    { icon: User, label: 'Profile', id: 'profile' }
+    { icon: Settings, label: 'Settings', id: 'settings', action: () => setSettingsModalOpen(true) }
   ]
 
   return (
     <div className="fixed bottom-0 left-0 w-full h-[72px] bg-surface-lowest/90 backdrop-blur-xl border-t border-outline-variant flex items-center justify-around px-2 z-40 md:hidden pb-safe">
       {navItems.map((item) => {
-        const isActive = activeView === item.id
+        const isActive = activeView === item.id && !item.action
         return (
           <button 
             key={item.id}
-            onClick={() => setActiveView(item.id as any)}
+            onClick={() => item.action ? item.action() : setActiveView(item.id as any)}
             className={`relative flex flex-col items-center justify-center w-14 h-12 transition-all ${
               isActive ? 'text-noir-accent' : 'text-text-muted hover:text-white'
             }`}

@@ -23,8 +23,7 @@ export const GlobalSidebar = () => {
   const navItems = [
     { icon: MessageSquare, label: 'All chats', id: 'chat' },
     { icon: Briefcase, label: 'Work', id: 'groups' },
-    { icon: Calendar, label: 'Calendar', id: 'calendar' },
-    { icon: Bookmark, label: 'Saved', id: 'favorites' },
+    { icon: Calendar, label: 'Calendar', id: 'calendar' }
   ];
 
   return (

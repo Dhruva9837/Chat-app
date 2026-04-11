@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { Search, Check, CheckCheck, MoreVertical, Pin, Loader2, MessageSquare, User, UserPlus } from 'lucide-react';
+import { Search, Check, CheckCheck, MoreVertical, Pin, Loader2, MessageSquare, User, UserPlus, X, UserMinus } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { getAvatarUrl } from '@/lib/utils';
@@ -17,12 +17,58 @@ export const CleanChatList = () => {
     pinnedChats,
     togglePinChat,
     setIsAddFriendModalOpen,
-    onlineUsers
+    onlineUsers,
+    chatListTab,
+    setChatListTab,
+    friendRequests,
+    friends,
+    fetchFriends,
+    fetchRequests
   } = useChatStore();
   
   const [search, setSearch] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{profiles: any[], messages: any[]}>({ profiles: [], messages: [] });
+
+  useEffect(() => {
+    if (user) {
+      fetchFriends(user.id);
+      fetchRequests(user.id);
+    }
+  }, [user, fetchFriends, fetchRequests]);
+
+  const handleRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
+    if (!user) return;
+    try {
+      const resp = await fetch('/api/friends/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId, action, userId: user.id })
+      });
+      if (resp.ok) {
+        fetchRequests(user.id);
+        if (action === 'accept') fetchFriends(user.id);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRemoveFriend = async (friendId: string) => {
+    if (!user) return;
+    try {
+      const resp = await fetch('/api/friends/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendId, userId: user.id })
+      });
+      if (resp.ok) {
+        fetchFriends(user.id);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // Debounced global search
   useEffect(() => {
@@ -101,6 +147,27 @@ export const CleanChatList = () => {
         </button>
       </div>
 
+      {/* Tab Switcher */}
+      <div className="mx-6 mb-4 flex bg-surface-high p-1 rounded-2xl shrink-0">
+        <button 
+          onClick={() => setChatListTab('chats')} 
+          className={`flex-1 rounded-xl p-2.5 text-[11px] font-bold transition-all ${chatListTab === 'chats' ? 'bg-noir-accent text-white shadow-lg shadow-noir-accent/20' : 'text-text-muted hover:text-white'}`}
+        >
+          Chats
+        </button>
+        <button 
+          onClick={() => setChatListTab('friends')} 
+          className={`flex-1 rounded-xl p-2.5 text-[11px] font-bold transition-all flex items-center justify-center gap-2 ${chatListTab === 'friends' ? 'bg-noir-accent text-white shadow-lg shadow-noir-accent/20' : 'text-text-muted hover:text-white'}`}
+        >
+          <span>Friends</span>
+          {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).length > 0 && (
+             <div className="w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center text-white text-[9px] font-black">
+                {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).length}
+             </div>
+          )}
+        </button>
+      </div>
+
       {/* Chat Scroll Area */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-6 space-y-1">
         <AnimatePresence>
@@ -149,7 +216,7 @@ export const CleanChatList = () => {
           )}
 
           {/* Standard Chat List */}
-          {filteredChats.map((chat: any) => {
+          {chatListTab === 'chats' ? filteredChats.map((chat: any) => {
             const isActive = activeChat?.id === chat.id;
             const isGroup = chat.type === 'group';
             const isPinned = pinnedChats.includes(chat.id);
@@ -234,7 +301,75 @@ export const CleanChatList = () => {
                 </div>
               </motion.div>
             );
-          })}
+          }) : (
+            <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+               className="space-y-8 px-6 pb-6"
+            >
+              {/* Incoming Requests */}
+              {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).length > 0 && (
+                 <div>
+                   <h4 className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">Pending Requests</h4>
+                   <div className="space-y-3">
+                     {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).map(req => (
+                       <div key={req.id} className="flex items-center gap-3 p-3 bg-surface-high border border-outline-variant rounded-[1.4rem]">
+                         <img src={getAvatarUrl(req.sender_profile)} alt="" className="w-12 h-12 rounded-[1.2rem] shrink-0" />
+                         <div className="flex-1 min-w-0">
+                           <h5 className="text-[13px] font-black text-white truncate">{req.sender_profile.name}</h5>
+                           <p className="text-[11px] text-text-muted truncate">@{req.sender_profile.username}</p>
+                         </div>
+                         <div className="flex gap-2 shrink-0">
+                           <button onClick={() => handleRequestAction(req.id, 'accept')} className="w-9 h-9 rounded-[1rem] bg-noir-accent hover:bg-noir-accent/90 flex items-center justify-center text-white shadow-lg shadow-noir-accent/20 transition-all active:scale-95"><Check size={16}/></button>
+                           <button onClick={() => handleRequestAction(req.id, 'reject')} className="w-9 h-9 rounded-[1rem] bg-surface-highest hover:bg-[#2A2A2C] flex items-center justify-center text-text-muted hover:text-rose-500 transition-all active:scale-95"><X size={16}/></button>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+              )}
+
+              {/* Friends List */}
+              <div>
+                 <h4 className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">My Friends ({friends.length})</h4>
+                 {friends.length === 0 ? (
+                   <div className="text-center py-10 opacity-60">
+                     <User size={32} className="mx-auto mb-3 text-text-muted" />
+                     <p className="text-[13px] font-bold text-white">No friends yet</p>
+                     <p className="text-[11px] text-text-muted">Use the discovery button to connect.</p>
+                   </div>
+                 ) : (
+                   <div className="space-y-2">
+                     {friends.map((f: any) => {
+                       const profile = f.user_id === user?.id ? f.friend_profile : f.user_profile;
+                       if (!profile) return null;
+                       const existingChat = chats.find(c => c.type === 'private' && c.chat_participants?.some((p:any) => p.user_id === profile.id));
+                       return (
+                         <div key={f.id} onClick={() => existingChat ? setActiveChat(existingChat) : setIsAddFriendModalOpen(true)} className="flex items-center gap-4 p-3 hover:bg-[#1E1E20] rounded-[1.4rem] transition-colors group cursor-pointer border border-transparent hover:border-outline-variant">
+                           <div className="relative shrink-0">
+                              <img src={getAvatarUrl(profile)} alt="" className="w-12 h-12 rounded-[1.2rem] bg-surface-high" />
+                              {onlineUsers[profile.id]?.status === 'online' && (
+                                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-surface-lowest rounded-full"></div>
+                              )}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                             <h5 className="text-[14px] font-display font-black text-white truncate mb-0.5">{profile.name}</h5>
+                             <p className="text-[11px] font-bold text-text-muted truncate uppercase tracking-widest">Connected Node</p>
+                           </div>
+                           <button 
+                             onClick={(e) => { e.stopPropagation(); handleRemoveFriend(f.friend_id === user?.id ? f.user_id : f.friend_id); }} 
+                             className="w-10 h-10 rounded-[1rem] bg-surface-high flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-outline-variant/50"
+                             title="Remove Connection"
+                           >
+                             <UserMinus size={16}/>
+                           </button>
+                         </div>
+                       )
+                     })}
+                   </div>
+                 )}
+              </div>
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
     </div>
