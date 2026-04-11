@@ -72,7 +72,7 @@ export const CleanChatList = () => {
   });
 
   return (
-    <div className="w-[340px] h-full noir-sidebar-mid flex flex-col z-20 shrink-0 select-none">
+    <div className="w-full h-full noir-sidebar-mid flex flex-col z-20 shrink-0 select-none">
       {/* Search Bar & Action Integration */}
       <div className="px-6 pt-10 pb-6 flex items-center gap-3">
         <div className="relative group flex-1">

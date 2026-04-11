@@ -49,7 +49,7 @@ export const CleanInfoPanel = () => {
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 300, opacity: 0 }}
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="w-[340px] h-full noir-sidebar-right flex flex-col z-10 shrink-0 select-none overflow-hidden"
+      className="absolute md:relative inset-y-0 right-0 w-full md:w-[340px] h-full noir-sidebar-right flex flex-col z-50 md:z-10 shrink-0 select-none overflow-hidden bg-surface-lowest md:bg-transparent shadow-2xl md:shadow-none"
     >
       {/* Header */}
       <div className="px-8 pt-10 pb-6 flex items-center justify-between">

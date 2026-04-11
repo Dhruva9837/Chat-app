@@ -28,7 +28,7 @@ export const GlobalSidebar = () => {
   ];
 
   return (
-    <div className="w-[80px] h-full noir-sidebar-left flex flex-col items-center py-8 z-30 shrink-0 select-none">
+    <div className="hidden md:flex w-[80px] h-[100vh] noir-sidebar-left flex-col items-center py-8 z-30 shrink-0 select-none">
       {/* Brand Logo */}
       <div 
         className="mb-10 cursor-pointer"

@@ -12,6 +12,7 @@ import { SettingsView } from './SettingsView'
 import { AddFriendModal } from './AddFriendModal'
 import { SettingsModal } from './SettingsModal'
 import { NewGroupModal } from './NewGroupModal'
+import { MobileBottomNav } from './chat/MobileBottomNav'
 import { usePresence } from '@/lib/hooks/usePresence'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -36,11 +37,11 @@ export function ChatLayout() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 overflow-hidden h-full"
           >
-            <div className={`${activeChat ? 'hidden lg:flex' : 'flex'} w-full md:w-[320px] lg:w-[320px] shrink-0`}>
+            <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-[320px] lg:w-[320px] shrink-0`}>
               <CleanChatList />
             </div>
 
-            <div className={`${activeChat ? 'flex' : 'hidden md:flex'} flex-1 h-full`}>
+            <div className={`${activeChat ? 'flex' : 'hidden md:flex'} flex-1 h-full w-full md:w-auto`}>
               <CleanChatWindow />
             </div>
 
@@ -118,11 +119,14 @@ export function ChatLayout() {
       <GlobalSidebar />
 
       {/* 2. Main Content Area (Chat List + Chat Window + Info Panel) */}
-      <main className="flex-1 flex overflow-hidden relative">
+      <main className={`flex-1 flex overflow-hidden relative ${(!activeChat || activeView !== 'chat') ? 'pb-[72px] md:pb-0' : ''}`}>
         <AnimatePresence mode="wait">
           {renderView()}
         </AnimatePresence>
       </main>
+
+      {/* 3. Mobile Bottom Navigation */}
+      <MobileBottomNav />
 
       {/* Modals & Overlays */}
       <AddFriendModal />
