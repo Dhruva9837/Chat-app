@@ -6,6 +6,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { getAvatarUrl } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
 
 export const CleanChatList = () => {
   const { user } = useAuthStore();
@@ -40,15 +41,21 @@ export const CleanChatList = () => {
   const handleRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
     if (!user) return;
     try {
-      const resp = await fetch('/api/friends/requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId, action, userId: user.id })
-      });
-      if (resp.ok) {
-        fetchRequests(user.id);
-        if (action === 'accept') fetchFriends(user.id);
+      if (action === 'accept') {
+         const { data: request } = await supabase.from('friend_requests').select('*').eq('id', requestId).single();
+         if (request) {
+           await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', requestId);
+           await supabase.from('friends').insert([
+             { user_id: request.sender_id, friend_id: request.receiver_id },
+             { user_id: request.receiver_id, friend_id: request.sender_id }
+           ]);
+         }
+      } else {
+         await supabase.from('friend_requests').update({ status: 'rejected' }).eq('id', requestId);
       }
+      
+      fetchRequests(user.id);
+      if (action === 'accept') fetchFriends(user.id);
     } catch (err) {
       console.error(err);
     }
@@ -57,14 +64,15 @@ export const CleanChatList = () => {
   const handleRemoveFriend = async (friendId: string) => {
     if (!user) return;
     try {
-      const resp = await fetch('/api/friends/remove', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ friendId, userId: user.id })
-      });
-      if (resp.ok) {
-        fetchFriends(user.id);
-      }
+      await supabase.from('friends').delete().match({ user_id: user.id, friend_id: friendId });
+      await supabase.from('friends').delete().match({ user_id: friendId, friend_id: user.id });
+      
+      // Also cleanup any requests
+      await supabase.from('friend_requests').delete().match({ sender_id: user.id, receiver_id: friendId });
+      await supabase.from('friend_requests').delete().match({ sender_id: friendId, receiver_id: user.id });
+
+      fetchFriends(user.id);
+      fetchRequests(user.id);
     } catch (err) {
       console.error(err);
     }

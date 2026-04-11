@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { Chat, Message, Profile, Participant } from '@/types/database'
 import { useAuthStore } from './authStore'
+import { supabase } from '@/lib/supabase'
 
 export type FriendRequest = {
   id: string
@@ -93,18 +94,34 @@ export const useChatStore = create<ChatState>((set) => ({
   pinnedChats: (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('nexora-pinned') || '[]') : []),
   fetchFriends: async (userId) => {
     try {
-      const resp = await fetch(`/api/friends/list?userId=${userId}`)
-      const data = await resp.json()
-      if (resp.ok) set({ friends: data.friends })
+      const { data: friends, error } = await supabase
+        .from('friends')
+        .select('id, friend_id, user_id, created_at, friend_profile:profiles!friends_friend_id_fkey(*)')
+        .eq('user_id', userId);
+      if (error) throw error;
+      set({ friends: friends || [] })
     } catch (err) {
       console.error('Failed to fetch friends:', err)
     }
   },
   fetchRequests: async (userId) => {
     try {
-      const resp = await fetch(`/api/friends/requests?userId=${userId}`)
-      const data = await resp.json()
-      if (resp.ok) set({ friendRequests: [...data.incoming, ...data.outgoing] })
+      const { data: incoming, error: inError } = await supabase
+        .from('friend_requests')
+        .select('id, status, created_at, sender_id, receiver_id, sender_profile:profiles!friend_requests_sender_id_fkey(*)')
+        .eq('receiver_id', userId)
+        .eq('status', 'pending');
+        
+      const { data: outgoing, error: outError } = await supabase
+        .from('friend_requests')
+        .select('id, status, created_at, sender_id, receiver_id, receiver_profile:profiles!friend_requests_receiver_id_fkey(*)')
+        .eq('sender_id', userId)
+        .eq('status', 'pending');
+
+      if (inError) throw inError;
+      if (outError) throw outError;
+
+      set({ friendRequests: [...(incoming || []), ...(outgoing || [])] })
     } catch (err) {
       console.error('Failed to fetch requests:', err)
     }

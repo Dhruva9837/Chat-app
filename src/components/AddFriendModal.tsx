@@ -91,22 +91,25 @@ export function AddFriendModal() {
     try {
       if (pendingRequestReceived) {
         // Accept incoming request
-        const resp = await fetch('/api/friends/requests', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ requestId: pendingRequestReceived.id, action: 'accept', userId: user.id })
-        })
-        const data = await resp.json()
-        if (!resp.ok) throw new Error(data.error)
+        const { error } = await supabase
+          .from('friend_requests')
+          .update({ status: 'accepted' })
+          .eq('id', pendingRequestReceived.id);
+        if (error) throw error;
+        
+        const { error: friendErr } = await supabase
+          .from('friends')
+          .insert([
+             { user_id: user.id, friend_id: result.id },
+             { user_id: result.id, friend_id: user.id }
+          ]);
+        if (friendErr) throw friendErr;
       } else {
         // Send new request
-        const resp = await fetch('/api/friends/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ senderId: user.id, receiverId: result.id })
-        })
-        const data = await resp.json()
-        if (!resp.ok) throw new Error(data.error)
+        const { error } = await supabase
+          .from('friend_requests')
+          .insert({ sender_id: user.id, receiver_id: result.id });
+        if (error) throw error;
       }
       setActionDone(true)
       if (user) {
