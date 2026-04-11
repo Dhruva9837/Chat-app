@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Search, UserPlus, MessageSquare, Sparkles, Check, User, Signal, Zap, Globe, Shield, Loader2 } from 'lucide-react'
+import { X, Search, UserPlus, MessageSquare, Sparkles, Check, User, Signal, Zap, Globe, Shield, Loader2, RefreshCcw, Command } from 'lucide-react'
 import { useChatStore } from '@/store/chatStore'
 import { useAuthStore } from '@/store/authStore'
 import { supabase } from '@/lib/supabase'
@@ -15,6 +15,29 @@ export function AddFriendModal() {
   const [searching, setSearching] = useState(false)
   const [result, setResult] = useState<any>(null)
   const [error, setError] = useState('')
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  const fetchSuggestions = useCallback(async () => {
+    if (!user) return
+    setLoadingSuggestions(true)
+    try {
+      const resp = await fetch(`/api/friends/suggestions?userId=${user.id}`)
+      const data = await resp.json()
+      if (resp.ok) setSuggestions(data.suggestions || [])
+    } catch (err) {
+      console.error('Failed to fetch suggestions:', err)
+    } finally {
+      setLoadingSuggestions(false)
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (isAddFriendModalOpen && user) {
+      fetchSuggestions()
+    }
+  }, [isAddFriendModalOpen, user, fetchSuggestions])
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,6 +110,27 @@ export function AddFriendModal() {
       if (!resp.ok) throw new Error(data.error);
     } catch (err: any) {
       alert(err.message);
+    }
+  }
+
+  const handleSuggestionAction = async (targetId: string) => {
+    if (!user) return
+    setActionLoading(targetId)
+    try {
+      const resp = await fetch('/api/friends/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderId: user.id, receiverId: targetId })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error);
+      
+      // Remove from suggestions after sending
+      setSuggestions(prev => prev.filter(s => s.id !== targetId))
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setActionLoading(null)
     }
   }
 

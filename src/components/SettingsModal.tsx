@@ -17,14 +17,16 @@ export function SettingsModal() {
     fontSize, 
     setFontSize 
   } = useChatStore()
-  const { profile, updateProfile, signOut } = useAuthStore()
+  const { profile, settings, updateProfile, updateSettings, signOut } = useAuthStore()
   const [activeTab, setActiveTab] = useState('My Account')
   
   // Edit State
-  const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(profile?.name || '')
   const [editBio, setEditBio] = useState(profile?.bio || '')
   const [editUsername, setEditUsername] = useState(profile?.username || '')
+  const [editJobTitle, setEditJobTitle] = useState(profile?.job_title || '')
+  const [editLocation, setEditLocation] = useState(profile?.location || '')
+  const [editWebsite, setEditWebsite] = useState(profile?.website || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
@@ -57,19 +59,12 @@ export function SettingsModal() {
     }
   }
 
-  // Local settings (in a real app, these would come from a user_settings table)
-  const [localSettings, setLocalSettings] = useState({
-    allowDMs: true,
-    safeMessaging: true,
-    reducedMotion: false,
-    notifications: true,
-    sound: true
-  })
-
   const [mobileShowContent, setMobileShowContent] = React.useState(false)
 
-  const toggleSetting = (key: string) => {
-    setLocalSettings(s => ({ ...s, [key]: !s[key as keyof typeof s] }))
+  const toggleSetting = async (key: string) => {
+    if (!settings) return
+    const currentVal = (settings as any)[key]
+    await updateSettings({ [key]: !currentVal })
   }
 
   useEffect(() => {
@@ -77,6 +72,9 @@ export function SettingsModal() {
       setEditName(profile?.name || '')
       setEditBio(profile?.bio || '')
       setEditUsername(profile?.username || '')
+      setEditJobTitle(profile?.job_title || '')
+      setEditLocation(profile?.location || '')
+      setEditWebsite(profile?.website || '')
       setError('')
     }
   }, [isSettingsModalOpen, profile])
@@ -101,7 +99,10 @@ export function SettingsModal() {
       await updateProfile({ 
         name: editName, 
         bio: editBio,
-        username: editUsername 
+        username: editUsername,
+        job_title: editJobTitle,
+        location: editLocation,
+        website: editWebsite
       })
       setIsEditing(false)
     } catch (err: any) {
@@ -255,6 +256,21 @@ export function SettingsModal() {
                      ) : (profile?.username ? `@${profile.username}` : 'Not set')} />
                     
                     <DetailRow label="Email" value={profile?.email || 'user@nexora.com'} isPrivate />
+
+                    <DetailRow label="Role / Job Title" 
+                     value={isEditing ? (
+                       <input value={editJobTitle} onChange={(e) => setEditJobTitle(e.target.value)} placeholder="e.g. UI/UX Designer" className="bg-surface-low border border-outline-variant rounded-xl px-4 py-2 outline-none text-text-main w-full focus:ring-2 ring-primary/20 transition-all font-bold" />
+                     ) : (profile?.job_title || 'Nexora User')} />
+
+                    <DetailRow label="Location" 
+                     value={isEditing ? (
+                       <input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="e.g. San Francisco, CA" className="bg-surface-low border border-outline-variant rounded-xl px-4 py-2 outline-none text-text-main w-full focus:ring-2 ring-primary/20 transition-all font-bold" />
+                     ) : (profile?.location || 'Not set')} />
+
+                    <DetailRow label="Website" 
+                     value={isEditing ? (
+                       <input value={editWebsite} onChange={(e) => setEditWebsite(e.target.value)} placeholder="https://..." className="bg-surface-low border border-outline-variant rounded-xl px-4 py-2 outline-none text-text-main w-full focus:ring-2 ring-primary/20 transition-all font-bold" />
+                     ) : (profile?.website || 'Not set')} />
                     
                     <DetailRow label="About Me" 
                      value={isEditing ? (
@@ -287,8 +303,8 @@ export function SettingsModal() {
               <div className="space-y-8">
                 <AppearanceOption label="Direct Messaging" desc="Control who can message you outside of servers." />
                 <div className="space-y-4">
-                   <ToggleRow label="Allow direct messages from server members" desc="Automatically permit DMs from people in shared servers." active={localSettings.allowDMs} onClick={() => toggleSetting('allowDMs')} />
-                   <ToggleRow label="Safe Direct Messaging" desc="Scan and delete messages that contain explicit content." active={localSettings.safeMessaging} onClick={() => toggleSetting('safeMessaging')} />
+                   <ToggleRow label="Allow direct messages from server members" desc="Automatically permit DMs from people in shared servers." active={settings?.allow_dms ?? true} onClick={() => toggleSetting('allow_dms')} />
+                   <ToggleRow label="Safe Direct Messaging" desc="Scan and delete messages that contain explicit content." active={settings?.safe_messaging ?? true} onClick={() => toggleSetting('safe_messaging')} />
                 </div>
               </div>
             </motion.div>
@@ -357,8 +373,8 @@ export function SettingsModal() {
               <div className="space-y-8">
                 <AppearanceOption label="Global Settings" desc="Control how you want to be notified." />
                 <div className="space-y-4">
-                   <ToggleRow label="Enable Desktop Notifications" desc="Get alerts when the browser is backgrounded." active={localSettings.notifications} onClick={() => toggleSetting('notifications')} />
-                   <ToggleRow label="Enable Sounds" desc="Play audio alerts for messages and calls." active={localSettings.sound} onClick={() => toggleSetting('sound')} />
+                   <ToggleRow label="Enable Desktop Notifications" desc="Get alerts when the browser is backgrounded." active={settings?.notifications_enabled ?? true} onClick={() => toggleSetting('notifications_enabled')} />
+                   <ToggleRow label="Enable Sounds" desc="Play audio alerts for messages and calls." active={settings?.sound_enabled ?? true} onClick={() => toggleSetting('sound_enabled')} />
                 </div>
               </div>
             </motion.div>

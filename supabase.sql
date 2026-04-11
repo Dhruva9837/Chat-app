@@ -14,7 +14,17 @@ create table if not exists public.profiles (
   gender text,
   status text check (status in ('online', 'offline', 'typing', 'idle', 'dnd')) default 'offline',
   last_seen timestamp with time zone default timezone('utc'::text, now()),
-  updated_at timestamp with time zone default timezone('utc'::text, now())
+  updated_at timestamp with time zone default timezone('utc'::text, now()),
+  
+  -- Extended Account Details
+  full_name text,
+  phone_number text,
+  website text,
+  location text,
+  birth_date date,
+  job_title text,
+  is_verified boolean default false,
+  account_tier text default 'free' check (account_tier in ('free', 'pro', 'enterprise'))
 );
 
 -- Chats table: container for group or private messages
@@ -243,3 +253,41 @@ create policy "Users can manage their own calendar events" on public.calendar_ev
 
 -- ENABLE REALTIME for calendar_events
 alter publication supabase_realtime add table public.calendar_events;
+
+-- USER SETTINGS TABLE
+create table if not exists public.user_settings (
+  id uuid primary key references public.profiles(id) on delete cascade,
+  theme text default 'dark' check (theme in ('dark', 'light', 'midnight')),
+  font_size integer default 16,
+  allow_dms boolean default true,
+  safe_messaging boolean default true,
+  reduced_motion boolean default false,
+  notifications_enabled boolean default true,
+  sound_enabled boolean default true,
+  read_receipts boolean default true,
+  online_status_visible boolean default true,
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- RLS for user_settings
+alter table public.user_settings enable row level security;
+
+create policy "Users can manage their own settings" on public.user_settings
+  for all using (auth.uid() = id);
+
+-- Trigger for automatic user_settings creation
+create or replace function public.handle_new_user_settings()
+returns trigger as $$
+begin
+  insert into public.user_settings (id)
+  values (new.id);
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create trigger on_profile_created_settings
+  after insert on public.profiles
+  for each row execute procedure public.handle_new_user_settings();
+
+-- ENABLE REALTIME for user_settings
+alter publication supabase_realtime add table public.user_settings;

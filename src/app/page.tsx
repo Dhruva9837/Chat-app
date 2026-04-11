@@ -9,7 +9,7 @@ import { motion } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 
 export default function Home() {
-  const { user, setUser, setProfile, loading, setLoading } = useAuthStore()
+  const { user, setUser, setProfile, setSettings, loading, setLoading } = useAuthStore()
   const { setChats, setFriendRequests, addFriendRequest } = useChatStore()
 
   useEffect(() => {
@@ -24,10 +24,15 @@ export default function Home() {
         if (session?.user) {
           setUser(session.user)
           
-          // Parallel fetch for profile and initial chats
-          const [profileRes, chatsRes, requestsRes] = await Promise.all([
+          // Parallel fetch for profile, settings, and initial chats
+          const [profileRes, settingsRes, chatsRes, requestsRes] = await Promise.all([
             supabase
               .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single(),
+            supabase
+              .from('user_settings')
               .select('*')
               .eq('id', session.user.id)
               .single(),
@@ -57,6 +62,7 @@ export default function Home() {
           ])
 
           if (profileRes.data) setProfile(profileRes.data)
+          if (settingsRes.data) setSettings(settingsRes.data)
           if (chatsRes.data) {
             const processedChats = chatsRes.data.map(chat => ({
               ...chat,
@@ -96,16 +102,16 @@ export default function Home() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log('Auth state change:', _event, !!session)
       if (session?.user) {
-        setUser(session.user)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-        if (profile) setProfile(profile)
+        const [profileRes, settingsRes] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+          supabase.from('user_settings').select('*').eq('id', session.user.id).single()
+        ])
+        if (profileRes.data) setProfile(profileRes.data)
+        if (settingsRes.data) setSettings(settingsRes.data)
       } else {
         setUser(null)
         setProfile(null)
+        setSettings(null)
       }
     })
 

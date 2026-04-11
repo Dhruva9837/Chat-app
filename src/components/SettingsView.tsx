@@ -27,11 +27,7 @@ import { motion } from 'framer-motion'
 
 export function SettingsView() {
   const { fontSize, setFontSize, theme, setTheme } = useChatStore()
-  const { user, profile } = useAuthStore()
-  const [notif, setNotif] = useState(true)
-  const [sound, setSound] = useState(true)
-  const [readReceipts, setReadReceipts] = useState(true)
-  const [onlineStatus, setOnlineStatus] = useState(true)
+  const { user, profile, settings, updateSettings } = useAuthStore()
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -189,16 +185,16 @@ export function SettingsView() {
               label="Push Notifications" 
               description="Get notified about new messages"
               toggle 
-              value={notif} 
-              onChange={() => setNotif(!notif)} 
+              value={settings?.notifications_enabled ?? true} 
+              onChange={() => updateSettings({ notifications_enabled: !(settings?.notifications_enabled ?? true) })} 
             />
             <SettingRow 
               icon={Volume2} 
               label="Sound Effects" 
               description="Play sounds for incoming messages"
               toggle 
-              value={sound} 
-              onChange={() => setSound(!sound)} 
+              value={settings?.sound_enabled ?? true} 
+              onChange={() => updateSettings({ sound_enabled: !(settings?.sound_enabled ?? true) })} 
             />
           </div>
         </div>
@@ -215,16 +211,16 @@ export function SettingsView() {
               label="Read Receipts" 
               description="Let others know when you've read messages"
               toggle 
-              value={readReceipts} 
-              onChange={() => setReadReceipts(!readReceipts)} 
+              value={settings?.read_receipts ?? true} 
+              onChange={() => updateSettings({ read_receipts: !(settings?.read_receipts ?? true) })} 
             />
             <SettingRow 
               icon={Globe} 
               label="Online Status" 
               description="Show when you're active on the platform"
               toggle 
-              value={onlineStatus} 
-              onChange={() => setOnlineStatus(!onlineStatus)} 
+              value={settings?.online_status_visible ?? true} 
+              onChange={() => updateSettings({ online_status_visible: !(settings?.online_status_visible ?? true) })} 
             />
             <SettingRow 
               icon={Lock} 

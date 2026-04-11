@@ -9,6 +9,29 @@ export type Profile = {
   last_seen: string
   gender?: 'male' | 'female' | 'other' | 'unspecified'
   avatar_decoration?: string
+  // Extended Details
+  full_name?: string
+  phone_number?: string
+  website?: string
+  location?: string
+  birth_date?: string
+  job_title?: string
+  is_verified?: boolean
+  account_tier?: 'free' | 'pro' | 'enterprise'
+}
+
+export type UserSettings = {
+  id: string
+  theme: 'dark' | 'light' | 'midnight'
+  font_size: number
+  allow_dms: boolean
+  safe_messaging: boolean
+  reduced_motion: boolean
+  notifications_enabled: boolean
+  sound_enabled: boolean
+  read_receipts: boolean
+  online_status_visible: boolean
+  updated_at: string
 }
 
 export type Chat = {

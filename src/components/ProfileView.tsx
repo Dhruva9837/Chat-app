@@ -136,7 +136,7 @@ export function ProfileView() {
                </div>
                <div>
                   <h2 className="text-2xl font-display font-black text-text-main tracking-tight leading-none mb-2">{profile?.name || 'User'}</h2>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">UI/UX Designer</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{profile?.job_title || 'Nexora Member'}</p>
                </div>
             </div>
             <button onClick={() => setIsEditingBio(true)} className="p-3 bg-surface-lowest rounded-2xl shadow-sm text-primary hover:scale-110 active:scale-95 transition-all">
