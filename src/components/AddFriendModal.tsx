@@ -215,7 +215,12 @@ export function AddFriendModal() {
                </form>
 
                {/* Results / Status Area */}
-               <div className="min-h-[280px] rounded-[3rem] bg-[#0E0E10] border-2 border-dashed border-white/5 flex flex-col items-center justify-center overflow-hidden relative p-10 shadow-inner">
+               <div className="min-h-[280px] rounded-[3rem] bg-gradient-to-b from-[#141416]/80 to-[#0A0A0B]/80 backdrop-blur-xl border border-white/10 flex flex-col items-center justify-center overflow-hidden relative p-10 shadow-2xl group">
+                  <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none" />
+                  
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-noir-accent/10 blur-[60px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none" />
+
                   <AnimatePresence mode="wait">
                      {searching && (
                         <motion.div 
@@ -223,7 +228,7 @@ export function AddFriendModal() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          className="flex flex-col items-center gap-6"
+                          className="flex flex-col items-center gap-6 relative z-10"
                         >
                            <div className="relative">
                               <div className="w-24 h-24 rounded-full border-4 border-noir-accent/20 border-t-noir-accent animate-spin" />
@@ -243,7 +248,7 @@ export function AddFriendModal() {
                           key="error"
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          className="text-center px-6"
+                          className="text-center px-6 relative z-10"
                         >
                            <div className="w-20 h-20 bg-presence-dnd/10 text-presence-dnd rounded-3xl flex items-center justify-center mx-auto mb-6 border border-presence-dnd/20 rotate-12">
                               <Shield size={32} strokeWidth={2.5} />
@@ -258,7 +263,7 @@ export function AddFriendModal() {
                           key="result"
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="w-full flex flex-col items-center"
+                          className="w-full flex flex-col items-center relative z-10"
                         >
                            <div className="relative mb-8">
                               <div className="absolute -inset-4 bg-noir-accent/10 rounded-full blur-xl scale-125 animate-pulse" />
@@ -305,26 +310,27 @@ export function AddFriendModal() {
                           key="placeholder"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          className="flex flex-col items-center"
+                          className="flex flex-col items-center relative z-10"
                         >
-                           <div className="w-32 h-32 relative mb-8">
+                           <div className="w-32 h-32 relative mb-8 flex items-center justify-center">
                                 <motion.div 
                                     animate={{ rotate: 360 }}
                                     transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                                    className="absolute inset-0 border-2 border-dashed border-white/10 rounded-full"
+                                    className="absolute inset-0 border border-white/10 rounded-full bg-white/5 backdrop-blur-sm shadow-[inset_0_0_20px_rgba(255,255,255,0.02)]"
                                 />
                                 <motion.div 
                                     animate={{ rotate: -360 }}
                                     transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                                    className="absolute inset-4 border-2 border-dashed border-noir-accent/20 rounded-full"
+                                    className="absolute inset-4 border border-noir-accent/30 rounded-full shadow-[0_0_15px_rgba(59,59,253,0.1)]"
                                 />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <Sparkles size={40} className="text-noir-accent/40" />
+                                <div className="absolute inset-0 flex items-center justify-center scale-150 mix-blend-screen opacity-50">
+                                   <div className="w-16 h-16 bg-noir-accent rounded-full blur-3xl animate-pulse" />
                                 </div>
+                                <Sparkles size={36} className="text-white relative z-10 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
                            </div>
                            <div className="text-center space-y-2">
-                              <p className="text-[12px] font-black uppercase text-white tracking-[0.4em] opacity-40">Awaiting Signal</p>
-                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-[0.2em] opacity-60">Global discovery protocol online</p>
+                              <p className="text-[12px] font-black uppercase text-white tracking-[0.4em] drop-shadow-md">Ready For Discovery</p>
+                              <p className="text-[9px] font-bold text-text-muted uppercase tracking-[0.2em] opacity-80">Global peer network online</p>
                            </div>
                         </motion.div>
                      )}
