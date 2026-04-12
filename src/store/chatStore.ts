@@ -22,6 +22,7 @@ interface ChatState {
   showDetailSidebar: boolean
   showInfoPanel: boolean
   isAddFriendModalOpen: boolean
+  isStartChatModalOpen: boolean
   isSettingsModalOpen: boolean
   isProfileModalOpen: boolean
   isNewGroupModalOpen: boolean
@@ -43,6 +44,7 @@ interface ChatState {
   setChats: (chats: Chat[]) => void
   setActiveChat: (chat: Chat | null) => void
   setIsAddFriendModalOpen: (open: boolean) => void
+  setIsStartChatModalOpen: (open: boolean) => void
   setSettingsModalOpen: (open: boolean) => void
   setProfileModalOpen: (open: boolean) => void
   setNewGroupModalOpen: (open: boolean) => void
@@ -84,6 +86,7 @@ export const useChatStore = create<ChatState>((set) => ({
   showDetailSidebar: false,
   showInfoPanel: false,
   isAddFriendModalOpen: false,
+  isStartChatModalOpen: false,
   isSettingsModalOpen: false,
   isProfileModalOpen: false,
   isNewGroupModalOpen: false,
@@ -156,6 +159,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setActiveView: (view) => set({ activeView: view }),
   setShowInfoPanel: (show: boolean) => set({ showInfoPanel: show }),
   setIsAddFriendModalOpen: (open) => set({ isAddFriendModalOpen: open }),
+  setIsStartChatModalOpen: (open) => set({ isStartChatModalOpen: open }),
   setSettingsModalOpen: (open) => set({ isSettingsModalOpen: open }),
   setProfileModalOpen: (open) => set({ isProfileModalOpen: open }),
   setTheme: (theme) => {
