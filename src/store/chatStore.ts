@@ -102,7 +102,7 @@ export const useChatStore = create<ChatState>((set) => ({
     try {
       const { data: friends, error } = await supabase
         .from('friends')
-        .select('id, friend_id, user_id, created_at, friend_profile:profiles!friends_friend_id_fkey(*)')
+        .select('id, friend_id, user_id, created_at, friend_profile:profiles!friend_id(*)')
         .eq('user_id', userId);
       if (error) throw error;
       set({ friends: friends || [] })
@@ -114,13 +114,13 @@ export const useChatStore = create<ChatState>((set) => ({
     try {
       const { data: incoming, error: inError } = await supabase
         .from('friend_requests')
-        .select('id, status, created_at, sender_id, receiver_id, sender_profile:profiles!friend_requests_sender_id_fkey(*)')
+        .select('id, status, created_at, sender_id, receiver_id, sender_profile:profiles!sender_id(*)')
         .eq('receiver_id', userId)
         .eq('status', 'pending');
         
       const { data: outgoing, error: outError } = await supabase
         .from('friend_requests')
-        .select('id, status, created_at, sender_id, receiver_id, receiver_profile:profiles!friend_requests_receiver_id_fkey(*)')
+        .select('id, status, created_at, sender_id, receiver_id, receiver_profile:profiles!receiver_id(*)')
         .eq('sender_id', userId)
         .eq('status', 'pending');
 

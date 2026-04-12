@@ -56,8 +56,8 @@ export default function Home() {
               .from('friend_requests')
               .select(`
                 *,
-                sender_profile:profiles!friend_requests_sender_id_fkey(id, name, username, avatar_url),
-                receiver_profile:profiles!friend_requests_receiver_id_fkey(id, name, username, avatar_url)
+                sender_profile:profiles!sender_id(id, name, username, avatar_url),
+                receiver_profile:profiles!receiver_id(id, name, username, avatar_url)
               `)
           ])
 
@@ -159,8 +159,8 @@ export default function Home() {
             .from('friend_requests')
             .select(`
               *,
-              sender_profile:profiles!friend_requests_sender_id_fkey(id, name, username, avatar_url),
-              receiver_profile:profiles!friend_requests_receiver_id_fkey(id, name, username, avatar_url)
+              sender_profile:profiles!sender_id(id, name, username, avatar_url),
+              receiver_profile:profiles!receiver_id(id, name, username, avatar_url)
             `)
           if (data) {
             useChatStore.getState().setFriendRequests(data as any[])
