@@ -9,7 +9,7 @@ import { getAvatarUrl } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 
 export function AddFriendModal() {
-  const { isAddFriendModalOpen, setIsAddFriendModalOpen, setActiveChat, chats, friendRequests, fetchRequests, fetchFriends } = useChatStore()
+  const { isAddFriendModalOpen, setIsAddFriendModalOpen, setActiveChat, chats, friendRequests, fetchRequests, fetchFriends, startPrivateChat } = useChatStore()
   const { user } = useAuthStore()
   const [username, setUsername] = useState('')
   const [searching, setSearching] = useState(false)
@@ -77,22 +77,28 @@ export function AddFriendModal() {
     ? friendRequests.find(r => (r.sender_id === user?.id && r.receiver_id === result.id && r.status === 'accepted') || (r.receiver_id === user?.id && r.sender_id === result.id && r.status === 'accepted'))
     : null
 
+  const handleStartChat = async () => {
+    if (!result) return;
+    console.log('handleStartChat: Opening chat with', result.id);
+    await startPrivateChat(result.id);
+    setIsAddFriendModalOpen(false);
+  };
+
   const handleAction = async () => {
     if (!result || !user || actionLoading) return
 
-    if (existingChat) {
-      setActiveChat(existingChat)
-      setIsAddFriendModalOpen(false)
-      return
+    // If already a friend or existing chat => open chat directly
+    if (existingChat || alreadyFriend) {
+      await handleStartChat();
+      return;
     }
 
-    if (pendingRequestSent || alreadyFriend) return
+    if (pendingRequestSent) return
 
     setActionLoading(true)
     try {
       if (pendingRequestReceived) {
         console.log('Accepting incoming request:', pendingRequestReceived.id);
-        // Accept incoming request
         const { error } = await supabase
           .from('friend_requests')
           .update({ status: 'accepted' })
@@ -109,9 +115,13 @@ export function AddFriendModal() {
           ])
           .select();
         if (friendErr) throw friendErr;
+        setActionDone(true)
+        if (user) {
+          fetchRequests(user.id)
+          fetchFriends(user.id)
+        }
       } else {
         console.log('Sending new friend request to:', result.id);
-        // Send new request
         const { error } = await supabase
           .from('friend_requests')
           .insert({ sender_id: user.id, receiver_id: result.id })
@@ -122,11 +132,11 @@ export function AddFriendModal() {
           throw error;
         }
         console.log('Request sent successfully');
-      }
-      setActionDone(true)
-      if (user) {
-        fetchRequests(user.id)
-        fetchFriends(user.id)
+        setActionDone(true)
+        if (user) {
+          fetchRequests(user.id)
+          fetchFriends(user.id)
+        }
       }
     } catch (err: any) {
       console.error('AddFriendModal Action Failed:', err);
@@ -137,9 +147,9 @@ export function AddFriendModal() {
   }
 
   const getActionLabel = () => {
+    if (existingChat) return 'Start Chat'
+    if (alreadyFriend) return 'Start Chat'
     if (actionDone) return 'Request Sent!'
-    if (existingChat) return 'Open Chat'
-    if (alreadyFriend) return 'Already Friends'
     if (pendingRequestSent) return 'Request Pending...'
     if (pendingRequestReceived) return 'Accept Request'
     return 'Send Friend Request'
@@ -147,7 +157,7 @@ export function AddFriendModal() {
 
   const getActionIcon = () => {
     if (actionDone) return <Check size={16} />
-    if (existingChat) return <MessageSquare size={16} fill="currentColor" />
+    if (existingChat || alreadyFriend) return <MessageSquare size={16} fill="currentColor" />
     return <Zap size={16} fill="currentColor" />
   }
 
@@ -312,15 +322,15 @@ export function AddFriendModal() {
                       {/* Action Button */}
                       <button
                         onClick={handleAction}
-                        disabled={actionLoading || !!pendingRequestSent || !!alreadyFriend || actionDone}
+                        disabled={actionLoading || !!pendingRequestSent || actionDone}
                         className={`
                           w-full max-w-[260px] flex items-center justify-center gap-3 py-4 rounded-[1.5rem]
                           font-black uppercase tracking-wider text-[12px] transition-all
                           ${actionDone
                             ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default'
-                            : existingChat
+                            : (existingChat || alreadyFriend)
                               ? 'bg-white text-[#0A0A0B] hover:scale-[1.03] active:scale-95 shadow-xl'
-                              : pendingRequestSent || alreadyFriend
+                              : pendingRequestSent
                                 ? 'bg-white/5 text-text-muted border border-white/10 cursor-not-allowed'
                                 : 'bg-noir-accent text-white hover:scale-[1.03] active:scale-95 shadow-lg shadow-noir-accent/30'
                           }
