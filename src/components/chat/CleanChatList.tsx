@@ -25,8 +25,7 @@ export const CleanChatList = () => {
     friends,
     fetchFriends,
     fetchRequests,
-    startPrivateChat,
-    setIsStartChatModalOpen
+    startPrivateChat
   } = useChatStore();
   
   const [search, setSearch] = useState('');
@@ -151,17 +150,9 @@ export const CleanChatList = () => {
         </div>
         <button 
            onClick={() => setIsAddFriendModalOpen(true)}
-           className="w-12 h-12 bg-surface-high shrink-0 rounded-2xl flex items-center justify-center text-text-muted hover:text-white transition-all border border-outline-variant/30"
-           title="Add Friend"
+           className="w-12 h-12 bg-noir-accent shrink-0 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-noir-accent/20 hover:scale-105 transition-all"
         >
            <UserPlus size={20} />
-        </button>
-        <button 
-           onClick={() => setIsStartChatModalOpen(true)}
-           className="w-12 h-12 bg-noir-accent shrink-0 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-noir-accent/20 hover:scale-105 transition-all"
-           title="New Chat"
-        >
-           <MessageSquare size={20} />
         </button>
       </div>
 

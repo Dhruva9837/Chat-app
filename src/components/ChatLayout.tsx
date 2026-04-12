@@ -12,7 +12,6 @@ import { SettingsView } from './SettingsView'
 import { AddFriendModal } from './AddFriendModal'
 import { SettingsModal } from './SettingsModal'
 import { NewGroupModal } from './NewGroupModal'
-import { StartChatModal } from './chat/StartChatModal'
 import { MobileBottomNav } from './chat/MobileBottomNav'
 import { usePresence } from '@/lib/hooks/usePresence'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -133,7 +132,6 @@ export function ChatLayout() {
       <AddFriendModal />
       <SettingsModal />
       <NewGroupModal />
-      <StartChatModal />
     </div>
   )
 }
