@@ -66,6 +66,11 @@ interface ChatState {
   setFriendRequests: (requests: FriendRequest[]) => void
   addFriendRequest: (request: FriendRequest) => void
   removeFriendRequest: (id: string) => void
+  blockedUsers: string[]
+  blockUser: (userId: string) => Promise<void>
+  unblockUser: (userId: string) => Promise<void>
+  deleteChat: (chatId: string) => Promise<void>
+  fetchBlockedUsers: (userId: string) => Promise<void>
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -91,6 +96,7 @@ export const useChatStore = create<ChatState>((set) => ({
   fontSize: 16,
   friendRequests: [],
   friends: [],
+  blockedUsers: [],
   pinnedChats: (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('nexora-pinned') || '[]') : []),
   fetchFriends: async (userId) => {
     try {
@@ -256,5 +262,61 @@ export const useChatStore = create<ChatState>((set) => ({
   }),
   removeFriendRequest: (id) => set((state) => ({
     friendRequests: state.friendRequests.filter(r => r.id !== id)
-  }))
+  })),
+  fetchBlockedUsers: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('blocks')
+        .select('blocked_id')
+        .eq('blocker_id', userId);
+      if (error) throw error;
+      set({ blockedUsers: data?.map(b => b.blocked_id) || [] });
+    } catch (err) {
+      console.error('Failed to fetch blocked users:', err);
+    }
+  },
+  blockUser: async (blockedId) => {
+    const blockerId = useAuthStore.getState().user?.id;
+    if (!blockerId) return;
+    try {
+      const { error } = await supabase
+        .from('blocks')
+        .insert([{ blocker_id: blockerId, blocked_id: blockedId }]);
+      if (error) throw error;
+      set((state) => ({ blockedUsers: [...state.blockedUsers, blockedId] }));
+    } catch (err) {
+      console.error('Failed to block user:', err);
+    }
+  },
+  unblockUser: async (blockedId) => {
+    const blockerId = useAuthStore.getState().user?.id;
+    if (!blockerId) return;
+    try {
+      const { error } = await supabase
+        .from('blocks')
+        .delete()
+        .match({ blocker_id: blockerId, blocked_id: blockedId });
+      if (error) throw error;
+      set((state) => ({ 
+        blockedUsers: state.blockedUsers.filter(id => id !== blockedId) 
+      }));
+    } catch (err) {
+      console.error('Failed to unblock user:', err);
+    }
+  },
+  deleteChat: async (chatId) => {
+    try {
+      const { error } = await supabase
+        .from('chats')
+        .delete()
+        .eq('id', chatId);
+      if (error) throw error;
+      set((state) => ({
+        chats: state.chats.filter(c => c.id !== chatId),
+        activeChat: state.activeChat?.id === chatId ? null : state.activeChat
+      }));
+    } catch (err) {
+      console.error('Failed to delete chat:', err);
+    }
+  }
 }))

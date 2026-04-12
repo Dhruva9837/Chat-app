@@ -155,229 +155,164 @@ export const CleanChatList = () => {
         </button>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="mx-6 mb-4 flex bg-surface-high p-1 rounded-2xl shrink-0">
-        <button 
-          onClick={() => setChatListTab('chats')} 
-          className={`flex-1 rounded-xl p-2.5 text-[11px] font-bold transition-all ${chatListTab === 'chats' ? 'bg-noir-accent text-white shadow-lg shadow-noir-accent/20' : 'text-text-muted hover:text-white'}`}
-        >
-          Chats
-        </button>
-        <button 
-          onClick={() => setChatListTab('friends')} 
-          className={`flex-1 rounded-xl p-2.5 text-[11px] font-bold transition-all flex items-center justify-center gap-2 ${chatListTab === 'friends' ? 'bg-noir-accent text-white shadow-lg shadow-noir-accent/20' : 'text-text-muted hover:text-white'}`}
-        >
-          <span>Friends</span>
-          {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).length > 0 && (
-             <div className="w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center text-white text-[9px] font-black">
-                {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).length}
-             </div>
-          )}
-        </button>
-      </div>
-
-      {/* Chat Scroll Area */}
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-6 space-y-1">
+      {/* Unified Friends & Chat View */}
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-6">
         <AnimatePresence>
-          {/* Display Global Search Results if searching */}
+          {/* Snapchat-style Friends Carousel */}
+          {friends.length > 0 && !search && (
+            <motion.div 
+               initial={{ opacity: 0, y: -20 }}
+               animate={{ opacity: 1, y: 0 }}
+               className="px-6 mb-8 mt-2"
+            >
+               <h4 className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-4 flex justify-between items-center">
+                 <span>Connected Nodes</span>
+                 <span className="text-noir-accent">{friends.length}</span>
+               </h4>
+               <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                 {friends.map((f: any) => {
+                   const profile = f.friend_profile;
+                   if (!profile) return null;
+                   const isOnline = onlineUsers[profile.id]?.status === 'online';
+                   const existingChat = chats.find(c => c.type === 'private' && c.chat_participants?.some((p:any) => p.user_id === profile.id));
+                   
+                   return (
+                     <div 
+                       key={f.id} 
+                       onClick={() => existingChat ? setActiveChat(existingChat) : setIsAddFriendModalOpen(true)}
+                       className="flex flex-col items-center gap-2 group cursor-pointer shrink-0"
+                     >
+                       <div className="relative">
+                         <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all p-0.5 ${isOnline ? 'border-noir-accent shadow-lg shadow-noir-accent/20' : 'border-outline-variant grayscale opacity-60'}`}>
+                           <img 
+                             src={getAvatarUrl(profile)} 
+                             alt="" 
+                             className="w-full h-full object-cover rounded-[0.8rem]" 
+                           />
+                         </div>
+                         {isOnline && (
+                           <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-surface-lowest rounded-full shadow-lg"></div>
+                         )}
+                       </div>
+                       <span className="text-[10px] font-bold text-text-muted group-hover:text-white transition-colors truncate max-w-[56px]">
+                         {profile.name.split(' ')[0]}
+                       </span>
+                     </div>
+                   );
+                 })}
+               </div>
+            </motion.div>
+          )}
+
+          {/* Pending Requests Section (Small & Clean) */}
+          {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).length > 0 && !search && (
+            <div className="px-6 mb-8">
+              <h4 className="text-[10px] font-black uppercase text-rose-500 tracking-widest mb-4">Transmission Requests</h4>
+              <div className="space-y-3">
+                {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).map(req => (
+                  <div key={req.id} className="flex items-center gap-3 p-3 bg-surface-high/50 border border-outline-variant/30 rounded-[1.4rem]">
+                    <img src={getAvatarUrl(req.sender_profile)} alt="" className="w-10 h-10 rounded-xl shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <h5 className="text-[12px] font-black text-white truncate">{req.sender_profile.name}</h5>
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      <button onClick={() => handleRequestAction(req.id, 'accept')} className="w-8 h-8 rounded-lg bg-noir-accent/20 text-noir-accent hover:bg-noir-accent hover:text-white transition-all"><Check size={14}/></button>
+                      <button onClick={() => handleRequestAction(req.id, 'reject')} className="w-8 h-8 rounded-lg bg-surface-highest text-text-muted hover:text-rose-500 transition-all"><X size={14}/></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search Results */}
           {search.length >= 2 && (searchResults.profiles.length > 0 || searchResults.messages.length > 0) && (
             <motion.div 
                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-               className="px-6 pb-4 mb-4 border-b border-outline-variant"
+               className="px-6 pb-4 mb-4"
             >
-               <h4 className="text-[10px] font-black uppercase text-noir-accent tracking-widest mb-3">Global Discovery</h4>
-               
-               {searchResults.profiles.length > 0 && (
-                 <div className="mb-4">
-                    <span className="text-[10px] text-text-muted font-bold block mb-2">ENTITIES</span>
-                    {searchResults.profiles.map(p => (
-                       <div key={p.id} onClick={() => setIsAddFriendModalOpen(true)} className="flex items-center gap-3 p-2 hover:bg-[#1E1E20] rounded-[1rem] cursor-pointer group transition-all">
-                          <User size={14} className="text-text-muted group-hover:text-white" />
-                          <span className="text-sm font-bold text-white group-hover:text-noir-accent">{p.name}</span>
-                       </div>
-                    ))}
+               <h4 className="text-[10px] font-black uppercase text-noir-accent tracking-widest mb-3">Protocol Discovery</h4>
+               {searchResults.profiles.map(p => (
+                 <div key={p.id} onClick={() => setIsAddFriendModalOpen(true)} className="flex items-center gap-3 p-3 hover:bg-surface-high rounded-2xl cursor-pointer group transition-all mb-2">
+                    <img src={getAvatarUrl(p)} alt="" className="w-10 h-10 rounded-xl" />
+                    <span className="text-sm font-bold text-white group-hover:text-noir-accent">{p.name}</span>
                  </div>
-               )}
-
-               {searchResults.messages.length > 0 && (
-                 <div>
-                    <span className="text-[10px] text-text-muted font-bold block mb-2">TRANSMISSIONS</span>
-                    {searchResults.messages.map(m => {
-                       const relatedChat = chats.find(c => c.id === m.chat_id);
-                       return (
-                         <div 
-                           key={m.id} 
-                           onClick={() => { if(relatedChat) setActiveChat(relatedChat); }}
-                           className="flex flex-col gap-1 p-3 hover:bg-[#1E1E20] rounded-[1rem] cursor-pointer group transition-all"
-                         >
-                            <div className="flex items-center gap-2">
-                               <MessageSquare size={12} className="text-text-muted group-hover:text-noir-accent" />
-                               <span className="text-[11px] font-black text-white">{m.sender?.name || 'User'}</span>
-                            </div>
-                            <span className="text-[12px] text-text-muted line-clamp-1 italic">"{m.content}"</span>
-                         </div>
-                       )
-                    })}
-                 </div>
-               )}
+               ))}
             </motion.div>
           )}
 
-          {/* Standard Chat List */}
-          {chatListTab === 'chats' ? filteredChats.map((chat: any) => {
-            const isActive = activeChat?.id === chat.id;
-            const isGroup = chat.type === 'group';
-            const isPinned = pinnedChats.includes(chat.id);
-            const allParticipants = chat.chat_participants || [];
-            const otherParticipant = allParticipants.find((p: any) => p.user_id !== user?.id) || allParticipants[0];
-            const participantProfile = otherParticipant?.profiles;
-            const chatName = isGroup ? (chat.name || 'Office chat') : (participantProfile?.name || 'User');
-            
-            const lastMsg = chat.last_message;
-            const unreadCount = chat.unread_count || 0;
-            const isTyping = typingUsers[otherParticipant?.user_id || ''];
-            
-            const timeRaw = lastMsg ? new Date(lastMsg.created_at) : new Date(chat.created_at);
-            const time = lastMsg ? timeRaw.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase() : '4 m';
+          {/* Active Conversations */}
+          <div className="pt-2">
+            {!search && <h4 className="px-6 text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">Recent Transmissions</h4>}
+            {filteredChats.map((chat: any) => {
+              const isActive = activeChat?.id === chat.id;
+              const isGroup = chat.type === 'group';
+              const isPinned = pinnedChats.includes(chat.id);
+              const allParticipants = chat.chat_participants || [];
+              const otherParticipant = allParticipants.find((p: any) => p.user_id !== user?.id) || allParticipants[0];
+              const participantProfile = otherParticipant?.profiles;
+              
+              const chatName = isGroup ? (chat.name || 'Office chat') : (participantProfile?.name || 'User');
+              
+              const lastMsg = chat.last_message;
+              const unreadCount = chat.unread_count || 0;
+              const isTyping = typingUsers[otherParticipant?.user_id || ''];
+              
+              const timeRaw = lastMsg ? new Date(lastMsg.created_at) : new Date(chat.created_at);
+              const time = lastMsg ? timeRaw.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase() : 'now';
 
-            return (
-              <motion.div 
-                key={chat.id}
-                onClick={() => setActiveChat(chat)}
-                layout
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className={`
-                  mx-2 px-4 py-4 flex items-center gap-4 cursor-pointer transition-all rounded-[1.8rem] group relative
-                  ${isActive ? 'bg-surface-high' : 'hover:bg-[#1E1E20]'}
-                `}
-              >
-                {/* Avatar with specialized radius */}
-                <div className="relative shrink-0">
-                  <div className="w-14 h-14 rounded-[1.6rem] overflow-hidden border-2 border-[#202022] group-hover:border-[#303032] transition-colors bg-surface-bubble">
-                    <img 
-                      src={getAvatarUrl(isGroup ? chat : participantProfile)} 
-                      alt={chatName} 
-                      className="w-full h-full object-cover" 
-                    />
-                  </div>
-                  {!isGroup && otherParticipant && onlineUsers[otherParticipant.user_id]?.status === 'online' && (
-                     <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface-lowest rounded-full"></div>
-                  )}
-                </div>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center mb-1">
-                    <h3 className="text-[15px] font-display font-black text-white truncate tracking-tight flex items-center gap-2">
-                      {chatName}
-                      {isPinned && <Pin size={10} className="fill-noir-accent text-noir-accent opacity-80 shrink-0" />}
-                    </h3>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                       {lastMsg?.sender_id === user?.id && (
-                         <div className="text-text-muted">
-                            {lastMsg.is_read ? <CheckCheck size={14} className="text-noir-accent" /> : <Check size={14} />}
-                         </div>
-                       )}
-                       <span className="text-[11px] text-text-muted font-bold whitespace-nowrap">
-                         {time.replace(':00', '')}
-                       </span>
+              return (
+                <motion.div 
+                  key={chat.id}
+                  onClick={() => setActiveChat(chat)}
+                  layout
+                  className={`
+                    mx-2 px-4 py-3.5 flex items-center gap-4 cursor-pointer transition-all rounded-[1.8rem] group relative mb-1
+                    ${isActive ? 'bg-surface-high shadow-lg' : 'hover:bg-[#1E1E20]'}
+                  `}
+                >
+                  <div className="relative shrink-0">
+                    <div className="w-14 h-14 rounded-[1.6rem] overflow-hidden border-2 border-[#202022] group-hover:border-[#303032] transition-colors bg-surface-bubble">
+                      <img 
+                        src={getAvatarUrl(isGroup ? chat : participantProfile)} 
+                        alt={chatName} 
+                        className="w-full h-full object-cover" 
+                      />
                     </div>
+                    {!isGroup && otherParticipant && onlineUsers[otherParticipant.user_id]?.status === 'online' && (
+                       <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-surface-lowest rounded-full"></div>
+                    )}
                   </div>
                   
-                  <div className="flex justify-between items-center">
-                    <p className={`text-[13px] truncate ${
-                      isTyping ? 'text-noir-accent font-bold italic' : 'text-text-muted'
-                    }`}>
-                      {isTyping ? 'Typing...' : (lastMsg?.content || 'Initiated connection...')}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center mb-0.5">
+                      <h3 className="text-[14px] font-display font-black text-white truncate tracking-tight flex items-center gap-2">
+                        {chatName}
+                        {isPinned && <Pin size={10} className="fill-noir-accent text-noir-accent opacity-80 shrink-0" />}
+                      </h3>
+                      <span className="text-[10px] text-text-muted font-bold whitespace-nowrap">
+                        {time.replace(':00', '')}
+                      </span>
+                    </div>
                     
-                    {unreadCount > 0 && (
-                      <div className="ml-2 px-2 py-0.5 bg-noir-accent text-white text-[10px] font-black rounded-full min-w-[20px] flex items-center justify-center shadow-lg shadow-noir-accent/20">
-                        {unreadCount}
-                      </div>
-                    )}
-                    
-                    {!unreadCount && (
-                        <button 
-                           onClick={(e) => { e.stopPropagation(); togglePinChat(chat.id); }}
-                           className={`ml-2 p-1 rounded-md transition-all ${isPinned ? 'opacity-100 text-noir-accent' : 'opacity-0 group-hover:opacity-100 text-text-muted hover:text-white'}`}
-                        >
-                           <Pin size={14} className={isPinned ? 'fill-noir-accent' : ''} />
-                        </button>
-                    )}
+                    <div className="flex justify-between items-center">
+                      <p className={`text-[12px] truncate ${
+                        isTyping ? 'text-noir-accent font-bold italic' : 'text-text-muted'
+                      }`}>
+                        {isTyping ? 'Typing...' : (lastMsg?.content || 'Initiated connection...')}
+                      </p>
+                      
+                      {unreadCount > 0 && (
+                        <div className="ml-2 w-5 h-5 bg-noir-accent text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-lg shadow-noir-accent/20">
+                          {unreadCount}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            );
-          }) : (
-            <motion.div 
-               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-               className="space-y-8 px-6 pb-6"
-            >
-              {/* Incoming Requests */}
-              {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).length > 0 && (
-                 <div>
-                   <h4 className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">Pending Requests</h4>
-                   <div className="space-y-3">
-                     {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).map(req => (
-                       <div key={req.id} className="flex items-center gap-3 p-3 bg-surface-high border border-outline-variant rounded-[1.4rem]">
-                         <img src={getAvatarUrl(req.sender_profile)} alt="" className="w-12 h-12 rounded-[1.2rem] shrink-0" />
-                         <div className="flex-1 min-w-0">
-                           <h5 className="text-[13px] font-black text-white truncate">{req.sender_profile.name}</h5>
-                           <p className="text-[11px] text-text-muted truncate">@{req.sender_profile.username}</p>
-                         </div>
-                         <div className="flex gap-2 shrink-0">
-                           <button onClick={() => handleRequestAction(req.id, 'accept')} className="w-9 h-9 rounded-[1rem] bg-noir-accent hover:bg-noir-accent/90 flex items-center justify-center text-white shadow-lg shadow-noir-accent/20 transition-all active:scale-95"><Check size={16}/></button>
-                           <button onClick={() => handleRequestAction(req.id, 'reject')} className="w-9 h-9 rounded-[1rem] bg-surface-highest hover:bg-[#2A2A2C] flex items-center justify-center text-text-muted hover:text-rose-500 transition-all active:scale-95"><X size={16}/></button>
-                         </div>
-                       </div>
-                     ))}
-                   </div>
-                 </div>
-              )}
-
-              {/* Friends List */}
-              <div className="flex-1 min-h-0">
-                 <h4 className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">My Friends ({friends.length})</h4>
-                 {friends.length === 0 ? (
-                   <div className="text-center py-10 opacity-60">
-                     <User size={32} className="mx-auto mb-3 text-text-muted" />
-                     <p className="text-[13px] font-bold text-white">No friends yet</p>
-                     <p className="text-[11px] text-text-muted">Use the discovery button to connect.</p>
-                   </div>
-                 ) : (
-                   <div className="space-y-2">
-                     {friends.map((f: any) => {
-                       const profile = f.friend_profile;
-                       if (!profile) return null;
-                       const existingChat = chats.find(c => c.type === 'private' && c.chat_participants?.some((p:any) => p.user_id === profile.id));
-                       return (
-                         <div key={f.id} onClick={() => existingChat ? setActiveChat(existingChat) : setIsAddFriendModalOpen(true)} className="flex items-center gap-3 sm:gap-4 p-3 hover:bg-[#1E1E20] rounded-[1.4rem] transition-colors group cursor-pointer border border-transparent hover:border-outline-variant">
-                           <div className="relative shrink-0">
-                              <img src={getAvatarUrl(profile)} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-[1.2rem] bg-surface-high object-cover" />
-                              {onlineUsers[profile.id]?.status === 'online' && (
-                                 <div className="absolute bottom-0 right-0 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 border-2 border-surface-lowest rounded-full"></div>
-                              )}
-                           </div>
-                           <div className="flex-1 min-w-0">
-                             <h5 className="text-[13px] sm:text-[14px] font-display font-black text-white truncate mb-0.5">{profile.name}</h5>
-                             <p className="text-[10px] sm:text-[11px] font-bold text-text-muted truncate uppercase tracking-widest">Connected Node</p>
-                           </div>
-                           <button 
-                             onClick={(e) => { e.stopPropagation(); handleRemoveFriend(profile.id); }} 
-                             className="w-8 h-8 sm:w-10 sm:h-10 rounded-[0.8rem] sm:rounded-[1rem] bg-surface-high flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:text-rose-500 hover:bg-rose-500/10 transition-all border border-outline-variant/50"
-                             title="Remove Connection"
-                           >
-                             <UserMinus size={14}/>
-                           </button>
-                         </div>
-                       )
-                     })}
-                   </div>
-                 )}
-              </div>
-            </motion.div>
-          )}
+                </motion.div>
+              );
+            })}
+          </div>
         </AnimatePresence>
       </div>
     </div>

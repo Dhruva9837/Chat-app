@@ -31,7 +31,8 @@ export const CleanChatWindow = () => {
     setActiveChat, 
     setTypingUser,
     setShowInfoPanel,
-    showInfoPanel
+    showInfoPanel,
+    blockedUsers
   } = useChatStore();
   
   const [messages, setMessages] = useState<any[]>([]);
@@ -224,6 +225,7 @@ export const CleanChatWindow = () => {
   const isGroup = activeChat.type === 'group';
   const otherParticipant = activeChat.chat_participants?.find((p: any) => p.user_id !== user?.id) || activeChat.chat_participants?.[0];
   const chatName = isGroup ? (activeChat.name || 'Office chat') : (otherParticipant?.profiles?.name || 'User');
+  const isBlocked = !isGroup && otherParticipant ? blockedUsers.includes(otherParticipant.user_id) : false;
 
   return (
     <div className="flex-1 h-full bg-surface-lowest flex flex-col relative select-none">
@@ -411,9 +413,9 @@ export const CleanChatWindow = () => {
           <input 
             type="text" 
             value={newMessage}
-            disabled={isUploading}
+            disabled={isUploading || isBlocked}
             onChange={(e) => handleTyping(e.target.value)}
-            placeholder={isUploading ? "Uploading media..." : "Type your message"} 
+            placeholder={isBlocked ? "Connection Terminated (User Blocked)" : isUploading ? "Uploading media..." : "Type your message"} 
             className="flex-1 bg-transparent border-none outline-none text-[15px] text-white placeholder-text-muted py-5 px-2 font-medium disabled:opacity-50"
           />
 
@@ -430,10 +432,10 @@ export const CleanChatWindow = () => {
                <motion.button 
                  initial={{ scale: 0.8, opacity: 0 }}
                  animate={{ scale: 1, opacity: 1 }}
-                 disabled={isUploading}
                  type="submit" 
+                 disabled={isUploading || isBlocked}
                  className={`p-4 rounded-full flex items-center justify-center transition-all ${
-                   isUploading 
+                   isUploading || isBlocked
                     ? 'bg-[#2A2A2C] text-text-muted border border-outline-variant' 
                     : 'bg-noir-accent text-white shadow-lg shadow-noir-accent/30 hover:scale-105 active:scale-95'
                  }`}

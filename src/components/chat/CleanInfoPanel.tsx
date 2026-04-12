@@ -13,18 +13,37 @@ import {
   MicOff,
   Clock,
   Eye,
-  Download
+  Download,
+  ShieldAlert,
+  Trash2,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
+import { useAuthStore } from '@/store/authStore';
 import { getAvatarUrl } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const CleanInfoPanel = () => {
-  const { activeChat, showInfoPanel, setShowInfoPanel } = useChatStore();
+  const { user } = useAuthStore();
+  const { 
+    activeChat, 
+    showInfoPanel, 
+    setShowInfoPanel, 
+    deleteChat, 
+    blockUser, 
+    unblockUser, 
+    blockedUsers 
+  } = useChatStore();
+  
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
   if (!activeChat || !showInfoPanel) return null;
 
   const isGroup = activeChat.type === 'group';
+  const otherParticipant = activeChat.chat_participants?.find((p: any) => p.user_id !== user?.id);
+  const otherUser = otherParticipant?.profiles;
+  const isBlocked = otherUser ? blockedUsers.includes(otherUser.id) : false;
   
   const photos = [
     { src: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=200&auto=format&fit=crop', id: 1 },
@@ -148,6 +167,58 @@ export const CleanInfoPanel = () => {
              ))}
           </div>
         </section>
+
+        {/* Danger Zone */}
+        {!isGroup && otherUser && (
+          <section className="pt-6 border-t border-noir-accent/10">
+            <h3 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-4 opacity-80">Danger Zone</h3>
+            <div className="space-y-3">
+              {isBlocked ? (
+                <button 
+                  onClick={() => unblockUser(otherUser.id)}
+                  className="w-full py-4 bg-surface-high hover:bg-[#2A2A2C] border border-outline-variant rounded-2xl flex items-center justify-center gap-3 text-white transition-all group"
+                >
+                  <Unlock size={18} className="text-noir-accent group-hover:scale-110 transition-transform" />
+                  <span className="text-[12px] font-black uppercase tracking-widest">Unblock Protocol</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => blockUser(otherUser.id)}
+                  className="w-full py-4 bg-surface-high hover:bg-rose-500/5 border border-outline-variant hover:border-rose-500/30 rounded-2xl flex items-center justify-center gap-3 text-text-muted hover:text-rose-500 transition-all group"
+                >
+                  <Lock size={18} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-[12px] font-black uppercase tracking-widest">Block Protocol</span>
+                </button>
+              )}
+
+              {isDeleting ? (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => { deleteChat(activeChat.id); setShowInfoPanel(false); }}
+                    className="flex-1 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-rose-500/20"
+                  >
+                    <Trash2 size={18}/>
+                    <span className="text-[11px] font-black uppercase tracking-widest">Confirm Wipe</span>
+                  </button>
+                  <button 
+                    onClick={() => setIsDeleting(false)}
+                    className="flex-1 py-4 bg-surface-high hover:bg-[#2A2A2C] text-text-muted rounded-2xl flex items-center justify-center text-[11px] font-black uppercase tracking-widest border border-outline-variant"
+                  >
+                    Abort
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setIsDeleting(true)}
+                  className="w-full py-4 bg-surface-high hover:bg-rose-500/5 border border-outline-variant hover:border-rose-500/30 rounded-2xl flex items-center justify-center gap-3 text-text-muted hover:text-rose-500 transition-all group"
+                >
+                  <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
+                  <span className="text-[12px] font-black uppercase tracking-widest">Terminate Connection</span>
+                </button>
+              )}
+            </div>
+          </section>
+        )}
 
       </div>
     </motion.aside>

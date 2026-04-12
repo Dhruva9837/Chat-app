@@ -98,6 +98,14 @@ create policy "Users can create chats." on public.chats
 create policy "Users can add participants." on public.chat_participants
   for insert with check (auth.uid() is not null);
 
+create policy "Users can delete chats they participate in." on public.chats
+  for delete using (
+    exists (
+      select 1 from public.chat_participants
+      where chat_id = public.chats.id and user_id = auth.uid()
+    )
+  );
+
 -- Messages: users can see messages in chats they belong to
 create policy "Users can view messages in their chats." on public.messages
   for select using (

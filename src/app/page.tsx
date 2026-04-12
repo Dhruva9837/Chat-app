@@ -83,6 +83,9 @@ export default function Home() {
           if (requestsRes.data) {
             setFriendRequests(requestsRes.data as any[])
           }
+
+          // Fetch blocked users
+          useChatStore.getState().fetchBlockedUsers(session.user.id)
         } else {
           setUser(null)
           setProfile(null)
