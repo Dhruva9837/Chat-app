@@ -47,27 +47,32 @@ export const CleanChatWindow = () => {
   const typingTimeoutRef = useRef<any>(null);
 
   useEffect(() => {
-    if (!activeChat) return;
+    if (!activeChat || activeChat.id === 'pending') return;
     
     const fetchMessages = async () => {
-      const { data } = await supabase
-        .from('messages')
-        .select(`
-          *,
-          profiles:sender_id (id, name, avatar_url)
-        `)
-        .eq('chat_id', activeChat.id)
-        .order('created_at', { ascending: true });
-        
-      if (data) {
-        setMessages(data);
-        const unreadIds = data.filter(m => !m.is_read && m.sender_id !== user?.id).map(m => m.id);
-        if (unreadIds.length > 0) {
-          await supabase.from('messages').update({ is_read: true }).in('id', unreadIds);
+      try {
+        const { data, error } = await supabase
+          .from('messages')
+          .select(`
+            *,
+            profiles:sender_id (id, name, avatar_url)
+          `)
+          .eq('chat_id', activeChat.id)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        if (data) {
+          setMessages(data);
+          const unreadIds = data.filter(m => !m.is_read && m.sender_id !== user?.id).map(m => m.id);
+          if (unreadIds.length > 0) {
+            await supabase.from('messages').update({ is_read: true }).in('id', unreadIds);
+          }
         }
+      } catch (err) {
+        console.error('Failed to fetch messages:', err);
       }
     };
-
+    
     fetchMessages();
 
     const channel = supabase

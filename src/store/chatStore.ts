@@ -106,12 +106,58 @@ export const useChatStore = create<ChatState>((set) => ({
     try {
       const { data: friends, error } = await supabase
         .from('friends')
-        .select('id, friend_id, user_id, created_at, friend_profile:profiles!friend_id(*)')
+        .select(`
+          id, 
+          friend_id, 
+          user_id, 
+          created_at, 
+          friend_profile:profiles!friend_id(*)
+        `)
         .eq('user_id', userId);
       if (error) throw error;
       set({ friends: friends || [] })
     } catch (err) {
       console.error('Failed to fetch friends:', err)
+    }
+  },
+  fetchBlockedUsers: async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('blocks')
+        .select('blocked_id')
+        .eq('blocker_id', userId);
+      if (error) throw error;
+      set({ blockedUsers: data?.map((b: any) => b.blocked_id) || [] });
+    } catch (err) {
+      console.error('Failed to fetch blocked users:', err);
+    }
+  },
+  blockUser: async (blockedId) => {
+    const { user } = useAuthStore.getState();
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('blocks')
+        .insert({ blocker_id: user.id, blocked_id: blockedId });
+      if (error) throw error;
+      set(s => ({ blockedUsers: [...s.blockedUsers, blockedId] }));
+    } catch (err) {
+      console.error('Failed to block user:', err);
+    }
+  },
+  unblockUser: async (blockedId) => {
+    const { user } = useAuthStore.getState();
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('blocks')
+        .delete()
+        .eq('blocker_id', user.id)
+        .eq('blocked_id', blockedId);
+      if (error) throw error;
+      set(s => ({ blockedUsers: s.blockedUsers.filter(id => id !== blockedId) }));
+    } catch (err) {
+      console.error('Failed to unblock user:', err);
     }
   },
   fetchRequests: async (userId) => {
@@ -387,7 +433,13 @@ export const useChatStore = create<ChatState>((set) => ({
               *,
               chat_participants (
                 user_id,
-                profiles:user_id (id, name, avatar_url, email, gender)
+                profiles (*)
+              ),
+              messages (
+                content,
+                created_at,
+                is_read,
+                sender_id
               )
             `)
             .eq('id', matchData.chat_id)
@@ -430,7 +482,7 @@ export const useChatStore = create<ChatState>((set) => ({
           *,
           chat_participants (
             user_id,
-            profiles:user_id (id, name, avatar_url, email, gender)
+            profiles (*)
           )
         `)
         .eq('id', newChat.id)
@@ -449,6 +501,8 @@ export const useChatStore = create<ChatState>((set) => ({
 
     } catch (err) {
       console.error('[startPrivateChat] CRITICAL FAILURE:', err);
+      // Reset activeChat on failure so the UI doesn't stay stuck on "Establishing..."
+      set({ activeChat: null });
     }
   }
 }))

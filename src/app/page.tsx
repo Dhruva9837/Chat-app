@@ -26,39 +26,26 @@ export default function Home() {
           
           // Parallel fetch for profile, settings, and initial chats
           const [profileRes, settingsRes, chatsRes, requestsRes] = await Promise.all([
-            supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single(),
-            supabase
-              .from('user_settings')
-              .select('*')
-              .eq('id', session.user.id)
-              .single(),
-            supabase
-              .from('chats')
-              .select(`
-                *,
-                chat_participants (
-                  user_id,
-                  profiles:user_id (id, name, avatar_url, email, gender)
-                ),
-                messages (
-                  content,
-                  created_at,
-                  is_read,
-                  sender_id
-                )
-              `)
-              .order('created_at', { ascending: false }),
-            supabase
-              .from('friend_requests')
-              .select(`
-                *,
-                sender_profile:profiles!sender_id(id, name, username, avatar_url),
-                receiver_profile:profiles!receiver_id(id, name, username, avatar_url)
-              `)
+            supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+            supabase.from('user_settings').select('*').eq('id', session.user.id).single(),
+            supabase.from('chats').select(`
+              *,
+              chat_participants (
+                user_id,
+                profiles (*)
+              ),
+              messages (
+                content,
+                created_at,
+                is_read,
+                sender_id
+              )
+            `).order('created_at', { ascending: false }),
+            supabase.from('friend_requests').select(`
+              *,
+              sender_profile:profiles!sender_id(*),
+              receiver_profile:profiles!receiver_id(*)
+            `)
           ])
 
           if (profileRes.data) setProfile(profileRes.data)
@@ -90,8 +77,14 @@ export default function Home() {
           setUser(null)
           setProfile(null)
         }
-      } catch (e) {
+      } catch (e: any) {
         console.error('Auth initialization error:', e)
+        // Auto-fix for "Refresh Token Not Found" error
+        if (e.message?.includes('Refresh Token') || e.status === 400) {
+          console.warn('Invalid session detected, clearing storage...')
+          await supabase.auth.signOut()
+          localStorage.clear() // Force clear any stale data
+        }
         setUser(null)
         setProfile(null)
       } finally {
