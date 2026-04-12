@@ -333,6 +333,9 @@ export const useChatStore = create<ChatState>((set) => ({
 
     console.log('startPrivateChat: Initializing for target user:', otherUserId);
 
+    // First, switch to chat view immediately so UI is responsive
+    set({ activeView: 'chat' });
+
     // 1. Check if private chat already exists in local state
     const state = useChatStore.getState();
     const existingChat = state.chats.find(chat => 
@@ -341,9 +344,10 @@ export const useChatStore = create<ChatState>((set) => ({
     );
 
     if (existingChat) {
-      console.log('startPrivateChat: Existing chat found, auto-switching...', existingChat.id);
+      console.log('startPrivateChat: Existing chat found, switching...', existingChat.id);
+      // Force a new object reference to guarantee React re-render
       set({ 
-        activeChat: existingChat,
+        activeChat: { ...existingChat },
         messages: [],
         nextCursor: null,
         hasMore: true,
@@ -352,7 +356,7 @@ export const useChatStore = create<ChatState>((set) => ({
       return;
     }
 
-    console.log('startPrivateChat: No existing chat found. Attempting to create one...');
+    console.log('startPrivateChat: No existing chat found. Creating...');
     try {
       // 2. Create new chat record
       const { data: newChat, error: chatError } = await supabase
@@ -390,17 +394,20 @@ export const useChatStore = create<ChatState>((set) => ({
       
       if (fullChatError) throw fullChatError;
 
-      // 5. Update state
+      // 5. Update state — set activeChat first so mobile layout shows chat window
       const processedChat = {
         ...fullChat,
         last_message: null,
         unread_count: 0
       };
 
-      console.log('startPrivateChat: Chat initialized successfully, setting as active');
+      console.log('startPrivateChat: Setting active chat:', processedChat.id);
       set((state) => ({
         chats: [processedChat as any, ...state.chats],
         activeChat: processedChat as any,
+        messages: [],
+        nextCursor: null,
+        hasMore: true,
         activeView: 'chat'
       }));
 
@@ -409,3 +416,4 @@ export const useChatStore = create<ChatState>((set) => ({
     }
   }
 }))
+
