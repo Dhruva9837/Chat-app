@@ -72,7 +72,7 @@ export const CleanInfoPanel = () => {
     >
       {/* Header */}
       <div className="px-8 pt-10 pb-6 flex items-center justify-between">
-        <h2 className="text-[17px] font-display font-black text-white tracking-tight uppercase">Chat Details</h2>
+        <h2 className="text-[17px] font-display font-black text-white tracking-tight uppercase">Chat Info</h2>
         <button 
           onClick={() => setShowInfoPanel(false)}
           className="p-1.5 text-text-muted hover:text-white transition-colors"
@@ -179,7 +179,7 @@ export const CleanInfoPanel = () => {
                   className="w-full py-4 bg-surface-high hover:bg-[#2A2A2C] border border-outline-variant rounded-2xl flex items-center justify-center gap-3 text-white transition-all group"
                 >
                   <Unlock size={18} className="text-noir-accent group-hover:scale-110 transition-transform" />
-                  <span className="text-[12px] font-black uppercase tracking-widest">Unblock Protocol</span>
+                  <span className="text-[12px] font-black uppercase tracking-widest">Unblock User</span>
                 </button>
               ) : (
                 <button 
@@ -187,7 +187,7 @@ export const CleanInfoPanel = () => {
                   className="w-full py-4 bg-surface-high hover:bg-rose-500/5 border border-outline-variant hover:border-rose-500/30 rounded-2xl flex items-center justify-center gap-3 text-text-muted hover:text-rose-500 transition-all group"
                 >
                   <Lock size={18} className="group-hover:scale-110 transition-transform" />
-                  <span className="text-[12px] font-black uppercase tracking-widest">Block Protocol</span>
+                  <span className="text-[12px] font-black uppercase tracking-widest">Block User</span>
                 </button>
               )}
 
@@ -198,7 +198,7 @@ export const CleanInfoPanel = () => {
                     className="flex-1 py-4 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-rose-500/20"
                   >
                     <Trash2 size={18}/>
-                    <span className="text-[11px] font-black uppercase tracking-widest">Confirm Wipe</span>
+                    <span className="text-[11px] font-black uppercase tracking-widest">Confirm Delete</span>
                   </button>
                   <button 
                     onClick={() => setIsDeleting(false)}
@@ -213,7 +213,7 @@ export const CleanInfoPanel = () => {
                   className="w-full py-4 bg-surface-high hover:bg-rose-500/5 border border-outline-variant hover:border-rose-500/30 rounded-2xl flex items-center justify-center gap-3 text-text-muted hover:text-rose-500 transition-all group"
                 >
                   <Trash2 size={18} className="group-hover:scale-110 transition-transform" />
-                  <span className="text-[12px] font-black uppercase tracking-widest">Terminate Connection</span>
+                  <span className="text-[12px] font-black uppercase tracking-widest">Delete Conversation</span>
                 </button>
               )}
             </div>

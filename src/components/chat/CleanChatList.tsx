@@ -136,7 +136,7 @@ export const CleanChatList = () => {
           />
           <input 
             type="text" 
-            placeholder="Search Protocol..." 
+            placeholder="Search..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-12 pr-10 py-3 bg-surface-high rounded-2xl text-[13px] border-none focus:ring-0 transition-all outline-none text-white placeholder:text-text-muted font-medium"
@@ -166,7 +166,7 @@ export const CleanChatList = () => {
                className="px-6 mb-8 mt-2"
             >
                <h4 className="text-[10px] font-black uppercase text-text-muted tracking-widest mb-4 flex justify-between items-center">
-                 <span>Connected Nodes</span>
+                 <span>My Friends</span>
                  <span className="text-noir-accent">{friends.length}</span>
                </h4>
                <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
@@ -207,7 +207,7 @@ export const CleanChatList = () => {
           {/* Pending Requests Section (Small & Clean) */}
           {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).length > 0 && !search && (
             <div className="px-6 mb-8">
-              <h4 className="text-[10px] font-black uppercase text-rose-500 tracking-widest mb-4">Transmission Requests</h4>
+              <h4 className="text-[10px] font-black uppercase text-rose-500 tracking-widest mb-4">Friend Requests</h4>
               <div className="space-y-3">
                 {friendRequests.filter(r => r.status === 'pending' && r.receiver_id === user?.id).map(req => (
                   <div key={req.id} className="flex items-center gap-3 p-3 bg-surface-high/50 border border-outline-variant/30 rounded-[1.4rem]">
@@ -231,7 +231,7 @@ export const CleanChatList = () => {
                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                className="px-6 pb-4 mb-4"
             >
-               <h4 className="text-[10px] font-black uppercase text-noir-accent tracking-widest mb-3">Protocol Discovery</h4>
+               <h4 className="text-[10px] font-black uppercase text-noir-accent tracking-widest mb-3">Find Friends</h4>
                {searchResults.profiles.map(p => (
                  <div key={p.id} onClick={() => setIsAddFriendModalOpen(true)} className="flex items-center gap-3 p-3 hover:bg-surface-high rounded-2xl cursor-pointer group transition-all mb-2">
                     <img src={getAvatarUrl(p)} alt="" className="w-10 h-10 rounded-xl" />
@@ -243,7 +243,7 @@ export const CleanChatList = () => {
 
           {/* Active Conversations */}
           <div className="pt-2">
-            {!search && <h4 className="px-6 text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">Recent Transmissions</h4>}
+            {!search && <h4 className="px-6 text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">Messages</h4>}
             {filteredChats.map((chat: any) => {
               const isActive = activeChat?.id === chat.id;
               const isGroup = chat.type === 'group';
@@ -299,7 +299,7 @@ export const CleanChatList = () => {
                       <p className={`text-[12px] truncate ${
                         isTyping ? 'text-noir-accent font-bold italic' : 'text-text-muted'
                       }`}>
-                        {isTyping ? 'Typing...' : (lastMsg?.content || 'Initiated connection...')}
+                        {isTyping ? 'Typing...' : (lastMsg?.content || 'Start chatting...')}
                       </p>
                       
                       {unreadCount > 0 && (

@@ -224,7 +224,7 @@ export default function Home() {
            />
         </motion.div>
         <div className="mt-12 flex flex-col items-center">
-           <h2 className="text-[10px] font-bold uppercase tracking-[0.4em] text-text-muted mb-2">Setting up your workspace</h2>
+           <h2 className="text-[10px] font-bold uppercase tracking-[0.4em] text-text-muted mb-2">Loading your chats...</h2>
            <div className="flex space-x-1.5">
               {[0, 1, 2].map((i) => (
                 <motion.div

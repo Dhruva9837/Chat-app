@@ -216,8 +216,8 @@ export const CleanChatWindow = () => {
         >
           <BrandLogo />
         </motion.div>
-        <h2 className="text-[12px] font-black uppercase tracking-[0.4em] opacity-40 mt-4">Select a Secure Workspace</h2>
-        <p className="text-[10px] font-bold text-text-muted/30 uppercase tracking-[0.2em] mt-2">End-to-End Encrypted Protocols</p>
+        <h2 className="text-[12px] font-black uppercase tracking-[0.4em] opacity-40 mt-4">Select a chat to start messaging</h2>
+        <p className="text-[10px] font-bold text-text-muted/30 uppercase tracking-[0.2em] mt-2">Private & Encrypted</p>
       </div>
     );
   }
@@ -245,7 +245,7 @@ export const CleanChatWindow = () => {
             </h1>
             <div className="flex items-center gap-2 mt-0.5">
                <span className="text-[11px] font-bold text-text-muted">
-                 {isGroup ? `${activeChat.chat_participants?.length || 0} members` : 'Direct Messaging Protocol'}
+                 {isGroup ? `${activeChat.chat_participants?.length || 0} members` : 'Secure Direct Message'}
                </span>
             </div>
           </div>
@@ -415,7 +415,7 @@ export const CleanChatWindow = () => {
             value={newMessage}
             disabled={isUploading || isBlocked}
             onChange={(e) => handleTyping(e.target.value)}
-            placeholder={isBlocked ? "Connection Terminated (User Blocked)" : isUploading ? "Uploading media..." : "Type your message"} 
+            placeholder={isBlocked ? "Message not sent (User Blocked)" : isUploading ? "Uploading media..." : "Type your message"} 
             className="flex-1 bg-transparent border-none outline-none text-[15px] text-white placeholder-text-muted py-5 px-2 font-medium disabled:opacity-50"
           />
 
