@@ -71,6 +71,7 @@ interface ChatState {
   unblockUser: (userId: string) => Promise<void>
   deleteChat: (chatId: string) => Promise<void>
   fetchBlockedUsers: (userId: string) => Promise<void>
+  startPrivateChat: (otherUserId: string) => Promise<void>
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -317,6 +318,73 @@ export const useChatStore = create<ChatState>((set) => ({
       }));
     } catch (err) {
       console.error('Failed to delete chat:', err);
+    }
+  },
+  startPrivateChat: async (otherUserId) => {
+    const { user } = useAuthStore.getState();
+    if (!user) return;
+
+    // 1. Check if private chat already exists in local state
+    const existingChat = useChatStore.getState().chats.find(chat => 
+      chat.type === 'private' && 
+      chat.chat_participants?.some(p => p.user_id === otherUserId)
+    );
+
+    if (existingChat) {
+      useChatStore.getState().setActiveChat(existingChat);
+      return;
+    }
+
+    try {
+      // 2. Create new chat record
+      const { data: newChat, error: chatError } = await supabase
+        .from('chats')
+        .insert([{ type: 'private', created_by: user.id }])
+        .select()
+        .single();
+
+      if (chatError) throw chatError;
+
+      // 3. Create participants
+      const { error: partError } = await supabase
+        .from('chat_participants')
+        .insert([
+          { chat_id: newChat.id, user_id: user.id, role: 'owner' },
+          { chat_id: newChat.id, user_id: otherUserId, role: 'member' }
+        ]);
+
+      if (partError) throw partError;
+
+      // 4. Fetch the full chat object with participants and profile join
+      const { data: fullChat, error: fullChatError } = await supabase
+        .from('chats')
+        .select(`
+          *,
+          chat_participants (
+            user_id,
+            profiles:user_id (id, name, avatar_url, email, gender)
+          )
+        `)
+        .eq('id', newChat.id)
+        .single();
+      
+      if (fullChatError) throw fullChatError;
+
+      // 5. Update state
+      const processedChat = {
+        ...fullChat,
+        last_message: null,
+        unread_count: 0
+      };
+
+      set((state) => ({
+        chats: [processedChat as any, ...state.chats],
+        activeChat: processedChat as any,
+        activeView: 'chat'
+      }));
+
+    } catch (err) {
+      console.error('Failed to start private chat:', err);
     }
   }
 }))

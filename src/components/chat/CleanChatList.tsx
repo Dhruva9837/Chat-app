@@ -24,7 +24,8 @@ export const CleanChatList = () => {
     friendRequests,
     friends,
     fetchFriends,
-    fetchRequests
+    fetchRequests,
+    startPrivateChat
   } = useChatStore();
   
   const [search, setSearch] = useState('');
@@ -179,7 +180,7 @@ export const CleanChatList = () => {
                    return (
                      <div 
                        key={f.id} 
-                       onClick={() => existingChat ? setActiveChat(existingChat) : setIsAddFriendModalOpen(true)}
+                       onClick={() => startPrivateChat(profile.id)}
                        className="flex flex-col items-center gap-2 group cursor-pointer shrink-0"
                      >
                        <div className="relative">
@@ -233,7 +234,7 @@ export const CleanChatList = () => {
             >
                <h4 className="text-[10px] font-black uppercase text-noir-accent tracking-widest mb-3">Find Friends</h4>
                {searchResults.profiles.map(p => (
-                 <div key={p.id} onClick={() => setIsAddFriendModalOpen(true)} className="flex items-center gap-3 p-3 hover:bg-surface-high rounded-2xl cursor-pointer group transition-all mb-2">
+                 <div key={p.id} onClick={() => startPrivateChat(p.id)} className="flex items-center gap-3 p-3 hover:bg-surface-high rounded-2xl cursor-pointer group transition-all mb-2">
                     <img src={getAvatarUrl(p)} alt="" className="w-10 h-10 rounded-xl" />
                     <span className="text-sm font-bold text-white group-hover:text-noir-accent">{p.name}</span>
                  </div>
