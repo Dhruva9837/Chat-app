@@ -29,24 +29,22 @@ export function ChatLayout() {
     switch (activeView) {
       case 'chat':
         return (
-          <motion.div 
+          <div 
             key="chat"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 overflow-hidden h-full"
           >
-            <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-[320px] lg:w-[320px] shrink-0`}>
+            {/* Chat List - hidden on mobile when activeChat is set */}
+            <div className={`${activeChat ? 'hidden md:flex' : 'flex'} w-full md:w-[320px] lg:w-[320px] shrink-0 h-full`}>
               <CleanChatList />
             </div>
 
+            {/* Chat Window - always rendered, shows placeholder when no activeChat */}
             <div className={`${activeChat ? 'flex' : 'hidden md:flex'} flex-1 h-full w-full md:w-auto`}>
               <CleanChatWindow />
             </div>
 
             <CleanInfoPanel />
-          </motion.div>
+          </div>
         )
       case 'groups':
         return (
@@ -120,9 +118,7 @@ export function ChatLayout() {
 
       {/* 2. Main Content Area (Chat List + Chat Window + Info Panel) */}
       <main className={`flex-1 flex overflow-hidden relative ${(!activeChat || activeView !== 'chat') ? 'pb-[72px] md:pb-0' : ''}`}>
-        <AnimatePresence mode="wait">
-          {renderView()}
-        </AnimatePresence>
+        {renderView()}
       </main>
 
       {/* 3. Mobile Bottom Navigation */}
