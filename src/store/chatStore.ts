@@ -327,25 +327,26 @@ export const useChatStore = create<ChatState>((set) => ({
   startPrivateChat: async (otherUserId) => {
     const { user } = useAuthStore.getState();
     if (!user) {
-      console.warn('startPrivateChat: No user in auth store');
+      console.warn('[startPrivateChat] No user session found');
       return;
     }
 
-    console.log('startPrivateChat: Initializing for target user:', otherUserId);
+    console.log('[startPrivateChat] Starting chat with user:', otherUserId);
 
-    // First, switch to chat view immediately so UI is responsive
-    set({ activeView: 'chat' });
+    // Switch view immediately to ensure UI responsiveness
+    // Set a placeholder activeChat so the window opens immediately on mobile
+    set({ activeView: 'chat', activeChat: { id: 'pending', type: 'private' } as any });
 
-    // 1. Check if private chat already exists in local state
     const state = useChatStore.getState();
+    
+    // 1. Check if chat exists locally
     const existingChat = state.chats.find(chat => 
       chat.type === 'private' && 
       chat.chat_participants?.some(p => p.user_id === otherUserId)
     );
 
     if (existingChat) {
-      console.log('startPrivateChat: Existing chat found, switching...', existingChat.id);
-      // Force a new object reference to guarantee React re-render
+      console.log('[startPrivateChat] Found existing local chat:', existingChat.id);
       set({ 
         activeChat: { ...existingChat },
         messages: [],
@@ -356,9 +357,56 @@ export const useChatStore = create<ChatState>((set) => ({
       return;
     }
 
-    console.log('startPrivateChat: No existing chat found. Creating...');
+    // 2. Not found locally, try to find in DB first before creating
+    console.log('[startPrivateChat] Checking database for existing chat...');
     try {
-      // 2. Create new chat record
+      // Find a private chat where both users are participants
+      const { data: participationData, error: findError } = await supabase
+        .from('chat_participants')
+        .select('chat_id')
+        .eq('user_id', user.id);
+        
+      if (findError) throw findError;
+      
+      const chatIds = participationData?.map(p => p.chat_id) || [];
+      
+      if (chatIds.length > 0) {
+        const { data: matchData } = await supabase
+          .from('chat_participants')
+          .select('chat_id')
+          .in('chat_id', chatIds)
+          .eq('user_id', otherUserId)
+          .single();
+          
+        if (matchData) {
+          console.log('[startPrivateChat] Found existing chat in DB:', matchData.chat_id);
+          // Fetch full chat and update state
+          const { data: fullChat } = await supabase
+            .from('chats')
+            .select(`
+              *,
+              chat_participants (
+                user_id,
+                profiles:user_id (id, name, avatar_url, email, gender)
+              )
+            `)
+            .eq('id', matchData.chat_id)
+            .single();
+            
+          if (fullChat) {
+             const processedChat = { ...fullChat, last_message: null, unread_count: 0 };
+             set(s => ({
+               chats: [processedChat as any, ...s.chats],
+               activeChat: processedChat as any,
+               activeView: 'chat'
+             }));
+             return;
+          }
+        }
+      }
+
+      // 3. Create new if truly doesn't exist
+      console.log('[startPrivateChat] Creating new chat record...');
       const { data: newChat, error: chatError } = await supabase
         .from('chats')
         .insert([{ type: 'private', created_by: user.id }])
@@ -366,9 +414,7 @@ export const useChatStore = create<ChatState>((set) => ({
         .single();
 
       if (chatError) throw chatError;
-      console.log('startPrivateChat: Chat record created:', newChat.id);
 
-      // 3. Create participants
       const { error: partError } = await supabase
         .from('chat_participants')
         .insert([
@@ -377,9 +423,7 @@ export const useChatStore = create<ChatState>((set) => ({
         ]);
 
       if (partError) throw partError;
-      console.log('startPrivateChat: Participants created');
 
-      // 4. Fetch the full chat object with participants and profile join
       const { data: fullChat, error: fullChatError } = await supabase
         .from('chats')
         .select(`
@@ -394,25 +438,17 @@ export const useChatStore = create<ChatState>((set) => ({
       
       if (fullChatError) throw fullChatError;
 
-      // 5. Update state — set activeChat first so mobile layout shows chat window
-      const processedChat = {
-        ...fullChat,
-        last_message: null,
-        unread_count: 0
-      };
-
-      console.log('startPrivateChat: Setting active chat:', processedChat.id);
-      set((state) => ({
-        chats: [processedChat as any, ...state.chats],
+      const processedChat = { ...fullChat, last_message: null, unread_count: 0 };
+      console.log('[startPrivateChat] New chat created and set as active:', newChat.id);
+      
+      set((s) => ({
+        chats: [processedChat as any, ...s.chats],
         activeChat: processedChat as any,
-        messages: [],
-        nextCursor: null,
-        hasMore: true,
         activeView: 'chat'
       }));
 
     } catch (err) {
-      console.error('startPrivateChat: FAILED:', err);
+      console.error('[startPrivateChat] CRITICAL FAILURE:', err);
     }
   }
 }))

@@ -206,7 +206,7 @@ export const CleanChatWindow = () => {
     setNewMessage(prev => prev + emojiObject.emoji);
   };
 
-  if (!activeChat) {
+  if (!activeChat || activeChat.id === 'pending') {
     return (
       <div className="flex-1 h-full bg-surface-lowest flex flex-col items-center justify-center text-text-muted select-none">
         <motion.div 
@@ -214,17 +214,31 @@ export const CleanChatWindow = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="mb-8"
         >
-          <BrandLogo />
+          {activeChat?.id === 'pending' ? (
+            <Loader2 size={48} className="text-noir-accent animate-spin" />
+          ) : (
+            <BrandLogo />
+          )}
         </motion.div>
-        <h2 className="text-[12px] font-black uppercase tracking-[0.4em] opacity-40 mt-4">Select a chat to start messaging</h2>
+        <h2 className="text-[12px] font-black uppercase tracking-[0.4em] opacity-40 mt-4">
+          {activeChat?.id === 'pending' ? 'Establishing secure connection...' : 'Select a chat to start messaging'}
+        </h2>
         <p className="text-[10px] font-bold text-text-muted/30 uppercase tracking-[0.2em] mt-2">Private & Encrypted</p>
       </div>
     );
   }
 
   const isGroup = activeChat.type === 'group';
-  const otherParticipant = activeChat.chat_participants?.find((p: any) => p.user_id !== user?.id) || activeChat.chat_participants?.[0];
-  const chatName = isGroup ? (activeChat.name || 'Office chat') : (otherParticipant?.profiles?.name || 'User');
+  
+  // Safely find the other participant
+  const otherParticipant = (activeChat.chat_participants || []).find((p: any) => p.user_id !== user?.id) || (activeChat.chat_participants?.[0]);
+  
+  // Safely get the name
+  const participantProfile = otherParticipant?.profiles;
+  const chatName = isGroup 
+    ? (activeChat.name || 'Group Chat') 
+    : (participantProfile?.name || otherParticipant?.user_id || 'Secure Chat');
+
   const isBlocked = !isGroup && otherParticipant ? blockedUsers.includes(otherParticipant.user_id) : false;
 
   return (

@@ -60,12 +60,29 @@ export const CleanChatList = () => {
   };
 
   // Handle clicking on a friend to start chat
-  const handleFriendChat = async (friendId: string) => {
-    setChatLoading(friendId);
+  const handleFriendChat = async (friendProfile: any) => {
+    console.log('[handleFriendChat] Called for:', friendProfile.id, friendProfile.name);
+    
+    // Step 1: Check if chat already exists in local chats list
+    const existingChatInList = chats.find((c: any) => 
+      c.type === 'private' && 
+      c.chat_participants?.some((p: any) => p.user_id === friendProfile.id)
+    );
+    
+    if (existingChatInList) {
+      console.log('[handleFriendChat] Existing chat found:', existingChatInList.id);
+      setActiveChat(existingChatInList);
+      return;
+    }
+
+    // Step 2: No local chat — call startPrivateChat which creates it in DB
+    console.log('[handleFriendChat] No existing chat, calling startPrivateChat...');
+    setChatLoading(friendProfile.id);
     try {
-      await startPrivateChat(friendId);
+      await startPrivateChat(friendProfile.id);
+      console.log('[handleFriendChat] startPrivateChat completed');
     } catch (err) {
-      console.error('Failed to start chat:', err);
+      console.error('[handleFriendChat] Error:', err);
     } finally {
       setChatLoading(null);
     }
@@ -186,7 +203,7 @@ export const CleanChatList = () => {
             {searchResults.profiles.map(p => (
               <button 
                 key={p.id} 
-                onClick={() => handleFriendChat(p.id)} 
+                onClick={() => handleFriendChat(p)} 
                 className="w-full flex items-center gap-3 p-3 hover:bg-surface-high rounded-2xl cursor-pointer group transition-all mb-2 text-left border-none bg-transparent"
               >
                 <img src={getAvatarUrl(p)} alt="" className="w-12 h-12 rounded-[1.4rem]" />
@@ -213,7 +230,7 @@ export const CleanChatList = () => {
               return (
                 <button
                   key={f.id}
-                  onClick={() => handleFriendChat(profile.id)}
+                  onClick={() => handleFriendChat(profile)}
                   disabled={isLoading}
                   className="w-full mx-2 px-4 py-3.5 flex items-center gap-4 cursor-pointer transition-all rounded-[1.8rem] group mb-1 hover:bg-[#1E1E20] text-left border-none bg-transparent disabled:opacity-50"
                   style={{ width: 'calc(100% - 16px)' }}
