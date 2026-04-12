@@ -37,7 +37,7 @@ export const CleanChatList = () => {
       fetchFriends(user.id);
       fetchRequests(user.id);
     }
-  }, [user, fetchFriends, fetchRequests]);
+  }, [user]);
 
   const handleRequestAction = async (requestId: string, action: 'accept' | 'reject') => {
     if (!user) return;
@@ -57,23 +57,6 @@ export const CleanChatList = () => {
       
       fetchRequests(user.id);
       if (action === 'accept') fetchFriends(user.id);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleRemoveFriend = async (friendId: string) => {
-    if (!user) return;
-    try {
-      await supabase.from('friends').delete().match({ user_id: user.id, friend_id: friendId });
-      await supabase.from('friends').delete().match({ user_id: friendId, friend_id: user.id });
-      
-      // Also cleanup any requests
-      await supabase.from('friend_requests').delete().match({ sender_id: user.id, receiver_id: friendId });
-      await supabase.from('friend_requests').delete().match({ sender_id: friendId, receiver_id: user.id });
-
-      fetchFriends(user.id);
-      fetchRequests(user.id);
     } catch (err) {
       console.error(err);
     }
@@ -175,18 +158,20 @@ export const CleanChatList = () => {
                    const profile = f.friend_profile;
                    if (!profile) return null;
                    const isOnline = onlineUsers[profile.id]?.status === 'online';
-                   const existingChat = chats.find(c => c.type === 'private' && c.chat_participants?.some((p:any) => p.user_id === profile.id));
                    
                    return (
-                      <div 
+                      <button 
                         key={f.id} 
-                        onClick={() => {
-                          console.log('Carousel: Starting chat with:', profile.name, profile.id);
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Carousel Clicked for:', profile.name, profile.id);
                           startPrivateChat(profile.id);
                         }}
-                        className="flex flex-col items-center gap-2 group cursor-pointer shrink-0 active:scale-95 transition-transform"
+                        className="flex flex-col items-center gap-2 group cursor-pointer shrink-0 active:scale-90 transition-all relative z-50 border-none outline-none bg-transparent p-0"
                       >
-                       <div className="relative">
+                       <div className="relative pointer-events-none">
                          <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all p-0.5 ${isOnline ? 'border-noir-accent shadow-lg shadow-noir-accent/20' : 'border-outline-variant grayscale opacity-60'}`}>
                            <img 
                              src={getAvatarUrl(profile)} 
@@ -198,10 +183,10 @@ export const CleanChatList = () => {
                            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-surface-lowest rounded-full shadow-lg"></div>
                          )}
                        </div>
-                       <span className="text-[10px] font-bold text-text-muted group-hover:text-white transition-colors truncate max-w-[56px]">
+                       <span className="text-[10px] font-bold text-text-muted group-hover:text-white transition-colors truncate max-w-[56px] pointer-events-none">
                          {profile.name.split(' ')[0]}
                        </span>
-                     </div>
+                      </button>
                    );
                  })}
                </div>
@@ -237,15 +222,19 @@ export const CleanChatList = () => {
             >
                <h4 className="text-[10px] font-black uppercase text-noir-accent tracking-widest mb-3">Find Friends</h4>
                {searchResults.profiles.map(p => (
-                 <div key={p.id} onClick={() => startPrivateChat(p.id)} className="flex items-center gap-3 p-3 hover:bg-surface-high rounded-2xl cursor-pointer group transition-all mb-2">
+                 <button 
+                  key={p.id} 
+                  onClick={() => startPrivateChat(p.id)} 
+                  className="w-full flex items-center gap-3 p-3 hover:bg-surface-high rounded-2xl cursor-pointer group transition-all mb-2 text-left border-none bg-transparent"
+                 >
                     <img src={getAvatarUrl(p)} alt="" className="w-10 h-10 rounded-xl" />
                     <span className="text-sm font-bold text-white group-hover:text-noir-accent">{p.name}</span>
-                 </div>
+                 </button>
                ))}
             </motion.div>
           )}
 
-          {/* Active Conversations */}
+          {/* Active Conversations slice */}
           <div className="pt-2">
             {!search && <h4 className="px-6 text-[10px] font-black uppercase text-text-muted tracking-widest mb-4">Messages</h4>}
             {filteredChats.map((chat: any) => {
