@@ -326,19 +326,33 @@ export const useChatStore = create<ChatState>((set) => ({
   },
   startPrivateChat: async (otherUserId) => {
     const { user } = useAuthStore.getState();
-    if (!user) return;
+    if (!user) {
+      console.warn('startPrivateChat: No user in auth store');
+      return;
+    }
+
+    console.log('startPrivateChat: Initializing for target user:', otherUserId);
 
     // 1. Check if private chat already exists in local state
-    const existingChat = useChatStore.getState().chats.find(chat => 
+    const state = useChatStore.getState();
+    const existingChat = state.chats.find(chat => 
       chat.type === 'private' && 
       chat.chat_participants?.some(p => p.user_id === otherUserId)
     );
 
     if (existingChat) {
-      useChatStore.getState().setActiveChat(existingChat);
+      console.log('startPrivateChat: Existing chat found, auto-switching...', existingChat.id);
+      set({ 
+        activeChat: existingChat,
+        messages: [],
+        nextCursor: null,
+        hasMore: true,
+        activeView: 'chat'
+      });
       return;
     }
 
+    console.log('startPrivateChat: No existing chat found. Attempting to create one...');
     try {
       // 2. Create new chat record
       const { data: newChat, error: chatError } = await supabase
@@ -348,6 +362,7 @@ export const useChatStore = create<ChatState>((set) => ({
         .single();
 
       if (chatError) throw chatError;
+      console.log('startPrivateChat: Chat record created:', newChat.id);
 
       // 3. Create participants
       const { error: partError } = await supabase
@@ -358,6 +373,7 @@ export const useChatStore = create<ChatState>((set) => ({
         ]);
 
       if (partError) throw partError;
+      console.log('startPrivateChat: Participants created');
 
       // 4. Fetch the full chat object with participants and profile join
       const { data: fullChat, error: fullChatError } = await supabase
@@ -381,6 +397,7 @@ export const useChatStore = create<ChatState>((set) => ({
         unread_count: 0
       };
 
+      console.log('startPrivateChat: Chat initialized successfully, setting as active');
       set((state) => ({
         chats: [processedChat as any, ...state.chats],
         activeChat: processedChat as any,
@@ -388,7 +405,7 @@ export const useChatStore = create<ChatState>((set) => ({
       }));
 
     } catch (err) {
-      console.error('Failed to start private chat:', err);
+      console.error('startPrivateChat: FAILED:', err);
     }
   }
 }))

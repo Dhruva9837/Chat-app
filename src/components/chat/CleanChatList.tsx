@@ -178,11 +178,14 @@ export const CleanChatList = () => {
                    const existingChat = chats.find(c => c.type === 'private' && c.chat_participants?.some((p:any) => p.user_id === profile.id));
                    
                    return (
-                     <div 
-                       key={f.id} 
-                       onClick={() => startPrivateChat(profile.id)}
-                       className="flex flex-col items-center gap-2 group cursor-pointer shrink-0"
-                     >
+                      <div 
+                        key={f.id} 
+                        onClick={() => {
+                          console.log('Carousel: Starting chat with:', profile.name, profile.id);
+                          startPrivateChat(profile.id);
+                        }}
+                        className="flex flex-col items-center gap-2 group cursor-pointer shrink-0 active:scale-95 transition-transform"
+                      >
                        <div className="relative">
                          <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all p-0.5 ${isOnline ? 'border-noir-accent shadow-lg shadow-noir-accent/20' : 'border-outline-variant grayscale opacity-60'}`}>
                            <img 
