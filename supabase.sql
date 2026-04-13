@@ -91,14 +91,17 @@ create policy "Users can update their own profile." on public.profiles
 
 -- Chats: users can see chats they are part of
 create policy "Users can view chats they participate in." on public.chats
-  for select using (public.check_chat_membership(id, auth.uid()));
+  for select using (
+    auth.uid() = created_by or 
+    public.check_chat_membership(id, auth.uid())
+  );
 
 -- Chat Participants: users can see participants in chats they belong to
 create policy "Users can view participants in their chats." on public.chat_participants
   for select using (public.check_chat_membership(chat_id, auth.uid()));
 
 create policy "Users can create chats." on public.chats
-  for insert with check (auth.uid() is not null);
+  for insert with check (auth.uid() = created_by);
 
 create policy "Users can add participants." on public.chat_participants
   for insert with check (auth.uid() is not null);
