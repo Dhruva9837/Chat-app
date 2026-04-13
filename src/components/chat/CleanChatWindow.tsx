@@ -266,6 +266,16 @@ export const CleanChatWindow = () => {
           >
             <ChevronLeft size={24} />
           </button>
+          
+          {/* Avatar in Header */}
+          <div className="w-12 h-12 rounded-[1.2rem] overflow-hidden border-2 border-[#202022] bg-surface-bubble shrink-0">
+            <img 
+              src={getAvatarUrl(participantProfile)} 
+              alt={chatName} 
+              className="w-full h-full object-cover" 
+            />
+          </div>
+
           <div>
             <h1 className="text-2xl font-display font-black text-white tracking-tight uppercase">
               {chatName}
@@ -280,7 +290,6 @@ export const CleanChatWindow = () => {
 
         <div className="flex items-center gap-4">
            <button className="p-2.5 text-text-muted hover:text-white transition-colors"><Search size={20} /></button>
-           <button className="p-2.5 text-text-muted hover:text-white transition-colors"><Phone size={20} /></button>
            <button 
              onClick={() => setShowInfoPanel(!showInfoPanel)}
              className={`p-2.5 transition-colors ${showInfoPanel ? 'text-noir-accent' : 'text-text-muted hover:text-white'}`}
