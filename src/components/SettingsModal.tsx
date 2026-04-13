@@ -363,7 +363,7 @@ export function SettingsModal() {
                       </div>
                    </div>
                 </div>
-                <ToggleRow label="Reduced Motion" desc="Limits the amount of movement in the interface." active={localSettings.reducedMotion} onClick={() => toggleSetting('reducedMotion')} />
+                <ToggleRow label="Reduced Motion" desc="Limits the amount of movement in the interface." active={settings?.reduced_motion ?? false} onClick={() => toggleSetting('reduced_motion')} />
               </div>
             </motion.div>
           )}
