@@ -59,6 +59,21 @@ create table if not exists public.messages (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
+-- Member check function to prevent RLS recursion
+create or replace function public.check_chat_membership(p_chat_id uuid, p_user_id uuid)
+returns boolean as $$
+begin
+  return exists (
+    select 1 from public.chat_participants
+    where chat_id = p_chat_id and user_id = p_user_id
+  );
+end;
+$$ language plpgsql security definer;
+
+-- Grant access to the function
+grant execute on function public.check_chat_membership(uuid, uuid) to authenticated;
+grant execute on function public.check_chat_membership(uuid, uuid) to service_role;
+
 -- ENABLE ROW LEVEL SECURITY
 alter table public.profiles enable row level security;
 alter table public.chats enable row level security;
@@ -76,21 +91,11 @@ create policy "Users can update their own profile." on public.profiles
 
 -- Chats: users can see chats they are part of
 create policy "Users can view chats they participate in." on public.chats
-  for select using (
-    exists (
-      select 1 from public.chat_participants
-      where chat_id = public.chats.id and user_id = auth.uid()
-    )
-  );
+  for select using (public.check_chat_membership(id, auth.uid()));
 
 -- Chat Participants: users can see participants in chats they belong to
 create policy "Users can view participants in their chats." on public.chat_participants
-  for select using (
-    exists (
-      select 1 from public.chat_participants
-      where chat_id = public.chat_participants.chat_id and user_id = auth.uid()
-    )
-  );
+  for select using (public.check_chat_membership(chat_id, auth.uid()));
 
 create policy "Users can create chats." on public.chats
   for insert with check (auth.uid() is not null);
@@ -99,29 +104,16 @@ create policy "Users can add participants." on public.chat_participants
   for insert with check (auth.uid() is not null);
 
 create policy "Users can delete chats they participate in." on public.chats
-  for delete using (
-    exists (
-      select 1 from public.chat_participants
-      where chat_id = public.chats.id and user_id = auth.uid()
-    )
-  );
+  for delete using (public.check_chat_membership(id, auth.uid()));
 
 -- Messages: users can see messages in chats they belong to
 create policy "Users can view messages in their chats." on public.messages
-  for select using (
-    exists (
-      select 1 from public.chat_participants
-      where chat_id = public.messages.chat_id and user_id = auth.uid()
-    )
-  );
+  for select using (public.check_chat_membership(chat_id, auth.uid()));
 
 create policy "Users can insert messages in their chats." on public.messages
   for insert with check (
     auth.uid() = sender_id and
-    exists (
-      select 1 from public.chat_participants
-      where chat_id = public.messages.chat_id and user_id = auth.uid()
-    )
+    public.check_chat_membership(chat_id, auth.uid())
   );
 
 -- AUTH TRIGGER for automatic profile creation
