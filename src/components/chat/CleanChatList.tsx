@@ -60,29 +60,12 @@ export const CleanChatList = () => {
   };
 
   // Handle clicking on a friend to start chat
-  const handleFriendChat = async (friendProfile: any) => {
-    console.log('[handleFriendChat] Called for:', friendProfile.id, friendProfile.name);
-    
-    // Step 1: Check if chat already exists in local chats list
-    const existingChatInList = chats.find((c: any) => 
-      c.type === 'private' && 
-      c.chat_participants?.some((p: any) => p.user_id === friendProfile.id)
-    );
-    
-    if (existingChatInList) {
-      console.log('[handleFriendChat] Existing chat found:', existingChatInList.id);
-      setActiveChat(existingChatInList);
-      return;
-    }
-
-    // Step 2: No local chat — call startPrivateChat which creates it in DB
-    console.log('[handleFriendChat] No existing chat, calling startPrivateChat...');
-    setChatLoading(friendProfile.id);
+  const handleFriendChat = async (friendId: string) => {
+    setChatLoading(friendId);
     try {
-      await startPrivateChat(friendProfile.id);
-      console.log('[handleFriendChat] startPrivateChat completed');
+      await startPrivateChat(friendId);
     } catch (err) {
-      console.error('[handleFriendChat] Error:', err);
+      console.error('Failed to start chat:', err);
     } finally {
       setChatLoading(null);
     }
@@ -139,6 +122,7 @@ export const CleanChatList = () => {
     const profile = f.friend_profile;
     if (!profile) return false;
     // Check if this friend already exists in chats list
+    // Use optional chaining and robust ID comparison
     return !chats.some(c => 
       c.type === 'private' && 
       c.chat_participants?.some((p: any) => p.user_id === profile.id)
@@ -203,7 +187,7 @@ export const CleanChatList = () => {
             {searchResults.profiles.map(p => (
               <button 
                 key={p.id} 
-                onClick={() => handleFriendChat(p)} 
+                onClick={() => handleFriendChat(p.id)} 
                 className="w-full flex items-center gap-3 p-3 hover:bg-surface-high rounded-2xl cursor-pointer group transition-all mb-2 text-left border-none bg-transparent"
               >
                 <img src={getAvatarUrl(p)} alt="" className="w-12 h-12 rounded-[1.4rem]" />
@@ -230,7 +214,7 @@ export const CleanChatList = () => {
               return (
                 <button
                   key={f.id}
-                  onClick={() => handleFriendChat(profile)}
+                  onClick={() => handleFriendChat(profile.id)}
                   disabled={isLoading}
                   className="w-full mx-2 px-4 py-3.5 flex items-center gap-4 cursor-pointer transition-all rounded-[1.8rem] group mb-1 hover:bg-[#1E1E20] text-left border-none bg-transparent disabled:opacity-50"
                   style={{ width: 'calc(100% - 16px)' }}

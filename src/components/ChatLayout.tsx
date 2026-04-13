@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 import { GroupsView } from './chat/GroupsView'
 import { CalendarView } from './chat/CalendarView'
+import { StartChatModal } from './chat/StartChatModal'
 
 export function ChatLayout() {
   const { activeChat, activeView } = useChatStore()
@@ -128,6 +129,7 @@ export function ChatLayout() {
       <AddFriendModal />
       <SettingsModal />
       <NewGroupModal />
+      <StartChatModal />
     </div>
   )
 }

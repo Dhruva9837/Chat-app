@@ -13,77 +13,81 @@ export default function Home() {
   const { setChats, setFriendRequests, addFriendRequest } = useChatStore()
 
   useEffect(() => {
+    const fetchUserData = async (userId: string) => {
+      try {
+        const [profileRes, settingsRes, chatsRes, requestsRes] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', userId).single(),
+          supabase.from('user_settings').select('*').eq('id', userId).single(),
+          supabase.from('chats').select(`
+            *,
+            chat_participants (
+              user_id,
+              profiles (*)
+            ),
+            messages (
+              content,
+              created_at,
+              is_read,
+              sender_id
+            )
+          `).order('created_at', { ascending: false }),
+          supabase.from('friend_requests').select(`
+            *,
+            sender_profile:profiles!sender_id(*),
+            receiver_profile:profiles!receiver_id(*)
+          `)
+        ])
+
+        if (profileRes.data) setProfile(profileRes.data)
+        if (settingsRes.data) setSettings(settingsRes.data)
+        if (chatsRes.data) {
+          const processedChats = chatsRes.data.map(chat => ({
+            ...chat,
+            last_message: chat.messages?.[chat.messages.length - 1],
+            unread_count: chat.messages?.filter((m: any) => !m.is_read && m.sender_id !== userId).length || 0
+          }))
+          
+          processedChats.sort((a, b) => {
+            const timeA = new Date(a.last_message?.created_at || a.created_at).getTime()
+            const timeB = new Date(b.last_message?.created_at || b.created_at).getTime()
+            return timeB - timeA
+          })
+          
+          setChats(processedChats as any)
+        }
+
+        if (requestsRes.data) {
+          setFriendRequests(requestsRes.data as any[])
+        }
+
+        // Fetch blocked users and friends
+        const store = useChatStore.getState()
+        store.fetchBlockedUsers(userId)
+        store.fetchFriends(userId)
+      } catch (err) {
+        console.error('Failed to fetch user data:', err)
+      }
+    }
+
     const initializeAuth = async () => {
       try {
         setLoading(true)
-        console.log('Checking auth session...')
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) throw error
         
         if (session?.user) {
           setUser(session.user)
-          
-          // Parallel fetch for profile, settings, and initial chats
-          const [profileRes, settingsRes, chatsRes, requestsRes] = await Promise.all([
-            supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-            supabase.from('user_settings').select('*').eq('id', session.user.id).single(),
-            supabase.from('chats').select(`
-              *,
-              chat_participants (
-                user_id,
-                profiles (*)
-              ),
-              messages (
-                content,
-                created_at,
-                is_read,
-                sender_id
-              )
-            `).order('created_at', { ascending: false }),
-            supabase.from('friend_requests').select(`
-              *,
-              sender_profile:profiles!sender_id(*),
-              receiver_profile:profiles!receiver_id(*)
-            `)
-          ])
-
-          if (profileRes.data) setProfile(profileRes.data)
-          if (settingsRes.data) setSettings(settingsRes.data)
-          if (chatsRes.data) {
-            const processedChats = chatsRes.data.map(chat => ({
-              ...chat,
-              last_message: chat.messages?.[chat.messages.length - 1],
-              unread_count: chat.messages?.filter((m: any) => !m.is_read && m.sender_id !== session.user.id).length || 0
-            }))
-            
-            // Sort by latest message or chat creation
-            processedChats.sort((a, b) => {
-              const timeA = new Date(a.last_message?.created_at || a.created_at).getTime()
-              const timeB = new Date(b.last_message?.created_at || b.created_at).getTime()
-              return timeB - timeA
-            })
-            
-            setChats(processedChats as any)
-          }
-
-          if (requestsRes.data) {
-            setFriendRequests(requestsRes.data as any[])
-          }
-
-          // Fetch blocked users
-          useChatStore.getState().fetchBlockedUsers(session.user.id)
+          await fetchUserData(session.user.id)
         } else {
           setUser(null)
           setProfile(null)
         }
       } catch (e: any) {
         console.error('Auth initialization error:', e)
-        // Auto-fix for "Refresh Token Not Found" error
         if (e.message?.includes('Refresh Token') || e.status === 400) {
-          console.warn('Invalid session detected, clearing storage...')
           await supabase.auth.signOut()
-          localStorage.clear() // Force clear any stale data
+          localStorage.clear()
         }
         setUser(null)
         setProfile(null)
@@ -94,16 +98,10 @@ export default function Home() {
 
     initializeAuth()
 
-    // 1. Auth Subscription
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('Auth state change:', _event, !!session)
       if (session?.user) {
-        const [profileRes, settingsRes] = await Promise.all([
-          supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-          supabase.from('user_settings').select('*').eq('id', session.user.id).single()
-        ])
-        if (profileRes.data) setProfile(profileRes.data)
-        if (settingsRes.data) setSettings(settingsRes.data)
+        setUser(session.user)
+        await fetchUserData(session.user.id)
       } else {
         setUser(null)
         setProfile(null)

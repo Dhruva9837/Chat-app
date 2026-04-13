@@ -46,6 +46,14 @@ export const CleanChatWindow = () => {
   const channelRef = useRef<any>(null);
   const typingTimeoutRef = useRef<any>(null);
 
+  // Reset state when switching chats
+  useEffect(() => {
+    setMessages([]);
+    setNewMessage('');
+    setSelectedImage(null);
+    setShowEmojiPicker(false);
+  }, [activeChat?.id]);
+
   useEffect(() => {
     if (!activeChat || activeChat.id === 'pending') return;
     
@@ -242,7 +250,7 @@ export const CleanChatWindow = () => {
   const participantProfile = otherParticipant?.profiles;
   const chatName = isGroup 
     ? (activeChat.name || 'Group Chat') 
-    : (participantProfile?.name || otherParticipant?.user_id || 'Secure Chat');
+    : (participantProfile?.name || participantProfile?.username || otherParticipant?.user_id || 'Secure Chat');
 
   const isBlocked = !isGroup && otherParticipant ? blockedUsers.includes(otherParticipant.user_id) : false;
 

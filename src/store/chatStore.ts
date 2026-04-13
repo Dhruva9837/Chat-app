@@ -195,13 +195,16 @@ export const useChatStore = create<ChatState>((set) => ({
   }),
   setNewGroupModalOpen: (open) => set({ isNewGroupModalOpen: open }),
   setChats: (chats) => set({ chats }),
-  setActiveChat: (chat) => set({ 
-    activeChat: chat, 
-    messages: [], 
-    nextCursor: null, 
-    hasMore: true,
-    activeView: 'chat' 
-  }),
+  setActiveChat: (chat) => {
+    console.log('[setActiveChat] Setting chat as active:', chat?.id);
+    set({ 
+      activeChat: chat, 
+      messages: [], 
+      nextCursor: null, 
+      hasMore: true,
+      activeView: 'chat' 
+    });
+  },
   setActiveView: (view) => set({ activeView: view }),
   setShowInfoPanel: (show: boolean) => set({ showInfoPanel: show }),
   setIsAddFriendModalOpen: (open) => set({ isAddFriendModalOpen: open }),
@@ -377,15 +380,10 @@ export const useChatStore = create<ChatState>((set) => ({
       return;
     }
 
-    console.log('[startPrivateChat] Starting chat with user:', otherUserId);
+    console.log('[startPrivateChat] Request to chat with user:', otherUserId);
 
-    // Switch view immediately to ensure UI responsiveness
-    // Set a placeholder activeChat so the window opens immediately on mobile
-    set({ activeView: 'chat', activeChat: { id: 'pending', type: 'private' } as any });
-
+    // 1. Check if chat exists locally first
     const state = useChatStore.getState();
-    
-    // 1. Check if chat exists locally
     const existingChat = state.chats.find(chat => 
       chat.type === 'private' && 
       chat.chat_participants?.some(p => p.user_id === otherUserId)
@@ -403,9 +401,12 @@ export const useChatStore = create<ChatState>((set) => ({
       return;
     }
 
-    // 2. Not found locally, try to find in DB first before creating
-    console.log('[startPrivateChat] Checking database for existing chat...');
+    // 2. Switch view and set pending state to provide immediate feedback
+    set({ activeView: 'chat', activeChat: { id: 'pending', type: 'private' } as any });
+
     try {
+      console.log('[startPrivateChat] Checking database for existing chat between', user.id, 'and', otherUserId);
+      
       // Find a private chat where both users are participants
       const { data: participationData, error: findError } = await supabase
         .from('chat_participants')
@@ -417,17 +418,18 @@ export const useChatStore = create<ChatState>((set) => ({
       const chatIds = participationData?.map(p => p.chat_id) || [];
       
       if (chatIds.length > 0) {
-        const { data: matchData } = await supabase
+        const { data: matchData, error: matchError } = await supabase
           .from('chat_participants')
           .select('chat_id')
           .in('chat_id', chatIds)
           .eq('user_id', otherUserId)
-          .single();
+          .maybeSingle(); // Use maybeSingle to avoid error if none found
           
+        if (matchError) throw matchError;
+
         if (matchData) {
           console.log('[startPrivateChat] Found existing chat in DB:', matchData.chat_id);
-          // Fetch full chat and update state
-          const { data: fullChat } = await supabase
+          const { data: fullChat, error: fullChatError } = await supabase
             .from('chats')
             .select(`
               *,
@@ -445,10 +447,16 @@ export const useChatStore = create<ChatState>((set) => ({
             .eq('id', matchData.chat_id)
             .single();
             
+          if (fullChatError) throw fullChatError;
+
           if (fullChat) {
-             const processedChat = { ...fullChat, last_message: null, unread_count: 0 };
+             const processedChat = { 
+               ...fullChat, 
+               last_message: (fullChat as any).messages?.[(fullChat as any).messages.length - 1], 
+               unread_count: 0 
+             };
              set(s => ({
-               chats: [processedChat as any, ...s.chats],
+               chats: s.chats.some(c => c.id === processedChat.id) ? s.chats : [processedChat as any, ...s.chats],
                activeChat: processedChat as any,
                activeView: 'chat'
              }));
@@ -458,7 +466,7 @@ export const useChatStore = create<ChatState>((set) => ({
       }
 
       // 3. Create new if truly doesn't exist
-      console.log('[startPrivateChat] Creating new chat record...');
+      console.log('[startPrivateChat] No existing chat found. Creating new chat record...');
       const { data: newChat, error: chatError } = await supabase
         .from('chats')
         .insert([{ type: 'private', created_by: user.id }])
@@ -467,6 +475,7 @@ export const useChatStore = create<ChatState>((set) => ({
 
       if (chatError) throw chatError;
 
+      console.log('[startPrivateChat] Registering participants for chat:', newChat.id);
       const { error: partError } = await supabase
         .from('chat_participants')
         .insert([
@@ -476,7 +485,8 @@ export const useChatStore = create<ChatState>((set) => ({
 
       if (partError) throw partError;
 
-      const { data: fullChat, error: fullChatError } = await supabase
+      // Fetch the full chat data to ensure consistency
+      const { data: completeChat, error: completeError } = await supabase
         .from('chats')
         .select(`
           *,
@@ -488,10 +498,10 @@ export const useChatStore = create<ChatState>((set) => ({
         .eq('id', newChat.id)
         .single();
       
-      if (fullChatError) throw fullChatError;
+      if (completeError) throw completeError;
 
-      const processedChat = { ...fullChat, last_message: null, unread_count: 0 };
-      console.log('[startPrivateChat] New chat created and set as active:', newChat.id);
+      const processedChat = { ...completeChat, last_message: null, unread_count: 0 };
+      console.log('[startPrivateChat] New chat successfully initialized:', newChat.id);
       
       set((s) => ({
         chats: [processedChat as any, ...s.chats],
@@ -499,10 +509,11 @@ export const useChatStore = create<ChatState>((set) => ({
         activeView: 'chat'
       }));
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('[startPrivateChat] CRITICAL FAILURE:', err);
       // Reset activeChat on failure so the UI doesn't stay stuck on "Establishing..."
       set({ activeChat: null });
+      alert(`Connection failed: ${err.message || 'The network peer is currently unreachable.'}`);
     }
   }
 }))
