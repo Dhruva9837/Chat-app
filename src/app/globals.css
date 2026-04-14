@@ -141,13 +141,20 @@
   .noir-bubble-sent {
     background: var(--primary);
     color: white;
-    border-radius: 1.2rem 1.2rem 0.3rem 1.2rem;
+    border-radius: 1.4rem 1.4rem 0.4rem 1.4rem;
+    box-shadow: 0 4px 15px -4px rgba(59, 59, 253, 0.3);
   }
   
   .noir-bubble-received {
     background: var(--surface-bubble);
     color: var(--text-main);
-    border-radius: 0.3rem 1.2rem 1.2rem 1.2rem;
+    border-radius: 0.4rem 1.4rem 1.4rem 1.4rem;
+    border: 1px solid var(--outline-variant);
+  }
+
+  .message-sending {
+    opacity: 0.7;
+    filter: grayscale(0.2);
   }
 
   .noir-sidebar-left {
