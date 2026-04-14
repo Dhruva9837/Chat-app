@@ -88,7 +88,7 @@ export function NewGroupModal() {
         iconUrl = publicUrl
       }
 
-      // 1. Create the Chat record on the client-side to pass RLS
+      // Step 1: Create the group chat
       const { data: chat, error: chatError } = await supabase
         .from('chats')
         .insert([{ 
@@ -97,31 +97,49 @@ export function NewGroupModal() {
           group_icon: iconUrl,
           created_by: user.id 
         }])
-        .select()
+        .select('id')
         .single();
       
       if (chatError) throw chatError;
 
-      // 2. Add Participants via API (which handles bulk insertion and joins)
-      const response = await fetch('/api/groups/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Step 2: Add all participants (creator + selected members) client-side
+      const allParticipants = [
+        { chat_id: chat.id, user_id: user.id, role: 'admin' },
+        ...selectedIds.map(memberId => ({
           chat_id: chat.id,
-          members: selectedIds || [],
-          created_by: user.id
-        })
-      });
+          user_id: memberId,
+          role: 'member'
+        }))
+      ];
 
-      const fullChat = await response.json();
-      if (!response.ok) throw new Error(fullChat.error || 'Failed to add group members');
+      const { error: partError } = await supabase
+        .from('chat_participants')
+        .insert(allParticipants);
 
-      if (fullChat) {
-        addChat(fullChat);
-        setActiveChat(fullChat);
-      }
+      if (partError) throw partError;
+
+      // Step 3: Fetch the full chat with participants and profiles
+      const { data: fullChat, error: fullError } = await supabase
+        .from('chats')
+        .select(`
+          *,
+          chat_participants (
+            user_id,
+            role,
+            profiles (*)
+          )
+        `)
+        .eq('id', chat.id)
+        .single();
+
+      if (fullError) throw fullError;
+
+      const processedChat = { ...fullChat, last_message: null, unread_count: 0 };
+      addChat(processedChat as any);
+      setActiveChat(processedChat as any);
       setNewGroupModalOpen(false);
     } catch (error: any) {
+      console.error('Group creation error:', error);
       alert(error.message);
     } finally {
       setLoading(false)
