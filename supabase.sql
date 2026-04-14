@@ -51,7 +51,7 @@ create table if not exists public.chat_participants (
 create table if not exists public.messages (
   id uuid primary key default uuid_generate_v4(),
   chat_id uuid references public.chats(id) on delete cascade,
-  sender_id uuid references auth.users(id) on delete set null,
+  sender_id uuid references public.profiles(id) on delete set null,
   content text not null,
   message_type text check (message_type in ('text', 'image')) default 'text',
   image_url text,

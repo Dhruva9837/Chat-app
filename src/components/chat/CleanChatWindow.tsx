@@ -63,7 +63,7 @@ export const CleanChatWindow = () => {
           .from('messages')
           .select(`
             *,
-            profiles:sender_id (id, name, avatar_url)
+            profiles:profiles!sender_id (id, name, avatar_url)
           `)
           .eq('chat_id', activeChat.id)
           .order('created_at', { ascending: true });
@@ -138,7 +138,11 @@ export const CleanChatWindow = () => {
         table: 'messages',
         filter: `chat_id=eq.${activeChat.id}`
       }, (payload) => {
-        setMessages(prev => prev.map(m => m.id === payload.new.id ? payload.new : m));
+        setMessages(prev => prev.map(m => 
+          m.id === payload.new.id 
+            ? { ...payload.new, profiles: m.profiles } 
+            : m
+        ));
       })
       .on('broadcast', { event: 'typing' }, (payload) => {
          setTypingUser(payload.payload.userId, payload.payload.isTyping);
@@ -445,7 +449,7 @@ export const CleanChatWindow = () => {
               <EmojiPicker 
                 theme={Theme.DARK} 
                 onEmojiClick={onEmojiClick}
-                width={window.innerWidth < 640 ? 300 : undefined}
+                width={typeof window !== 'undefined' && window.innerWidth < 640 ? 300 : undefined}
                 style={{
                   backgroundColor: '#161618',
                   borderColor: 'rgba(255,255,255,0.05)',
