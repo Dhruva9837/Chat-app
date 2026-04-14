@@ -1,28 +1,27 @@
 'use client'
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Bell, 
   Calendar, 
   Layout, 
-  MessageSquare,
   FileText,
-  Link,
-  ChevronRight,
   MicOff,
-  Clock,
-  Eye,
-  Download,
-  ShieldAlert,
   Trash2,
   Lock,
-  Unlock
+  Unlock,
+  UserPlus,
+  UserMinus,
+  Search,
+  Loader2,
+  Users
 } from 'lucide-react';
 import { useChatStore } from '@/store/chatStore';
 import { useAuthStore } from '@/store/authStore';
 import { getAvatarUrl } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '@/lib/supabase';
 
 export const CleanInfoPanel = () => {
   const { user } = useAuthStore();
@@ -34,10 +33,26 @@ export const CleanInfoPanel = () => {
     blockUser, 
     unblockUser, 
     blockedUsers,
-    messages
+    messages,
+    updateChat
   } = useChatStore();
   
-  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [allProfiles, setAllProfiles] = useState<any[]>([]);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [addingId, setAddingId] = useState<string | null>(null);
+
+  // Fetch all profiles when add-member panel opens
+  useEffect(() => {
+    if (!showAddMember || !user) return;
+    supabase
+      .from('profiles')
+      .select('id, name, avatar_url, username')
+      .neq('id', user.id)
+      .then(({ data }) => { if (data) setAllProfiles(data); });
+  }, [showAddMember, user]);
 
   // Compute real media and links from messages
   const photos = React.useMemo(() => {
@@ -194,6 +209,140 @@ export const CleanInfoPanel = () => {
             <span className="text-[10px] font-black uppercase tracking-widest">No files shared</span>
           </div>
         </section>
+
+        {/* Group Members Section */}
+        {isGroup && (
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[11px] font-black text-text-muted uppercase tracking-widest flex items-center gap-2">
+                <Users size={12} />
+                Members <span className="opacity-50">{activeChat.chat_participants?.length || 0}</span>
+              </h3>
+              <button
+                onClick={() => setShowAddMember(v => !v)}
+                className={`p-2 rounded-xl transition-all flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${
+                  showAddMember ? 'bg-noir-accent text-white' : 'text-noir-accent hover:bg-noir-accent/10'
+                }`}
+              >
+                <UserPlus size={14} />
+                Add
+              </button>
+            </div>
+
+            {/* Add Member Search */}
+            <AnimatePresence>
+              {showAddMember && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-4 overflow-hidden"
+                >
+                  <div className="relative mb-2">
+                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                    <input
+                      type="text"
+                      placeholder="Search to add..."
+                      value={memberSearch}
+                      onChange={e => setMemberSearch(e.target.value)}
+                      className="w-full bg-surface-high border border-outline-variant rounded-xl py-2.5 pl-8 pr-3 text-[12px] text-white outline-none focus:ring-2 focus:ring-noir-accent/30"
+                    />
+                  </div>
+                  <div className="max-h-[160px] overflow-y-auto no-scrollbar space-y-1">
+                    {allProfiles
+                      .filter(p =>
+                        !activeChat.chat_participants?.some((cp: any) => cp.user_id === p.id) &&
+                        (p.name?.toLowerCase().includes(memberSearch.toLowerCase()) ||
+                         p.username?.toLowerCase().includes(memberSearch.toLowerCase()))
+                      )
+                      .map(p => (
+                        <button
+                          key={p.id}
+                          disabled={addingId === p.id}
+                          onClick={async () => {
+                            setAddingId(p.id);
+                            try {
+                              const { error } = await supabase
+                                .from('chat_participants')
+                                .insert({ chat_id: activeChat.id, user_id: p.id, role: 'member' });
+                              if (error) throw error;
+                              // Update local state
+                              const newParticipant = { user_id: p.id, role: 'member', profiles: p };
+                              updateChat(activeChat.id, {
+                                chat_participants: [...(activeChat.chat_participants || []), newParticipant]
+                              });
+                            } catch (err: any) {
+                              alert(err.message);
+                            } finally {
+                              setAddingId(null);
+                            }
+                          }}
+                          className="w-full flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-surface-high transition-all text-left"
+                        >
+                          <img src={getAvatarUrl(p)} className="w-8 h-8 rounded-xl" alt="" />
+                          <span className="text-[12px] font-bold text-white flex-1 truncate">{p.name}</span>
+                          {addingId === p.id
+                            ? <Loader2 size={14} className="text-noir-accent animate-spin" />
+                            : <UserPlus size={14} className="text-noir-accent" />}
+                        </button>
+                      ))
+                    }
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Current Members List */}
+            <div className="space-y-1">
+              {(activeChat.chat_participants || []).map((p: any) => {
+                const memberProfile = p.profiles;
+                const isMe = p.user_id === user?.id;
+                const isAdmin = p.role === 'admin';
+                const amIAdmin = activeChat.chat_participants?.find((cp: any) => cp.user_id === user?.id)?.role === 'admin';
+
+                return (
+                  <div key={p.user_id} className="flex items-center gap-3 px-3 py-2 rounded-xl group hover:bg-surface-high transition-all">
+                    <img src={getAvatarUrl(memberProfile)} className="w-9 h-9 rounded-xl shrink-0" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-bold text-white truncate">
+                        {memberProfile?.name || 'User'}{isMe ? ' (You)' : ''}
+                      </p>
+                      <p className="text-[10px] text-text-muted uppercase tracking-widest">{isAdmin ? 'Admin' : 'Member'}</p>
+                    </div>
+                    {amIAdmin && !isMe && (
+                      <button
+                        disabled={removingId === p.user_id}
+                        onClick={async () => {
+                          setRemovingId(p.user_id);
+                          try {
+                            const { error } = await supabase
+                              .from('chat_participants')
+                              .delete()
+                              .eq('chat_id', activeChat.id)
+                              .eq('user_id', p.user_id);
+                            if (error) throw error;
+                            updateChat(activeChat.id, {
+                              chat_participants: activeChat.chat_participants?.filter((cp: any) => cp.user_id !== p.user_id)
+                            });
+                          } catch (err: any) {
+                            alert(err.message);
+                          } finally {
+                            setRemovingId(null);
+                          }
+                        }}
+                        className="p-1.5 rounded-lg text-text-muted hover:text-rose-500 hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        {removingId === p.user_id
+                          ? <Loader2 size={14} className="animate-spin" />
+                          : <UserMinus size={14} />}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Danger Zone */}
         {!isGroup && otherUser && (
