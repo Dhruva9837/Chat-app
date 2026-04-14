@@ -25,7 +25,7 @@ import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { BrandLogo } from '../BrandLogo';
 
 export const CleanChatWindow = () => {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const { 
     activeChat, 
     setActiveChat, 
@@ -247,7 +247,7 @@ export const CleanChatWindow = () => {
       image_url: imageUrl,
       created_at: new Date().toISOString(),
       sending: true,
-      profiles: user
+      profiles: profile || user
     };
 
     setMessages(prev => [...prev, optimisticMsg]);
@@ -271,7 +271,7 @@ export const CleanChatWindow = () => {
       if (error) throw error;
       
       if (data) {
-        setMessages(prev => prev.map(m => m.id === tempId ? { ...data, profiles: user } : m));
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...data, profiles: profile || user } : m));
       }
     } catch (err) {
       console.error('Error sending message:', err);
@@ -387,7 +387,7 @@ export const CleanChatWindow = () => {
                 <div className="shrink-0 mt-auto mb-1">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-[1.2rem] overflow-hidden bg-surface-low border border-outline-variant">
                     <img 
-                      src={getAvatarUrl(isMe ? user : msg.profiles)} 
+                      src={getAvatarUrl(isMe ? (profile || user) : msg.profiles)} 
                       alt="" 
                       className="w-full h-full object-cover" 
                     />
