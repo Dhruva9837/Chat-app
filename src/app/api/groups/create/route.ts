@@ -4,34 +4,19 @@ import { createServerSupabase } from '@/lib/supabaseServer'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { name, members, icon, created_by } = body
+    const { chat_id, members, created_by } = body
 
-    if (!name || !members || !Array.isArray(members) || !created_by) {
-      return NextResponse.json({ error: 'Missing required fields: name, members, or created_by' }, { status: 400 })
+    if (!chat_id || !members || !Array.isArray(members) || !created_by) {
+      return NextResponse.json({ error: 'Missing required fields: chat_id, members, or created_by' }, { status: 400 })
     }
 
     const supabase = createServerSupabase()
 
-    // 1. Create the Group Chat
-    const { data: chat, error: chatError } = await supabase
-      .from('chats')
-      .insert([{ 
-        name, 
-        type: 'group', 
-        group_icon: icon || null,
-        created_by: created_by
-      }])
-      .select()
-      .single()
-
-    if (chatError) throw chatError
-
-    // 2. Add Participants
-    // Creator is Admin, others are Member
+    // 1. Add Participants
     const participants = [
-      { chat_id: chat.id, user_id: created_by, role: 'admin' },
+      { chat_id: chat_id, user_id: created_by, role: 'admin' },
       ...members.map(memberId => ({
-        chat_id: chat.id,
+        chat_id: chat_id,
         user_id: memberId,
         role: 'member'
       }))
@@ -43,7 +28,7 @@ export async function POST(req: Request) {
 
     if (partError) throw partError
 
-    // 3. Return the full chat object with participants (matching types/database.ts)
+    // 2. Return the full chat object with participants
     const { data: fullChat, error: fullError } = await supabase
       .from('chats')
       .select(`
@@ -53,7 +38,7 @@ export async function POST(req: Request) {
           profiles:user_id (*)
         )
       `)
-      .eq('id', chat.id)
+      .eq('id', chat_id)
       .single()
 
     if (fullError) throw fullError

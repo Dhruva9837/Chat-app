@@ -196,14 +196,14 @@ export const useChatStore = create<ChatState>((set) => ({
   setNewGroupModalOpen: (open) => set({ isNewGroupModalOpen: open }),
   setChats: (chats) => set({ chats }),
   setActiveChat: (chat) => {
-    console.log('[setActiveChat] Setting chat as active:', chat?.id);
-    set({ 
+    set((state) => ({ 
       activeChat: chat, 
       messages: [], 
       nextCursor: null, 
       hasMore: true,
-      activeView: 'chat' 
-    });
+      activeView: 'chat',
+      chats: state.chats.map(c => c.id === chat?.id ? { ...c, unread_count: 0 } : c)
+    }));
   },
   setActiveView: (view) => set({ activeView: view }),
   setShowInfoPanel: (show: boolean) => set({ showInfoPanel: show }),

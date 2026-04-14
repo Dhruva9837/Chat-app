@@ -13,8 +13,8 @@ export function getAvatarUrl(data: any, chatId?: string) {
     return `https://api.dicebear.com/7.x/pixel-art/svg?seed=${data.email || data.id}`
   }
 
-  // Final fallback
-  return `https://unavatar.io/${data.email}?fallback=https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email || data.id}`
+  // Primary fallback is Dicebear to ensure visual consistency
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email || data.id}`
 }
 
 export function formatTime(dateString: string | Date) {

@@ -88,27 +88,41 @@ export function NewGroupModal() {
         iconUrl = publicUrl
       }
 
+      // 1. Create the Chat record on the client-side to pass RLS
+      const { data: chat, error: chatError } = await supabase
+        .from('chats')
+        .insert([{ 
+          name: groupName, 
+          type: 'group', 
+          group_icon: iconUrl,
+          created_by: user.id 
+        }])
+        .select()
+        .single();
+      
+      if (chatError) throw chatError;
+
+      // 2. Add Participants via API (which handles bulk insertion and joins)
       const response = await fetch('/api/groups/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: groupName,
+          chat_id: chat.id,
           members: selectedIds || [],
-          icon: iconUrl,
           created_by: user.id
         })
-      })
+      });
 
-      const fullChat = await response.json()
-      if (!response.ok) throw new Error(fullChat.error || 'Failed to create group')
+      const fullChat = await response.json();
+      if (!response.ok) throw new Error(fullChat.error || 'Failed to add group members');
 
       if (fullChat) {
-        addChat(fullChat)
-        setActiveChat(fullChat)
+        addChat(fullChat);
+        setActiveChat(fullChat);
       }
-      setNewGroupModalOpen(false)
+      setNewGroupModalOpen(false);
     } catch (error: any) {
-      alert(error.message)
+      alert(error.message);
     } finally {
       setLoading(false)
     }
