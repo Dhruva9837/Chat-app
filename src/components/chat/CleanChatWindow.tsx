@@ -504,7 +504,7 @@ export const CleanChatWindow = () => {
             onClick={() => fileInputRef.current?.click()}
             className="p-4 md:p-5 text-text-muted hover:text-white transition-colors"
           >
-            <Paperclip size={20} md:size={22} strokeWidth={2.5} />
+            <Paperclip size={22} strokeWidth={2.5} className="w-5 h-5 md:w-[22px] md:h-[22px]" />
           </button>
           
           <input 
