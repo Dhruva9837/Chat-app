@@ -55,7 +55,7 @@ export const CleanChatList = () => {
       fetchRequests(user.id);
       if (action === 'accept') fetchFriends(user.id);
     } catch (err) {
-      console.error(err);
+      // Error handled silently
     }
   };
 
@@ -90,7 +90,7 @@ export const CleanChatList = () => {
         const data = await res.json();
         setSearchResults({ profiles: data.profiles || [], messages: data.messages || [] });
       } catch (err) {
-        console.error(err);
+        // Error handled silently
       } finally {
         setIsSearching(false);
       }

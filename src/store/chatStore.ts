@@ -55,6 +55,7 @@ interface ChatState {
   addMessage: (message: Message) => void
   receiveGlobalMessage: (message: Message, currentUserId: string) => void
   updateGlobalMessage: (message: Message) => void
+  resolveOptimisticMessage: (tempId: string, realMessage: Message) => void
   prependMessages: (messages: Message[], nextCursor: string | null) => void
   setActiveView: (view: 'chat' | 'favorites' | 'profile' | 'settings' | 'groups' | 'calendar') => void
   toggleDetailSidebar: () => void
@@ -177,7 +178,7 @@ export const useChatStore = create<ChatState>((set) => ({
       if (inError) throw inError;
       if (outError) throw outError;
 
-      set({ friendRequests: [...(incoming || []), ...(outgoing || [])] })
+      set({ friendRequests: [...(incoming || []), ...(outgoing || [])] as any[] })
     } catch (err) {
       console.error('Failed to fetch requests:', err)
     }
@@ -245,30 +246,69 @@ export const useChatStore = create<ChatState>((set) => ({
     return { messages: [...state.messages, message] }
   }),
   updateGlobalMessage: (message) => set((state) => {
-    const updatedChats = state.chats.map(chat => {
-      if (chat.last_message?.id === message.id) {
-        return {
-          ...chat,
-          last_message: message,
-          unread_count: message.is_read ? 0 : chat.unread_count
-        }
+    // 1. Update the message list if it belongs to active chat
+    const updatedMessages = state.messages.map(m => {
+      if (m.id === message.id) {
+        return { ...m, ...message };
       }
-      return chat
+      return m;
     });
 
-    const updatedMessages = state.messages.map(m => m.id === message.id ? message : m);
+    // 2. Update the chat list (for last_message and unread counts)
+    const updatedChats = state.chats.map(chat => {
+      if (chat.id === message.chat_id) {
+        const isCurrentLast = chat.last_message?.id === message.id;
+        return {
+          ...chat,
+          last_message: isCurrentLast ? { ...chat.last_message, ...message } : chat.last_message,
+          // If a message we are receiving an update for is now read, or vice versa
+          // we don't manually tick unread_count here as that's complex, 
+          // usually best to let the specific "mark as read" logic handle it.
+        };
+      }
+      return chat;
+    });
 
     return { chats: updatedChats, messages: updatedMessages };
   }),
-  receiveGlobalMessage: (message, currentUserId) => set((state) => {
-    const isForActiveChat = state.activeChat?.id === message.chat_id
+  resolveOptimisticMessage: (tempId, realMessage) => set((state) => {
+    const updatedMessages = state.messages.map(m => 
+      m.id === tempId ? { ...realMessage, sending: false } : m
+    );
     
     const updatedChats = state.chats.map(chat => {
+      if (chat.id === realMessage.chat_id) {
+        return { ...chat, last_message: realMessage };
+      }
+      return chat;
+    });
+
+    return { messages: updatedMessages, chats: updatedChats };
+  }),
+  receiveGlobalMessage: (message, currentUserId) => set((state) => {
+    const isForActiveChat = state.activeChat?.id === message.chat_id;
+    const isMe = message.sender_id === currentUserId;
+
+    // 1. Try to find the profile for this message if it's missing sender_profile
+    let enhancedMessage = { ...message };
+    if (!enhancedMessage.sender_profile) {
+      // Look in participants of all chats for this user's profile
+      for (const chat of state.chats) {
+        const participant = chat.chat_participants?.find(p => p.user_id === message.sender_id);
+        if (participant?.profiles) {
+          enhancedMessage.sender_profile = participant.profiles;
+          break;
+        }
+      }
+    }
+
+    // 2. Update Chat List (last_message, order, and unread count)
+    const updatedChats = state.chats.map(chat => {
       if (chat.id === message.chat_id) {
-        const isUnread = !isForActiveChat && message.sender_id !== currentUserId
+        const isUnread = !isForActiveChat && !isMe;
         return {
           ...chat,
-          last_message: message,
+          last_message: enhancedMessage,
           unread_count: isUnread ? (chat.unread_count || 0) + 1 : (chat.unread_count || 0)
         }
       }
@@ -277,14 +317,36 @@ export const useChatStore = create<ChatState>((set) => ({
       const timeA = new Date(a.last_message?.created_at || a.created_at).getTime()
       const timeB = new Date(b.last_message?.created_at || b.created_at).getTime()
       return timeB - timeA
-    })
+    });
 
+    // 3. Update Message List if active
     if (isForActiveChat) {
-      if (state.messages.some(m => m.id === message.id)) return { chats: updatedChats }
+      // Prevent duplicates (e.g. from both global and local listeners, or optimistic return)
+      if (state.messages.some(m => m.id === message.id)) {
+        return { chats: updatedChats };
+      }
+
+      // Check if this message was an optimistic one (same content/sender)
+      // This is a fallback in case the local component didn't handle it
+      const optimisticIndex = state.messages.findIndex(m => 
+        (m as any).sending && 
+        m.sender_id === message.sender_id && 
+        m.content === message.content
+      );
+
+      if (optimisticIndex !== -1) {
+        const newMessages = [...state.messages];
+        newMessages[optimisticIndex] = enhancedMessage;
+        return { 
+          chats: updatedChats,
+          messages: newMessages 
+        };
+      }
+
       return { 
         chats: updatedChats,
-        messages: [...state.messages, message] 
-      }
+        messages: [...state.messages, enhancedMessage] 
+      };
     }
 
     return { chats: updatedChats }
@@ -317,47 +379,6 @@ export const useChatStore = create<ChatState>((set) => ({
   removeFriendRequest: (id) => set((state) => ({
     friendRequests: state.friendRequests.filter(r => r.id !== id)
   })),
-  fetchBlockedUsers: async (userId) => {
-    try {
-      const { data, error } = await supabase
-        .from('blocks')
-        .select('blocked_id')
-        .eq('blocker_id', userId);
-      if (error) throw error;
-      set({ blockedUsers: data?.map(b => b.blocked_id) || [] });
-    } catch (err) {
-      console.error('Failed to fetch blocked users:', err);
-    }
-  },
-  blockUser: async (blockedId) => {
-    const blockerId = useAuthStore.getState().user?.id;
-    if (!blockerId) return;
-    try {
-      const { error } = await supabase
-        .from('blocks')
-        .insert([{ blocker_id: blockerId, blocked_id: blockedId }]);
-      if (error) throw error;
-      set((state) => ({ blockedUsers: [...state.blockedUsers, blockedId] }));
-    } catch (err) {
-      console.error('Failed to block user:', err);
-    }
-  },
-  unblockUser: async (blockedId) => {
-    const blockerId = useAuthStore.getState().user?.id;
-    if (!blockerId) return;
-    try {
-      const { error } = await supabase
-        .from('blocks')
-        .delete()
-        .match({ blocker_id: blockerId, blocked_id: blockedId });
-      if (error) throw error;
-      set((state) => ({ 
-        blockedUsers: state.blockedUsers.filter(id => id !== blockedId) 
-      }));
-    } catch (err) {
-      console.error('Failed to unblock user:', err);
-    }
-  },
   deleteChat: async (chatId) => {
     try {
       const { error } = await supabase

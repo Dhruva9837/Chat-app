@@ -267,9 +267,9 @@ export const CleanInfoPanel = () => {
                                 .insert({ chat_id: activeChat.id, user_id: p.id, role: 'member' });
                               if (error) throw error;
                               // Update local state
-                              const newParticipant = { user_id: p.id, role: 'member', profiles: p };
+                              const newParticipant = { user_id: p.id, role: 'member', profiles: p } as any;
                               updateChat(activeChat.id, {
-                                chat_participants: [...(activeChat.chat_participants || []), newParticipant]
+                                chat_participants: [...(activeChat.chat_participants || []), newParticipant] as any
                               });
                             } catch (err: any) {
                               alert(err.message);

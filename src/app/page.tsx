@@ -25,10 +25,14 @@ export default function Home() {
               profiles (*)
             ),
             messages (
+              id,
               content,
               created_at,
               is_read,
-              sender_id
+              sender_id,
+              chat_id,
+              message_type,
+              image_url
             )
           `).order('created_at', { ascending: false }),
           supabase.from('friend_requests').select(`
@@ -41,11 +45,22 @@ export default function Home() {
         if (profileRes.data) setProfile(profileRes.data)
         if (settingsRes.data) setSettings(settingsRes.data)
         if (chatsRes.data) {
-          const processedChats = chatsRes.data.map(chat => ({
-            ...chat,
-            last_message: chat.messages?.[chat.messages.length - 1],
-            unread_count: chat.messages?.filter((m: any) => !m.is_read && m.sender_id !== userId).length || 0
-          }))
+          const processedChats = chatsRes.data.map(chat => {
+            const lastMsg = chat.messages?.[chat.messages.length - 1];
+            if (lastMsg) {
+              // Attach sender profile from participants if missing
+              const sender = chat.chat_participants?.find((p: any) => p.user_id === lastMsg.sender_id);
+              if (sender?.profiles) {
+                (lastMsg as any).sender_profile = sender.profiles;
+              }
+            }
+            
+            return {
+              ...chat,
+              last_message: lastMsg,
+              unread_count: chat.messages?.filter((m: any) => !m.is_read && m.sender_id !== userId).length || 0
+            }
+          })
           
           processedChats.sort((a, b) => {
             const timeA = new Date(a.last_message?.created_at || a.created_at).getTime()
@@ -109,18 +124,23 @@ export default function Home() {
       }
     })
 
-    // 2. Global Message Listener for Sidebar & Unread Counts
+    // 2a. Global DB Changes Listener (new/updated messages)
     const globalChannel = supabase
-      .channel('global-messages')
+      .channel('global-db-changes')
       .on('postgres_changes', { 
         event: 'INSERT', 
         schema: 'public', 
         table: 'messages' 
-      }, (payload) => {
-        const newMessage = payload.new as any
+      }, async (payload) => {
+        const newMsg = payload.new as any
         const { user: currentUser } = useAuthStore.getState()
         if (currentUser) {
-           useChatStore.getState().receiveGlobalMessage(newMessage, currentUser.id)
+           useChatStore.getState().receiveGlobalMessage(newMsg, currentUser.id)
+           // Auto-mark as read if we're in this chat and we didn't send it
+           const { activeChat } = useChatStore.getState()
+           if (activeChat?.id === newMsg.chat_id && newMsg.sender_id !== currentUser.id) {
+             supabase.from('messages').update({ is_read: true }).eq('id', newMsg.id).then()
+           }
         }
       })
       .on('postgres_changes', { 
@@ -128,11 +148,11 @@ export default function Home() {
         schema: 'public', 
         table: 'messages' 
       }, (payload) => {
-        const newMessage = payload.new as any
-        // Instead of typical receive, use update global to fix last_msg references
-        useChatStore.getState().updateGlobalMessage(newMessage)
+        useChatStore.getState().updateGlobalMessage(payload.new as any)
       })
-      .subscribe()
+      .subscribe((status, err) => {
+        if (err) console.error('[Realtime] DB channel error:', err)
+      })
 
     // 3. Friend Requests Listener
     const requestsChannel = supabase
@@ -141,57 +161,19 @@ export default function Home() {
         event: '*',
         schema: 'public',
         table: 'friend_requests'
-      }, async (payload) => {
-        // We re-fetch the friend requests list if something changes 
-        // to securely grab the joined profiles without repeating SQL logic
+      }, async () => {
         const { user: currentUser } = useAuthStore.getState()
         if (currentUser) {
-          const { data } = await supabase
-            .from('friend_requests')
-            .select(`
-              *,
-              sender_profile:profiles!sender_id(id, name, username, avatar_url),
-              receiver_profile:profiles!receiver_id(id, name, username, avatar_url)
-            `)
-          if (data) {
-            useChatStore.getState().setFriendRequests(data as any[])
-          }
+          useChatStore.getState().fetchRequests(currentUser.id)
+          useChatStore.getState().fetchFriends(currentUser.id)
         }
       })
       .subscribe()
-
-    // 4. Global Presence Listener
-    const presenceChannel = supabase.channel('global_presence')
-    
-    presenceChannel
-      .on('presence', { event: 'sync' }, () => {
-        const state = presenceChannel.presenceState()
-        const onlineUsersMap: Record<string, any> = {}
-        for (const [key, stateArray] of Object.entries(state)) {
-           if (stateArray.length > 0) {
-              const payload = stateArray[0] as any
-              onlineUsersMap[payload.userId] = { status: 'online', ...payload }
-           }
-        }
-        useChatStore.getState().setOnlineUsers(onlineUsersMap)
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-           const { user: currentUser } = useAuthStore.getState()
-           if (currentUser) {
-              await presenceChannel.track({
-                 userId: currentUser.id,
-                 onlineAt: new Date().toISOString()
-              })
-           }
-        }
-      })
 
     return () => {
       subscription.unsubscribe()
       supabase.removeChannel(globalChannel)
       supabase.removeChannel(requestsChannel)
-      supabase.removeChannel(presenceChannel)
     }
   }, [])
 

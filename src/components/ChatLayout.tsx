@@ -118,12 +118,14 @@ export function ChatLayout() {
       <GlobalSidebar />
 
       {/* 2. Main Content Area (Chat List + Chat Window + Info Panel) */}
-      <main className={`flex-1 flex overflow-hidden relative ${(!activeChat || activeView !== 'chat') ? 'pb-[72px] md:pb-0' : ''}`}>
+      <main className={`flex-1 flex overflow-hidden relative ${(activeChat && activeView === 'chat') ? '' : 'pb-[72px] md:pb-0'}`}>
         {renderView()}
       </main>
 
-      {/* 3. Mobile Bottom Navigation */}
-      <MobileBottomNav />
+      {/* 3. Mobile Bottom Navigation - Hidden when in a chat window on mobile */}
+      <div className={`${(activeChat && activeView === 'chat') ? 'hidden md:block' : 'block'}`}>
+        <MobileBottomNav />
+      </div>
 
       {/* Modals & Overlays */}
       <AddFriendModal />

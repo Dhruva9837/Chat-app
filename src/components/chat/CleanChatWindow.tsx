@@ -32,10 +32,13 @@ export const CleanChatWindow = () => {
     setTypingUser,
     setShowInfoPanel,
     showInfoPanel,
-    blockedUsers
+    blockedUsers,
+    messages,
+    setMessages,
+    addMessage,
+    resolveOptimisticMessage
   } = useChatStore();
   
-  const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -48,7 +51,6 @@ export const CleanChatWindow = () => {
 
   // Reset state when switching chats
   useEffect(() => {
-    setMessages([]);
     setNewMessage('');
     setSelectedImage(null);
     setShowEmojiPicker(false);
@@ -63,7 +65,7 @@ export const CleanChatWindow = () => {
           .from('messages')
           .select(`
             *,
-            profiles:profiles!sender_id (id, name, avatar_url)
+            sender_profile:profiles!sender_id (id, name, avatar_url)
           `)
           .eq('chat_id', activeChat.id)
           .order('created_at', { ascending: true });
@@ -83,78 +85,21 @@ export const CleanChatWindow = () => {
     
     fetchMessages();
 
-    const channel = supabase
-      .channel(`chat:${activeChat.id}`)
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'messages',
-        filter: `chat_id=eq.${activeChat.id}`
-      }, async (payload) => {
-        const newMessage = payload.new;
-        
-        setMessages(prev => {
-          // 1. Check if we already have this message by real ID
-          if (prev.some(m => m.id === newMessage.id)) return prev;
-          
-          // 2. Check if this is our own message that we sent optimistically 
-          // (matching by content, sender, and very close timestamp if needed)
-          // Since we update the optimistic message ID in handleSendMessage, 
-          // we might still have a race condition where the realtime event hits first.
-          
-          // Let's check for any "sending" messages that match this one
-          const optimisticIndex = prev.findIndex(m => 
-            m.sending && 
-            m.sender_id === newMessage.sender_id && 
-            m.content === newMessage.content
-          );
-
-          if (optimisticIndex !== -1) {
-            // Replace the optimistic message with the real one
-            const newPrev = [...prev];
-            // Fetch profile for the new message if it's not from us (though usually it is if it's optimistic)
-            // But for other users, we need their profile.
-            newPrev[optimisticIndex] = { ...newMessage, profiles: prev[optimisticIndex].profiles };
-            return newPrev;
-          }
-
-          return [...prev, newMessage];
-        });
-        
-        // If it's from another user, fetch their profile to ensure avatar shows up
-        if (newMessage.sender_id !== user?.id) {
-           const { data: profile } = await supabase.from('profiles').select('*').eq('id', newMessage.sender_id).single();
-           if (profile) {
-              setMessages(prev => prev.map(m => m.id === newMessage.id ? { ...m, profiles: profile } : m));
-           }
-
-           // Mark as read
-           supabase.from('messages').update({ is_read: true }).eq('id', newMessage.id).then();
-        }
-      })
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'messages',
-        filter: `chat_id=eq.${activeChat.id}`
-      }, (payload) => {
-        setMessages(prev => prev.map(m => 
-          m.id === payload.new.id 
-            ? { ...payload.new, profiles: m.profiles } 
-            : m
-        ));
-      })
+    // Per-chat typing channel — unique name avoids conflict with global-messages in page.tsx
+    const typingChannel = supabase.channel(`typing:${activeChat.id}`);
+    
+    typingChannel
       .on('broadcast', { event: 'typing' }, (payload) => {
          setTypingUser(payload.payload.userId, payload.payload.isTyping);
       })
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          channelRef.current = channel;
+          channelRef.current = typingChannel;
         }
       });
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(typingChannel);
       channelRef.current = null;
     };
   }, [activeChat?.id]);
@@ -247,10 +192,10 @@ export const CleanChatWindow = () => {
       image_url: imageUrl,
       created_at: new Date().toISOString(),
       sending: true,
-      profiles: profile || user
+      sender_profile: profile || user
     };
 
-    setMessages(prev => [...prev, optimisticMsg]);
+    addMessage(optimisticMsg as any);
     setNewMessage('');
     setSelectedImage(null);
     setShowEmojiPicker(false);
@@ -271,11 +216,11 @@ export const CleanChatWindow = () => {
       if (error) throw error;
       
       if (data) {
-        setMessages(prev => prev.map(m => m.id === tempId ? { ...data, profiles: profile || user } : m));
+        resolveOptimisticMessage(tempId, { ...data, sender_profile: profile || user } as any);
       }
     } catch (err) {
       console.error('Error sending message:', err);
-      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setMessages(messages.filter(m => m.id !== tempId));
     } finally {
       setIsUploading(false);
     }
@@ -328,9 +273,9 @@ export const CleanChatWindow = () => {
         <div className="flex items-center gap-3 md:gap-4">
           <button 
             onClick={() => setActiveChat(null)}
-            className="p-2 -ml-2 text-text-muted hover:text-white md:hidden"
+            className="w-10 h-10 rounded-[1rem] bg-surface-high flex items-center justify-center text-text-muted hover:text-white md:hidden transition-all active:scale-95 border border-outline-variant"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={20} />
           </button>
           
           {/* Avatar in Header */}
@@ -387,7 +332,7 @@ export const CleanChatWindow = () => {
                 <div className="shrink-0 mt-auto mb-1">
                   <div className="w-8 h-8 md:w-10 md:h-10 rounded-[1.2rem] overflow-hidden bg-surface-low border border-outline-variant">
                     <img 
-                      src={getAvatarUrl(isMe ? (profile || user) : msg.profiles)} 
+                      src={getAvatarUrl(isMe ? (profile || user) : msg.sender_profile)} 
                       alt="" 
                       className="w-full h-full object-cover" 
                     />
@@ -397,7 +342,7 @@ export const CleanChatWindow = () => {
                 <div className={`flex flex-col gap-1 ${isMe ? 'items-end' : 'items-start'}`}>
                   {isGroup && !isMe && (
                     <span className="text-[10px] md:text-[11px] font-black text-white/50 tracking-wide ml-1">
-                       {msg.profiles?.name}
+                       {msg.sender_profile?.name}
                     </span>
                   )}
                   
@@ -405,8 +350,8 @@ export const CleanChatWindow = () => {
                     className={`
                       px-4 md:px-6 py-2.5 md:py-4 text-[13px] md:text-[14px] font-medium leading-relaxed
                       ${isMe ? 'noir-bubble-sent' : 'noir-bubble-received'}
-                      ${msg.message_type === 'image' ? 'p-1 md:p-2' : ''}
-                      ${msg.sending ? 'message-sending' : ''}
+                      ${(msg as any).message_type === 'image' ? 'p-1 md:p-2' : ''}
+                      ${(msg as any).sending ? 'message-sending' : ''}
                     `}
                   >
                     {msg.message_type === 'image' && msg.image_url ? (
@@ -425,7 +370,7 @@ export const CleanChatWindow = () => {
                     <div className={`flex items-center gap-1 mt-1 justify-end ${isMe ? 'opacity-60' : 'opacity-30'}`}>
                        <span className="text-[8px] md:text-[9px] font-black uppercase">{time}</span>
                        {isMe && (
-                         msg.sending ? <Loader2 size={10} className="animate-spin" /> : <CheckCheck size={12} className="text-white" />
+                         (msg as any).sending ? <Loader2 size={10} className="animate-spin" /> : <CheckCheck size={12} className="text-white" />
                        )}
                     </div>
                   </div>
