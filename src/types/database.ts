@@ -53,6 +53,8 @@ export type Participant = {
   role: 'owner' | 'admin' | 'member'
   joined_at: string
   profiles?: Profile
+  // UI helper
+  sender_profile?: Profile 
 }
 
 export type Message = {
@@ -65,4 +67,6 @@ export type Message = {
   created_at: string
   is_read: boolean
   sender_profile?: Profile
+  // UI helpers
+  sending?: boolean
 }

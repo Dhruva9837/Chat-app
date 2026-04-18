@@ -79,7 +79,6 @@ export function AddFriendModal() {
 
   const handleStartChat = async () => {
     if (!result) return;
-    console.log('handleStartChat: Opening chat with', result.id);
     await startPrivateChat(result.id);
     setIsAddFriendModalOpen(false);
   };
@@ -98,7 +97,6 @@ export function AddFriendModal() {
     setActionLoading(true)
     try {
       if (pendingRequestReceived) {
-        console.log('Accepting incoming request:', pendingRequestReceived.id);
         const { error } = await supabase
           .from('friend_requests')
           .update({ status: 'accepted' })
@@ -106,7 +104,6 @@ export function AddFriendModal() {
           .select();
         if (error) throw error;
         
-        console.log('Inserting friendship records...');
         const { error: friendErr } = await supabase
           .from('friends')
           .insert([
@@ -121,17 +118,14 @@ export function AddFriendModal() {
           fetchFriends(user.id)
         }
       } else {
-        console.log('Sending new friend request to:', result.id);
         const { error } = await supabase
           .from('friend_requests')
           .insert({ sender_id: user.id, receiver_id: result.id })
           .select();
         
         if (error) {
-          console.error('Supabase Insert Error:', error);
           throw error;
         }
-        console.log('Request sent successfully');
         setActionDone(true)
         if (user) {
           fetchRequests(user.id)
@@ -139,7 +133,6 @@ export function AddFriendModal() {
         }
       }
     } catch (err: any) {
-      console.error('AddFriendModal Action Failed:', err);
       setError(err.message || err.details || 'Network error: Protocol failed to reach peer.')
     } finally {
       setActionLoading(false)

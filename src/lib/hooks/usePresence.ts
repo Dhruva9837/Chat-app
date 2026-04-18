@@ -34,10 +34,10 @@ export const usePresence = () => {
         setOnlineUsers(users)
       })
       .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-        console.log('Joined:', key, newPresences)
+        // User joined
       })
       .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-        console.log('Left:', key, leftPresences)
+        // User left
       })
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
