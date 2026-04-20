@@ -87,14 +87,17 @@ export default function Home() {
     const initializeAuth = async () => {
       try {
         setLoading(true)
+        console.log('[Auth] Initializing session...')
         const { data: { session }, error } = await supabase.auth.getSession()
         
         if (error) throw error
         
         if (session?.user) {
+          console.log('[Auth] Session found for user:', session.user.id)
           setUser(session.user)
           await fetchUserData(session.user.id)
         } else {
+          console.log('[Auth] No active session found.')
           setUser(null)
           setProfile(null)
         }
@@ -113,7 +116,8 @@ export default function Home() {
 
     initializeAuth()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[Auth] State changed: ${event}`, session?.user?.id)
       if (session?.user) {
         setUser(session.user)
         await fetchUserData(session.user.id)

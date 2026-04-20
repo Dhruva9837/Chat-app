@@ -26,6 +26,7 @@ export function Auth() {
   const [isVerifyStep, setIsVerifyStep] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(false);
 
   // Load saved email on mount
@@ -39,6 +40,7 @@ export function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setLoading(true);
     try {
       if (isSignUp) {
@@ -69,9 +71,9 @@ export function Auth() {
         }
         setUser(data.user);
       }
-    } catch (error: any) {
-      console.error("Auth Request Error:", error);
-      alert(error.message);
+    } catch (err: any) {
+      console.error("Auth Request Error:", err);
+      setError(err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -79,6 +81,7 @@ export function Auth() {
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (otp.length < 6) {
       alert("Please enter a valid verification code.");
       return;
@@ -93,8 +96,8 @@ export function Auth() {
       });
       if (error) throw error;
       if (data.user) setUser(data.user);
-    } catch (error: any) {
-      alert(`Verification Error: ${error.message}`);
+    } catch (err: any) {
+      setError(`Verification Error: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -131,6 +134,23 @@ export function Auth() {
             </motion.div>
           </div>
 
+          {/* Error Message Display */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-6 overflow-hidden"
+              >
+                <div className="bg-red-500/10 border border-red-500/20 text-red-500 text-[11px] font-bold py-3 px-4 rounded-xl flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                  {error}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence mode="wait">
             {isVerifyStep ? (
               <motion.form
@@ -148,6 +168,7 @@ export function Auth() {
                   <p className="text-text-muted text-sm px-4">
                     Confirm the 6-digit code sent to <br />
                     <span className="text-primary font-bold">{email}</span>
+                    <p className="mt-2 text-[10px] opacity-70">If you received an email with a link instead of a code, click the link and return here.</p>
                   </p>
                 </div>
 
@@ -331,7 +352,10 @@ export function Auth() {
                       : "Need an account? "}
                     <button
                       type="button"
-                      onClick={() => setIsSignUp(!isSignUp)}
+                      onClick={() => {
+                        setIsSignUp(!isSignUp);
+                        setError(null);
+                      }}
                       className="text-primary hover:text-indigo-400 transition-colors uppercase font-black"
                     >
                       {isSignUp ? "Log In" : "Register"}
