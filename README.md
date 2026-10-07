@@ -1,6 +1,32 @@
-# Nexora - High-Fidelity Chat Application
+# Nexora - High-Fidelity Real-Time Chat Application
 
-**Nexora** is a real-time, high-fidelity chat application built with modern web technologies, focusing on a "scroll-free, premium glassmorphic" design and seamless user interactions.
+<div align="center">
+
+![Nexora Banner](https://img.shields.io/badge/Nexora-Chat%20App-6366f1?style=for-the-badge&logo=react&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Realtime%20%26%20Auth-3ecf8e?style=for-the-badge&logo=supabase&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?style=for-the-badge&logo=tailwindcss&logoColor=white)
+
+**Nexora** is a high-fidelity, real-time messaging platform crafted with a scroll-free, glassmorphic aesthetic, event-driven Supabase architecture, and sub-100ms real-time state synchronization.
+
+[Features](#-key-features) • [Tech Stack](#-tech-stack) • [Getting Started](#-setup--installation) • [Architecture](#-database-architecture) • [Security](#-security)
+
+</div>
+
+---
+
+## ✨ Key Features
+
+- 💬 **Real-Time Messaging**: Instant 1-on-1 and Group chats powered by Supabase Realtime channels.
+- 🎨 **Glassmorphic UI**: Ultra-clean, scroll-free interface with smooth animations via Framer Motion.
+- 🔐 **Authentication**: Secure email authentication and OTP flows via Supabase Auth.
+- 🟢 **Live Presence & Status**: Online/offline indicators and real-time typing indicators.
+- 👥 **Group Management**: Create group conversations, manage participants, and view member profiles.
+- ⚡ **Optimized Performance**: Parallel data fetching and state management using Zustand and Redis caching.
+- 📁 **Media & File Sharing**: Built-in support for sharing images and attachments.
+- 😃 **Interactive Elements**: Native emoji picker integration and message reaction support.
+
+---
 
 ## 🚀 Tech Stack
 
@@ -8,65 +34,98 @@
 - **Styling**: Tailwind CSS v4
 - **Animations**: Framer Motion
 - **State Management**: Zustand
-- **Backend & Database**: Supabase (PostgreSQL, Realtime, Auth)
+- **Database & Realtime**: Supabase (PostgreSQL, Realtime Engine, Storage, Auth)
+- **Caching**: Upstash Redis
 - **Icons**: Lucide React
+- **Language**: TypeScript
+
+---
 
 ## 📁 Project Structure
 
 ```text
 chat-app/
-├── public/                 # Static assets
+├── public/                 # Static assets and icons
 ├── src/
 │   ├── app/                # Next.js App Router (page.tsx, layout.tsx, globals.css)
 │   ├── components/         # React UI Components
-│   │   ├── Auth.tsx        # Authentication (Email/Password + 8-digit OTP Signup)
-│   │   ├── ChatLayout.tsx  # Main Application Shell handling multi-view routing
-│   │   ├── ChatWindow.tsx  # Real-time Messaging Interface (Supabase Channels)
-│   │   ├── Sidebar.tsx     # Active Chat List
-│   │   └── ...             # Navigation & Contextual sidebars
-│   ├── lib/                # Configuration implementations (supabase.ts)
+│   │   ├── Auth.tsx        # Authentication & Signup Flow
+│   │   ├── ChatLayout.tsx  # Main Application Shell
+│   │   ├── ChatWindow.tsx  # Real-time Messaging Interface
+│   │   ├── Sidebar.tsx     # Active Chat & Conversation List
+│   │   └── ...             # Modals, Profile, Settings, & Media handlers
+│   ├── lib/                # Client utilities & Supabase configuration
 │   ├── store/              # Zustand global state (authStore.ts, chatStore.ts)
-│   └── types/              # TypeScript definitions (database.ts)
-├── .env.local              # Environment variables
-├── supabase.sql            # Database schema and RLS policies
-└── package.json            # Project dependencies
+│   └── types/              # TypeScript definitions & Supabase DB types
+├── .env.local              # Environment configuration
+├── supabase.sql            # PostgreSQL schema, RLS policies, & triggers
+└── package.json            # Project dependencies & scripts
 ```
+
+---
 
 ## 🛠️ Setup & Installation
 
 ### 1. Prerequisites
-Make sure you have Node.js installed (v18+ recommended).
+- **Node.js**: v18.0.0 or higher
+- **npm** / **yarn** / **pnpm**
+- A **Supabase** account ([supabase.com](https://supabase.com))
 
-### 2. Install Dependencies
+### 2. Clone the Repository
 ```bash
-# Ensure you are in the correct directory
-cd "chat-app"
+git clone https://github.com/Dhruva9837/Chat-app.git
+cd Chat-app/chat-app
+```
+
+### 3. Install Dependencies
+```bash
 npm install
 ```
 
-### 3. Environment Configuration
-Create or modify the `.env.local` file in the `chat-app` directory with your Supabase credentials:
+### 4. Configure Environment Variables
+Create a `.env.local` file inside the `chat-app` directory:
+
 ```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Optional: Upstash Redis (for enhanced caching)
+UPSTASH_REDIS_REST_URL=your_upstash_redis_rest_url
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token
 ```
 
-### 4. Running the Development Server
-**Important:** Make sure your terminal is navigated to the `chat-app` folder (not the outer folder) before running the command.
+### 5. Setup the Database
+1. Go to your **Supabase Dashboard** -> **SQL Editor**.
+2. Open the [supabase.sql](file:///d:/chat%20App/chat-app/supabase.sql) file from this repository.
+3. Paste and run the query to create all tables (`profiles`, `chats`, `messages`, `chat_participants`), security policies (RLS), and database triggers.
+
+### 6. Run the Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
-## 🗄️ Database Architecture (Supabase)
+Open [http://localhost:3000](http://localhost:3000) in your browser to start using **Nexora**.
 
-This app utilizes Supabase for secure data storage and real-time syncing. The SQL schema is located in `supabase.sql`. 
-- **Profiles (`profiles`)**: Linked to Supabase Auth (`auth.users`). Stores user names, status (online/offline/typing), and avatars. 
-  - *Trigger:* Automatically creates a profile when a new user signs up.
-- **Chats (`chats`)**: Container for chat sessions, handling both `private` and `group` chats.
+---
+
+## 🗄️ Database Architecture
+
+Nexora utilizes Supabase PostgreSQL with strict Row Level Security (RLS):
+
+- **Profiles (`profiles`)**: Linked to Supabase Auth (`auth.users`). Manages user display names, avatars, and status.
+- **Chats (`chats`)**: Handles both 1-on-1 `private` chats and multi-user `group` conversations.
 - **Participants (`chat_participants`)**: Join table connecting users to chats.
-- **Messages (`messages`)**: Stores actual message payloads attached to a specific `chat_id`. 
-  - *Realtime:* Subscribed to Postgres changes to instantly push messages to clients.
+- **Messages (`messages`)**: Stores message content, attachments, timestamps, and read receipts. Subscribed via Supabase Realtime broadcast channels.
+
+---
 
 ## 🔒 Security
-Row Level Security (RLS) is strictly enabled across all tables to ensure users can only view and send messages in chats they actively participate in.
+
+- **Row Level Security (RLS)** is strictly enforced across all database tables.
+- Users can only query and mutate chats, messages, and profiles that they are explicitly authorized to access.
+
+---
+
+## 📄 License
+
+This project is open-source and available under the [MIT License](LICENSE).
